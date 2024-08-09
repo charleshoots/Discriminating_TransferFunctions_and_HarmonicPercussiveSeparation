@@ -511,11 +511,12 @@ class DayNoise(object):
             if self.ncomp == 3 or self.ncomp == 4:
                 sl_psd1 = 10*np.log10(psd1)
                 sl_psd2 = 10*np.log10(psd2)
-
-        # #Convert seismic displacement to acceleration
-        sl_psd1 = sl_psd1 + disp_to_accel
-        sl_psd2 = sl_psd2 + disp_to_accel
-        sl_psdZ = sl_psdZ + disp_to_accel
+        seismic_log_diff_disp2accel = True
+        if seismic_log_diff_disp2accel:
+            #Convert seismic displacement to acceleration
+            sl_psd1 = sl_psd1 + disp_to_accel
+            sl_psd2 = sl_psd2 + disp_to_accel
+            sl_psdZ = sl_psdZ + disp_to_accel
 
         # Remove mean of the log PSDs
 

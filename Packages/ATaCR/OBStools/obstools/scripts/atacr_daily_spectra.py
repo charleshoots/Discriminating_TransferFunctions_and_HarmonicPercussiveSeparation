@@ -419,6 +419,7 @@ def main(args=None):
         # [0.001, 0.005, 45., 50.]
         # # -----------------------------------------------------------------<<<<<TEST-ONE>>>>>
         print('-< TEST ONE >-' * 500)
+        seismic_log_diff_disp2accel = True
         trace_generator = utils.get_data_generator(datapath, 
                             UTCDateTime(tstart), UTCDateTime(tend),
                             seismic_units="DISP",
