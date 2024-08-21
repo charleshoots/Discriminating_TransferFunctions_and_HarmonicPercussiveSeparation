@@ -268,7 +268,7 @@ class DayNoise(object):
 
     def QC_daily_spectra(self, pd=[0.004, 0.2], tol=1.5, alpha=0.05,
                          smooth=True, fig_QC=False, debug=False, save=None,
-                         form='png'):
+                         form='png',diff2accel=True):
         """
         Method to determine daily time windows for which the spectra are
         anomalous and should be discarded in the calculation of the
@@ -404,16 +404,19 @@ class DayNoise(object):
         
 
 
-
+        if diff2accel:
+            plot_unit_scale = disp_to_accel
+        else:
+            plot_unit_scale = 0
 
         if fig_QC:
             if self.ncomp == 2:
                 plt.figure(1)
                 plt.subplot(2, 1, 1)
-                plt.pcolormesh(t, f, 10*np.log10(psdZ) , shading='auto')
+                plt.pcolormesh(t, f, 10*np.log10(psdZ)+plot_unit_scale, shading='auto')
                 plt.title('Z', fontdict={'fontsize': 8})
                 plt.subplot(2, 1, 2)
-                plt.pcolormesh(t, f, 10*np.log10(psdP), shading='auto')
+                plt.pcolormesh(t, f, 10*np.log10(psdP)+plot_unit_scale, shading='auto')
                 plt.title('P', fontdict={'fontsize': 8})
                 plt.xlabel('Seconds')
                 plt.tight_layout()
@@ -430,13 +433,13 @@ class DayNoise(object):
             elif self.ncomp == 3:
                 plt.figure(1)
                 plt.subplot(3, 1, 1)
-                plt.pcolormesh(t, f, 10*np.log10(psd1), shading='auto')
+                plt.pcolormesh(t, f, 10*np.log10(psd1)+plot_unit_scale, shading='auto')
                 plt.title('H1', fontdict={'fontsize': 8})
                 plt.subplot(3, 1, 2)
-                plt.pcolormesh(t, f, 10*np.log10(psd2), shading='auto')
+                plt.pcolormesh(t, f, 10*np.log10(psd2)+plot_unit_scale, shading='auto')
                 plt.title('H2', fontdict={'fontsize': 8})
                 plt.subplot(3, 1, 3)
-                plt.pcolormesh(t, f, 10*np.log10(psdZ), shading='auto')
+                plt.pcolormesh(t, f, 10*np.log10(psdZ)+plot_unit_scale, shading='auto')
                 plt.title('Z', fontdict={'fontsize': 8})
                 plt.xlabel('Seconds')
                 plt.tight_layout()
@@ -453,16 +456,16 @@ class DayNoise(object):
             else:
                 plt.figure(1)
                 plt.subplot(4, 1, 1)
-                plt.pcolormesh(t, f, 10*np.log10(psd1), shading='auto')
+                plt.pcolormesh(t, f, 10*np.log10(psd1)+plot_unit_scale, shading='auto')
                 plt.title('H1', fontdict={'fontsize': 8})
                 plt.subplot(4, 1, 2)
-                plt.pcolormesh(t, f, 10*np.log10(psd2), shading='auto')
+                plt.pcolormesh(t, f, 10*np.log10(psd2)+plot_unit_scale, shading='auto')
                 plt.title('H2', fontdict={'fontsize': 8})
                 plt.subplot(4, 1, 3)
-                plt.pcolormesh(t, f, 10*np.log10(psdZ), shading='auto')
+                plt.pcolormesh(t, f, 10*np.log10(psdZ)+plot_unit_scale, shading='auto')
                 plt.title('Z', fontdict={'fontsize': 8})
                 plt.subplot(4, 1, 4)
-                plt.pcolormesh(t, f, 10*np.log10(psdP), shading='auto')
+                plt.pcolormesh(t, f, 10*np.log10(psdP)+plot_unit_scale, shading='auto')
                 plt.title('P', fontdict={'fontsize': 8})
                 plt.xlabel('Seconds')
                 plt.tight_layout()
@@ -511,16 +514,10 @@ class DayNoise(object):
             if self.ncomp == 3 or self.ncomp == 4:
                 sl_psd1 = 10*np.log10(psd1)
                 sl_psd2 = 10*np.log10(psd2)
-        seismic_log_diff_disp2accel = True
-        if seismic_log_diff_disp2accel:
-            #Convert seismic displacement to acceleration
-            sl_psd1 = sl_psd1 + disp_to_accel
-            sl_psd2 = sl_psd2 + disp_to_accel
-            sl_psdZ = sl_psdZ + disp_to_accel
 
         # Remove mean of the log PSDs
 
-        dsl_psdZ = sl_psdZ[ff, :] - np.mean(np.abs(sl_psdZ[ff, :]), axis=0)
+        dsl_psdZ = sl_psdZ[ff, :] - np.mean(sl_psdZ[ff, :], axis=0)
         if self.ncomp == 2:
             dsl_psdP = sl_psdP[ff, :] - np.mean(sl_psdP[ff, :], axis=0)
             dsls = [dsl_psdZ, dsl_psdP]
@@ -529,10 +526,24 @@ class DayNoise(object):
             dsl_psd2 = sl_psd2[ff, :] - np.mean(sl_psd2[ff, :], axis=0)
             dsls = [dsl_psd1, dsl_psd2, dsl_psdZ]
         else:
-            dsl_psd1 = sl_psd1[ff, :] - np.mean(np.abs(sl_psd1[ff, :]), axis=0)
-            dsl_psd2 = sl_psd2[ff, :] - np.mean(np.abs(sl_psd2[ff, :]), axis=0)
-            dsl_psdP = sl_psdP[ff, :] - np.mean(np.abs(sl_psdP[ff, :]), axis=0)
+            dsl_psd1 = sl_psd1[ff, :] - np.mean(sl_psd1[ff, :], axis=0)
+            dsl_psd2 = sl_psd2[ff, :] - np.mean(sl_psd2[ff, :], axis=0)
+            dsl_psdP = sl_psdP[ff, :] - np.mean(sl_psdP[ff, :], axis=0)
             dsls = [dsl_psd1, dsl_psd2, dsl_psdZ, dsl_psdP]
+
+        # dsl_psdZ = sl_psdZ[ff, :] - np.mean(np.abs(sl_psdZ[ff, :]), axis=0)
+        # if self.ncomp == 2:
+        #     dsl_psdP = sl_psdP[ff, :] - np.mean(np.abs(sl_psdP[ff, :]), axis=0)
+        #     dsls = [dsl_psdZ, dsl_psdP]
+        # elif self.ncomp == 3:
+        #     dsl_psd1 = sl_psd1[ff, :] - np.mean(np.abs(sl_psd1[ff, :]), axis=0)
+        #     dsl_psd2 = sl_psd2[ff, :] - np.mean(np.abs(sl_psd2[ff, :]), axis=0)
+        #     dsls = [dsl_psd1, dsl_psd2, dsl_psdZ]
+        # else:
+        #     dsl_psd1 = sl_psd1[ff, :] - np.mean(np.abs(sl_psd1[ff, :]), axis=0)
+        #     dsl_psd2 = sl_psd2[ff, :] - np.mean(np.abs(sl_psd2[ff, :]), axis=0)
+        #     dsl_psdP = sl_psdP[ff, :] - np.mean(np.abs(sl_psdP[ff, :]), axis=0)
+        #     dsls = [dsl_psd1, dsl_psd2, dsl_psdZ, dsl_psdP]
 
         if self.ncomp == 2:
             plt.figure(2)
@@ -615,8 +626,8 @@ class DayNoise(object):
         self.goodwins = goodwins
 
         if fig_QC:
-            power = Power(dsl_psd1, dsl_psd2, dsl_psdZ, dsl_psdP) # e.g. '7D.M07A.2011.310.QC.png'
-            plot = plotting.fig_QC(f[ff], power, goodwins, self.ncomp, key=self.key)
+            power = Power(sl_psd1, sl_psd2, sl_psdZ, sl_psdP) # e.g. '7D.M07A.2011.310.QC.png'
+            plot = plotting.fig_QC(f, power, goodwins, self.ncomp, key=self.key + ' | ' + self.tkey)
 
             # Save or show figure
             if save:
@@ -779,7 +790,7 @@ class DayNoise(object):
 
         if fig_average:
             plot = plotting.fig_average(self.f, self.power, bad, self.goodwins,
-                                        self.ncomp, key=self.key) # e.g. '7D.M07A.2011.310.average.png'
+                                        self.ncomp, key=self.key + ' | ' + self.tkey) # e.g. '7D.M07A.2011.310.average.png'
             if save:
                 fname = self.key + '.' + self.tkey + '.' + 'average.' + form
                 if isinstance(save, Path):
@@ -1247,7 +1258,7 @@ class StaNoise(object):
         indwin = np.argwhere(gooddays == True)
 
         while moveon == False:
-            print(str(moveon))
+            # print(str(moveon))
             ubernorm = np.empty((self.ncomp, np.sum(gooddays)))
             for ind_u, dsl in enumerate(dsls):
                 normvar = np.zeros(np.sum(gooddays))
@@ -1293,7 +1304,7 @@ class StaNoise(object):
         if fig_QC:
             power = Power(sl_c11, sl_c22, sl_cZZ, sl_cPP)
             plot = plotting.fig_QC(self.f, power, gooddays,
-                                   self.ncomp, key=self.key)
+                                   self.ncomp, key=self.key + ' | Station Day Averages',mode='StaNoise')
             if save:
                 fname = self.key + '.' + 'QC.' + form
                 if isinstance(save, Path):
@@ -1426,7 +1437,7 @@ class StaNoise(object):
         if fig_average:
             plot = plotting.fig_average(
                 self.f, self.power, bad,
-                self.gooddays, self.ncomp, key=self.key)
+                self.gooddays, self.ncomp, key=self.key + ' | Station Average')
             if save:
                 fname = self.key + '.' + 'average.' + form
                 if isinstance(save, Path):

@@ -31,7 +31,7 @@ from obstools.atacr import utils
 from obspy import Trace
 
 
-def fig_QC(f, power, gooddays, ncomp, key=''):
+def fig_QC(f, power, gooddays, ncomp, key='',diff2accel=True,mode='DayNoise'):
     """
     Function to plot the Quality-Control step of the analysis. This function
     is used in both the `atacr_daily_spectra` or `atacr_clean_spectra` scripts.
@@ -58,15 +58,18 @@ def fig_QC(f, power, gooddays, ncomp, key=''):
     sl_cPP = power.cPP
 
     if ncomp == 2:
+        comps = ['Z','P']
         sls = [sl_cZZ, sl_cPP]
         title = ['HZ component, Station: '+key,
                  'HP component, Station: '+key]
     elif ncomp == 3:
+        comps = ['1','2','Z']
         sls = [sl_c11, sl_c22, sl_cZZ]
         title = ['H1 component, Station: '+key,
                  'H2 component, Station: '+key,
                  'HZ component, Station: '+key]
     else:
+        comps = ['P','1','2','Z']
         sls = [sl_cPP, sl_c11, sl_c22, sl_cZZ]
         title = ['HP component, Station: '+key,
                  'H1 component, Station: '+key,
@@ -75,14 +78,21 @@ def fig_QC(f, power, gooddays, ncomp, key=''):
 
     # Extract only positive frequencies
     faxis = f > 0
+    f = f[faxis]
+    sls = [cc[faxis] if cc is not None else cc for cc in sls]
+    if mode=='StaNoise':
+        decrement = 2*10*np.log10(10) #aka...20
+        sls = [cc + decrement if cc is not None else cc for cc in sls]
+
+    if diff2accel:
+        disp_to_accel = 40*np.log10(2*np.pi*f,where=f>0.).reshape(-1,1)
+        sls = [g+disp_to_accel if g is not None and comps[i]!='P' else g for i,g in enumerate(sls)]
+    sls = [g-np.mean(abs(g),axis=0) if g is not None else g for i,g in enumerate(sls)]
 
     fig = plt.figure(6)
     for i, sl in enumerate(sls):
-        # if (ncomp % 2)==0:
-        #     ax = fig.add_subplot(int(ncomp/2), int(ncomp/2), i+1)
-        # else:
         ax = fig.add_subplot(ncomp, 1, i+1)
-        ax.semilogx(f[faxis], sl[:, gooddays][faxis], 'k', lw=0.5)
+        ax.semilogx(f, sl[:, gooddays], 'k', lw=0.5)
         ax.set_xlim(1/150,5)
         if i==0:
             ax.set_ylim(top=150)
@@ -93,7 +103,7 @@ def fig_QC(f, power, gooddays, ncomp, key=''):
             ax.set_ylim(bottom=-200)
             tick_increment = 20
         if np.sum(~gooddays) > 0:
-            plt.semilogx(f[faxis],sl[:, ~gooddays][faxis], 'r', lw=0.5)
+            plt.semilogx(f,sl[:, ~gooddays], 'r', lw=0.5)
         ax.set_title(title[i], fontdict={'fontsize': 8})
         if i == len(sls)-1:
             plt.xlabel('Frequency (Hz)', fontdict={'fontsize': 8})
@@ -105,7 +115,7 @@ def fig_QC(f, power, gooddays, ncomp, key=''):
     return plt
 
 
-def fig_average(f, power, bad, gooddays, ncomp, key=''):
+def fig_average(f, power, bad, gooddays, ncomp, key='',diff2accel=True):
     """
     Function to plot the averaged spectra (those qualified as 'good' in the
     QC step). This function is used
@@ -138,39 +148,69 @@ def fig_average(f, power, bad, gooddays, ncomp, key=''):
     bcZZ = bad.cZZ
     bcPP = bad.cPP
 
+
     if ncomp == 2:
+        comps = ['Z','P']
         ccs = [cZZ, cPP]
         bcs = [bcZZ, bcPP]
         title = ['Average HZ, Station: '+key,
                  'Average HP, Station: '+key]
     elif ncomp == 3:
+        comps = ['1','2','Z']
         ccs = [c11, c22, cZZ]
         bcs = [bc11, bc22, bcZZ]
         title = ['Average H1, Station: '+key,
                  'Average H2, Station: '+key,
                  'Average HZ, Station: '+key]
     else:
-        ccs = [c11, c22, cZZ, cPP]
-        bcs = [bc11, bc22, bcZZ, bcPP]
-        title = ['Average H1, Station: '+key,
+        comps = ['P','1','2','Z']
+        ccs = [cPP, c11, c22, cZZ]
+        bcs = [bcPP, bc11, bc22, bcZZ]
+        title = ['Average HP, Station: '+key,
+                 'Average H1, Station: '+key,
                  'Average H2, Station: '+key,
-                 'Average HZ, Station: '+key,
-                 'Average HP, Station: '+key]
+                 'Average HZ, Station: '+key]
 
     # Extract only positive frequencies
     faxis = f > 0
-
-    plt.figure()
+    f = f[faxis]
+    decrement = 2*10*np.log10(10) #aka...20
+    ccs = [cc[faxis] if cc is not None else cc for cc in ccs]
+    bcs = [cc[faxis] if cc is not None else cc for cc in bcs]
+    # Smooth prior to plotting
+    ccs = [10*np.log10(cc,where=(cc > 0.)) if cc is not None else cc for cc in ccs]
+    bcs = [10*np.log10(cc,where=(cc > 0.)) if cc is not None else cc for cc in bcs]
+    ccs = [utils.smooth(cc, 50) if cc is not None else cc for cc in ccs]
+    bcs = [utils.smooth(cc, 50) if cc is not None else cc for cc in bcs]
+    if diff2accel:
+        disp_to_accel = 40*np.log10(2*np.pi*f,where=f>0.)
+        ccs = [g+disp_to_accel if g is not None and comps[i]!='P' else g for i,g in enumerate(ccs)]
+        bcs = [g+disp_to_accel if g is not None and comps[i]!='P' else g for i,g in enumerate(bcs)]
+    ccs = [c - np.mean(abs(c),axis=0) if c is not None else c for i,c in enumerate(ccs)]
+    bcs = [c - np.mean(abs(c),axis=0) if c is not None else c for i,c in enumerate(bcs)]
+    ccs = [g+decrement if g is not None and comps[i]!='P' else g for i,g in enumerate(ccs)]
+    bcs = [g+decrement if g is not None and comps[i]!='P' else g for i,g in enumerate(bcs)]
+    fig = plt.figure()
     for i, (cc, bc) in enumerate(zip(ccs, bcs)):
-        ax = plt.subplot(ncomp, 1, i+1)
-        ax.semilogx(
-            f[faxis], utils.smooth(np.log(cc)[faxis], 50), 'k', lw=0.5)
+        ax = fig.add_subplot(ncomp, 1, i+1)
+        ax.semilogx(f,cc, 'k', lw=0.5)
+        ax.set_xlim(1/150,5)
         if np.sum(~gooddays) > 0:
-            ax.semilogx(
-                f[faxis], utils.smooth(np.log(bc)[faxis], 50), 'r', lw=0.5)
+            ax.semilogx(f, bc, 'r', lw=0.5)
         ax.set_title(title[i], fontdict={'fontsize': 8})
+        if comps[i]=='P':
+            ax.set_ylim(top=150)
+            ax.set_ylim(bottom=-100)
+            tick_increment = 50
+        else:
+            ax.set_ylim(top=-40)
+            ax.set_ylim(bottom=-200)
+            tick_increment = 20
         if i == len(ccs)-1:
             plt.xlabel('Frequency (Hz)', fontdict={'fontsize': 8})
+        ax.set_yticks(np.arange(ax.get_ylim()[0],ax.get_ylim()[1],tick_increment))
+    plt.tight_layout()
+    fig.set_size_inches([4,10])
     plt.tight_layout()
 
     return plt
@@ -226,22 +266,22 @@ def fig_av_cross(f, field, gooddays, ftype, ncomp, key='',
         fields = [field12, field1Z, field1P, field2Z, field2P, fieldZP]
         title = [': 12', ': 1Z', ': 1P', ': 2Z', ': 2P', ': ZP']
         fig = plt.figure(figsize=(6, 8))
-
+    fields = [c[faxis] for c in fields]
     for i, field in enumerate(fields):
         ax = fig.add_subplot(len(fields), 1, i+1)
         # Extact field
         if ftype == 'Admittance':
             ax.loglog(
-                f[faxis], field[:, gooddays][faxis], color='gray', **kwargs)
+                f[faxis], field[:, gooddays], color='gray', **kwargs)
             if np.sum(~gooddays) > 0:
                 ax.loglog(
-                    f[faxis], field[:, ~gooddays][faxis], color='r', **kwargs)
+                    f[faxis], field[:, ~gooddays], color='r', **kwargs)
         else:
             ax.semilogx(
-                f[faxis], field[:, gooddays][faxis], color='gray', **kwargs)
+                f[faxis], field[:, gooddays], color='gray', **kwargs)
             if np.sum(~gooddays) > 0:
                 ax.semilogx(
-                    f[faxis], field[:, ~gooddays][faxis], color='r', **kwargs)
+                    f[faxis], field[:, ~gooddays], color='r', **kwargs)
         plt.ylabel(ftype, fontdict={'fontsize': 8})
         plt.title(key+' '+ftype+title[i], fontdict={'fontsize': 8})
         if i == len(fields)-1:

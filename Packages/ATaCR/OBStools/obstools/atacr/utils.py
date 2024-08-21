@@ -190,7 +190,7 @@ def update_stats(tr, stla, stlo, stel, cha, evla=None, evlo=None):
         tr.stats.sac.evlo = evlo
     return tr
 
-def get_data(datapath, tstart, tend,seismic_pre_filt=[0.001, 0.005, 45.0, 50.0], pressure_pre_filt=[0.001, 0.005, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
+def get_data(datapath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
     """
     Function to grab all available noise data given a path and data time range
 
@@ -277,7 +277,7 @@ def get_data(datapath, tstart, tend,seismic_pre_filt=[0.001, 0.005, 45.0, 50.0],
     return trN1, trN2, trNZ, trNP
 
 
-def get_event(eventpath, tstart, tend,seismic_pre_filt=[0.001, 0.005, 45.0, 50.0], pressure_pre_filt=[0.001, 0.005, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
+def get_event(eventpath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
 
     """
     Function to grab all available earthquake data given a path and data time
@@ -671,7 +671,7 @@ def get_files(datapath, tstart, tend):
         t1 += 3600.*24.
     return [(a,b,c,d) for a,b,c,d in zip(trN1_files,trN2_files,trNZ_files,trNP_files)]
 
-def load_data(files,seismic_pre_filt=[0.001, 0.005, 45.0, 50.0], pressure_pre_filt=[0.001, 0.005, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
+def load_data(files,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
     """
     Loads four files defined by the tuple, files.
     -CHoots, 2023
@@ -724,7 +724,7 @@ def load_data(files,seismic_pre_filt=[0.001, 0.005, 45.0, 50.0], pressure_pre_fi
         # trNP.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
         return trN1, trN2, trNZ, trNP
 
-def get_data_generator(datapath, tstart, tend,seismic_pre_filt=[0.001, 0.005, 45.0, 50.0], pressure_pre_filt=[0.001, 0.005, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=60,seismic_water_level=None):
+def get_data_generator(datapath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=60,seismic_water_level=None):
     """
     The same as get_data but now factored as a generator object such that the data is never loaded until its index is called.
     Generators can only be iterated, and activated by use in a for loop

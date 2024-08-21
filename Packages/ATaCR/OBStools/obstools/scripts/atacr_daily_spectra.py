@@ -418,46 +418,14 @@ def main(args=None):
         # # -----------------------------------------------------------------
         # [0.001, 0.005, 45., 50.]
         # # -----------------------------------------------------------------<<<<<TEST-ONE>>>>>
-        print('-< TEST ONE >-' * 500)
-        seismic_log_diff_disp2accel = True
         trace_generator = utils.get_data_generator(datapath, 
                             UTCDateTime(tstart), UTCDateTime(tend),
                             seismic_units="DISP",
-                            seismic_pre_filt=[0.001, 0.005, 45.0, 50.0],
+                            seismic_pre_filt=[0.001, 0.002, 45.0, 50.0],
                             seismic_water_level=None,
                             pressure_units="DEF",
-                            pressure_pre_filt=[0.001, 0.005, 45.0, 50.0],
+                            pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],
                             pressure_water_level=None)
-        # # -----------------------------------------------------------------
-        # # -----------------------------------------------------------------<<<<<TEST-TWO>>>>>
-        # print('-< TEST TWO >-' * 500)
-        # trace_generator = utils.get_data_generator(datapath, 
-        #                     UTCDateTime(tstart), UTCDateTime(tend),
-        #                     seismic_units="DISP",
-        #                     seismic_pre_filt=[0.001, 0.005, 45.0, 50.0],
-        #                     seismic_water_level=60,
-        #                     pressure_units="DEF",
-        #                     pressure_pre_filt=[0.001, 0.005, 45.0, 50.0],
-        #                     pressure_water_level=60)
-        # # -----------------------------------------------------------------
-        # # -----------------------------------------------------------------<<<<<TEST-THREE>>>>>
-        # print('-< TEST THREE >-' * 500)
-        # trace_generator = utils.get_data_generator(datapath, 
-        #                     UTCDateTime(tstart), UTCDateTime(tend),
-        #                     seismic_units="DISP",
-        #                     seismic_pre_filt=[0.001, 0.005, 45.0, 50.0],
-        #                     seismic_water_level=60,
-        #                     pressure_units="VEL",
-        #                     pressure_pre_filt=[0.001, 0.005, 45.0, 50.0],
-        #                     pressure_water_level=None)
-        # # -----------------------------------------------------------------
-        # # -----------------------------------------------------------------
-        # trace_generator = utils.get_data_generator(datapath, 
-        #                                            UTCDateTime(tstart), 
-        #                                            UTCDateTime(tend),
-        #                                            pre_filt=args.pre_filt,
-        #                                            units=args.units) #<--This will save alot of memory
-
         # Window size
         window = args.window
         overlap = args.overlap
