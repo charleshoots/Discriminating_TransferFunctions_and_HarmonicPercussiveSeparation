@@ -748,7 +748,7 @@ def build_staquery(d,chan='H',ATaCR_Parent=None,staquery_output='./sta_query.pkl
                         staquery_output = os.getcwd() + staquery_output.replace('./','/')
                 else:
                         os.chdir(ATaCR_Parent)
-                        staquery_output = ATaCR_Parent + '/' + staquery_output.replace('./','')
+                        staquery_output = str(ATaCR_Parent) + '/' + staquery_output.replace('./','')
         for csta in d.iloc:
                 net = csta.Network
                 sta = csta.Station
@@ -818,7 +818,7 @@ def DayNoiseWhileLoop(catalog,NoiseFolder,ATaCR_Parent,days=10,attempts=50,seed=
       cat = catalog.copy()
       stafolders = [f for f in NoiseFolder.glob('*/') if f.is_dir()]
       stafolders = [stafolders[np.where(c==np.array([g.name for g in stafolders]))[0][0]] for c in cat.StaName.iloc]
-      STEP = 3
+
       if isinstance(seed,str):
             seed = int(''.join([str(ord(a)) for a in seed]))
       else:
@@ -836,7 +836,7 @@ def DayNoiseWhileLoop(catalog,NoiseFolder,ATaCR_Parent,days=10,attempts=50,seed=
                         query_day_len = days - nfiles
                         icatalog = cat[cat.Station==str(cstaf).split('/')[-1].split('.')[-1]]
                         print('Attempt: ' + str(queries) + ', Days needed: ' + str(query_day_len))
-                        ObsQA.TOOLS.io.Run_ATaCR(icatalog, ATaCR_Parent = ATaCR_Parent,STEPS=[STEP],log_prefix=icatalog.StaName.iloc[0],days=query_day_len,seed=seed)
+                        ObsQA.TOOLS.io.DownloadDayNoise(icatalog, randomloop=False, ATaCR_Parent = NoiseFolder.parent,log_prefix=icatalog.StaName.iloc[0],days=query_day_len,seed=seed)
                         nfiles = len([f for f in cstaf.glob('*Z.SAC')])
                         if nfiles<days:
                                 print(' || Day requirements not satisfied. Attempting new seed. ||')
@@ -856,10 +856,9 @@ def DayNoiseWhileLoop(catalog,NoiseFolder,ATaCR_Parent,days=10,attempts=50,seed=
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def DownloadDayNoise(catalog,days=[],end_delta=24,event_mode=False,seed='MESSI_22FIFA_WORLD_CUP!',ATaCR_Parent=None,netsta_names=None,logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H'):
+def DownloadDayNoise(catalog,days=[],randomloop=True,end_delta=22,event_mode=False,seed='MESSI_22FIFA_WORLD_CUP!',ATaCR_Parent=None,netsta_names=None,logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H'):
         logfilename = log_prefix + '_Step_3_7_NoiseDownload_logfile.log'
         dateformat = '%Y.%j.%H.%M'
-        event_dt = 22
         if ATaCR_Parent is not None:
                 os.chdir(ATaCR_Parent)
         datafolder = Path('./Data/')
@@ -879,11 +878,13 @@ def DownloadDayNoise(catalog,days=[],end_delta=24,event_mode=False,seed='MESSI_2
                                 Starts = [e.time for e in Origins]
                         Ends = [e+(3600*24) for e in Starts]
                 elif isinstance(days,int):
+                        # Random days
                         Starts,Ends = ObsQA.TOOLS.io.randomdays(Station.Start,Station.End,seed=seed,days=days)
                 else:
+                        # Specific days
                         Starts = days
                         Ends = [datetime.datetime(year=s.year,month=s.month,day=s.day) + datetime.timedelta(hours=end_delta) for s in Starts]
-                # --Log file stdout stuff--
+                # Log file stdout
                 staname = Station.StaName
                 sta_folder = Path(datafolder / staname)
                 sta_folder.mkdir(exist_ok=True,parents=True)
@@ -891,17 +892,19 @@ def DownloadDayNoise(catalog,days=[],end_delta=24,event_mode=False,seed='MESSI_2
                         log_fout = logfolder / logfilename
                 else:
                         log_fout = sta_folder / logfilename
-                # original = sys.stdout
-                # sys.stdout = open(log_fout,'w+')
                 logging.basicConfig(stream=log_fout)
                 print('--' + staname + '--',flush=True)
 
                 ObsQA.TOOLS.io.build_staquery(d=Station.to_frame().T,staquery_output = staquery_output,chan=chan,ATaCR_Parent = ATaCR_Parent)
-                for j,(NoiseStart,NoiseEnd) in enumerate(zip(Starts,Ends)):
-                        print('<||>'*30)
-                        print(staname + ' Station ' +str(i+1) + '/' + str(len(catalog)) + ' - Day ' + str(j+1) + '/' + str(len(Starts)),flush=True)
-                        args = [staquery_output,'--start={}'.format(NoiseStart), '--end={}'.format(NoiseEnd)]
-                        atacr_download_data.main(atacr_download_data.get_daylong_arguments(args))
+                if randomloop & isinstance(days,int):
+                        NoiseFolder = Path(ATaCR_Parent) / 'Data'
+                        ObsQA.TOOLS.io.DayNoiseWhileLoop(Station.to_frame().T,NoiseFolder,ATaCR_Parent,days=days,attempts=100)
+                else:
+                        for j,(NoiseStart,NoiseEnd) in enumerate(zip(Starts,Ends)):
+                                print('<||>'*30)
+                                print(staname + ' Station ' +str(i+1) + '/' + str(len(catalog)) + ' - Day ' + str(j+1) + '/' + str(len(Starts)),flush=True)
+                                args = [staquery_output,'--start={}'.format(NoiseStart), '--end={}'.format(NoiseEnd)]
+                                atacr_download_data.main(atacr_download_data.get_daylong_arguments(args))
         print(' ')
         print('----Noise Download Complete----')
         # sys.stdout = original
@@ -1172,7 +1175,6 @@ def Run_ATaCR(catalog, ATaCR_Parent = None, STEPS=[1,2,3,4,5,6,7], netsta_names=
                 if logoutput_subfolder is None:
                         logoutput_subfolder = dirs['Py_Logs'] + '/3_7'
                 # ObsQA.TOOLS.io.DownloadNoise(catalog,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,pre_event_day_aperture=pre_event_day_aperture,logoutput_subfolder=logoutput_subfolder,staquery_output=staquery_output,chan=chan,log_prefix=log_prefix)
-                # ObsQA.TOOLS.io.DayNoiseWhileLoop(catalog,NoiseFolder,ATaCR_Parent,days=10,attempts=50)
                 ObsQA.TOOLS.io.DownloadDayNoise(catalog,days=days,seed=seed,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,logoutput_subfolder=logoutput_subfolder,log_prefix = log_prefix,staquery_output=staquery_output,chan=chan,event_mode=event_mode)
                 print('Step 3/7 - COMPLETE: Download Day Data')
         if 4 in STEPS:

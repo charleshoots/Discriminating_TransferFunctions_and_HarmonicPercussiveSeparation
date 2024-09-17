@@ -598,17 +598,10 @@ def main(args=None):
             sth = st.select(component='1') + st.select(component='2') + \
                 st.select(component='Z')
             sth.detrend('demean')
-            ####### Remove responses
-            # print("*-"*20)
-            # print(args.pre_filt)
-            # print("*-"*20)
-            print("*   -> Removing responses - Seismic data | UNITS SET TO: " + args.units)
-            # sth.remove_response(pre_filt=args.pre_filt, output=args.units)
-
             # Extract traces - P
             if "P" in args.channels:
                 stp = st.select(component='H')
-                print("*   -> Removing responses - Pressure data")
+                # print("*   -> Removing responses - Pressure data")
                 # stp.remove_response(pre_filt=args.pre_filt)
 
                 trP = stp[0]
