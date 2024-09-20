@@ -35,7 +35,7 @@ from argparse import ArgumentParser
 from os.path import exists as exist
 from numpy import nan
 import os
-
+import matplotlib.pyplot as plt
 def get_correct_arguments(argv=None):
     """
     Get Options from :class:`~optparse.OptionParser` objects.
@@ -359,10 +359,12 @@ def main(args=None):
                     plot.savefig(
                         plotpath / (fname + '.' + args.form),
                         dpi=300, bbox_inches='tight', format=args.form)
+                    plotting.plt.close('all')
                 else:
                     plot.show()
 
             # Cycle through corresponding TF files
+
             for transfile in trans_files:
 
                 # Skip hidden files and folders
@@ -411,6 +413,7 @@ def main(args=None):
                                         plotpath / (fname + '.' + args.form),
                                         dpi=300, bbox_inches='tight',
                                         format=args.form)
+                                    plotting.plt.close('all')
                                 else:
                                     plot.show()
                             # Save corrected data to disk
@@ -453,10 +456,18 @@ def main(args=None):
                     if not args.skip_daily:
                         evprefix = eventstream.tstamp.split('.')
                         evstamp = evprefix[0]+'.'+evprefix[1]+'.'
-                        if tfprefix == evstamp:
+
+                        #Prioritizes choosing the nearest preceeding day. If one does not exist, it chooses the nearest following day.
+                        days = [UTCDateTime.strptime(str(f.name).split('.transfunc.pkl')[0],format='%Y.%j') for f in trans_files if not '-' in str(f)]
+                        if min([d-UTCDateTime.strptime(evstamp,'%Y.%j.') for d in days])<0:
+                            nearestday = max([d for d in days if d<UTCDateTime.strptime(evstamp,'%Y.%j.')]).strftime('%Y.%j.')
+                        else:
+                            nearestday = min(days).strftime('%Y.%j.')
+
+                        # if tfprefix == evstamp:
+                        if tfprefix==nearestday:
                             print(str(transfile) +
                                   " file found - applying transfer functions")
-
                             try:
                                 file = open(transfile, 'rb')
                                 tfaverage = pickle.load(file)
@@ -481,7 +492,7 @@ def main(args=None):
                                         plotpath / (fname + '.' + args.form),
                                         dpi=300, bbox_inches='tight',
                                         format=args.form)
-                                    
+                                    plotting.plt.close('all')
                                 else:
                                     plot.show()
                             # Save corrected data to disk

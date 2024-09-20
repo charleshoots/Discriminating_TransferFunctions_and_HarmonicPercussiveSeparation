@@ -29,7 +29,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from obstools.atacr import utils
 from obspy import Trace
-
+from obspy import Stream
 
 def fig_QC(f, power, gooddays, ncomp, key='',diff2accel=True,mode='DayNoise'):
     """
@@ -628,6 +628,61 @@ def fig_event_raw(evstream, fmin=1./150., fmax=2.):
     plt.tight_layout()
 
     return plt
+
+
+# def fig_event_corrected(evstream, TF_list, fmin=1./150., fmax=2.,taper=0.1):
+#     """
+#     Function to plot the corrected vertical component seismograms.
+
+#     Parameters
+#     ----------
+#     evstream : :class:`~obtsools.classes.EventStream`
+#         Container for the event stream data
+#     Tf_list : list
+#         List of Dictionary elements of transfer functions used
+#         for plotting the corrected vertical component.
+
+#     """
+#     # trZ = evstream.trZ.copy()
+#     # trZ.taper(taper,side='both')
+#     # trZ.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
+#     # corrected = dict()
+#     # [corrected.update({key:Trace(data=evstream.correct[key],header=trZ.stats).copy()}) for key in list(evstream.correct.keys())]
+#     # [corrected[c].taper(taper,side='both') for c in list(corrected.keys())]
+#     # [corrected[c].filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True) for c in list(corrected.keys())]
+#     # Unpack vertical trace and filter
+#     keys = ['Z1','Z2-1','ZP-21','ZH','ZP-H','ZP']
+#     # Aggregate
+#     st = Stream()
+#     st.append(evstream.trZ.copy())
+#     [st.append(Trace(data=evstream.correct[key],header=st[0].stats).copy()) for key in list(evstream.correct.keys())]
+
+#     # Preproc
+#     # st.taper(taper,side='both')
+#     st.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
+
+#     # Disagregate
+#     raw,st = st[0],st[1:]
+#     corrected = dict()
+#     dummyindex = raw.copy()
+#     dummyindex.data = dummyindex.data*np.nan
+#     [corrected.update({key:dummyindex}) for key in keys]
+#     [corrected.update({key:tr}) for key,tr in zip(list(evstream.correct.keys()),st)]
+#     taxis = raw.times()
+
+#     # fig, axes = plt.subplots(nrows=6, ncols=1,figsize=(8, 8),layout='constrained',squeeze=True,sharey='col',sharex='col')
+#     fig, axes = plt.subplots(nrows=6, ncols=1,figsize=(8, 8),squeeze=True,sharey='col',sharex='col')
+#     # ylim = [raw.data.min(),raw.data.max()]
+#     # ylim = [np.min(np.array([corrected[c].data for c in list(evstream.correct.keys())]).min(axis=0)),max(np.array([corrected[c].data for c in list(evstream.correct.keys())]).max(axis=0))]
+#     # [a.set_ylim(ylim) for a in axes]
+#     [a.set_xlim((0., taxis[-1])) for a in axes]
+#     [a.plot(taxis, raw.data, 'lightgray', lw=0.5) for a in axes]
+#     [a.plot(taxis, corrected[c].data, 'k', lw=0.5) for c,a in zip(keys,axes)]
+#     [a.set_title(evstream.key + ' ' + evstream.tstamp +':' + key, fontdict={'fontsize': 8}) for key,a in zip(keys,axes)]
+#     [a.ticklabel_format(axis='y', style='sci', useOffset=True,scilimits=(-3, 3)) for a in axes]
+#     plt.xlabel('Time since earthquake (sec)')
+#     plt.tight_layout()
+#     return fig
 
 
 def fig_event_corrected(evstream, TF_list, fmin=1./150., fmax=2.):

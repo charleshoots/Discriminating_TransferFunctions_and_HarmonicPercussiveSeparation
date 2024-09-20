@@ -12,7 +12,7 @@ sys.path.insert(0, str(project_path / 'Packages' / 'ATaCR'/ 'OBStools'))
 import ObsQA
 from comp_tools import *
 # ---------------------------------------------------------------------------------------------------
-# ============================================ FOLDERS ===========================================
+# ============================================ FOLDERS ==============================================
 # ---------------------------------------------------------------------------------------------------
 project_path = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp')
 ATaCR_DataFolder = str(project_path / '_DataArchive' / 'ATaCR_Data')
@@ -22,41 +22,17 @@ eventsfolder = dirs['Py_CorrectedTraces']
 eventsfolder = dirs['Py_CorrectedTraces']
 ATaCR_Parent = dirs['Py_DataParentFolder']
 catalog_full = pd.read_excel(str(project_path / '_DataArchive' / 'utilities' / 'Janiszewski_etal_2023_StationList.xlsx'))
-catalog = pd.read_pickle(eventsfolder + '/sta_catalog_proxima_test.pkl')
+catalog = pd.read_pickle(Path(ATaCR_Parent) / 'Catalogs' / 'sta_catalog_proxima_test.pkl')
 # evaudit = ObsQA.io.audit_events(eventsfolder)
-evaudit = pd.read_pickle(Path(eventsfolder) / 'event_record_audit.pkl')
+evaudit = pd.read_pickle(Path(ATaCR_Parent) / 'Catalogs' / 'event_record_audit.pkl')
 # ---------------------------------------------------------------------------------------------------
 # ============================================ LOAD DATA ===========================================
 # ---------------------------------------------------------------------------------------------------
 # ________________________________________________________________________________________________________________________________________________________________________
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-catalog = catalog[catalog.Station=='M07A']
-# ev_ind = np.where(np.array(catalog.iloc[0].Events)=='2012.181.21.07')[0][0]
-# catalog.Origin = [[catalog.Origin.iloc[0][ev_ind]]]
-# catalog.Metadata = [[catalog.Metadata.iloc[0][ev_ind]]]
-# catalog.Magnitude_mw = [[catalog.Magnitude_mw.iloc[0][ev_ind]]]
-# catalog.Events = [[catalog.Events.iloc[0][ev_ind]]]
-# catalog.Files = [[catalog.Files.iloc[0][ev_ind]]]
-# catalog.Depth_KM = [[catalog.Depth_KM.iloc[0][ev_ind]]]
-
-
-# days = ['2011.310',
-#  '2011.355',
-#  '2011.357',
-#  '2012.011',
-#  '2012.037',
-#  '2012.043',
-#  '2012.104',
-#  '2012.121',
-#  '2012.153',
-#  '2012.164',
-#  '2012.185']
-# days = [UTCDateTime.strptime(d,'%Y.%j') for d in days]
-days = 12
+# catalog = catalog[catalog.Station=='M07A']
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # ________________________________________________________________________________________________________________________________________________________________________
-
-
 ## ===============================================================================
 ## STEPS = [1,2,3,4,5,6,7] ##Absolutely every step - Downloading adds hour(s) or more to the process
 ## STEPS = [2,3] ##Everything but the download steps - About 4min for six stations.
@@ -72,13 +48,17 @@ days = 12
 ## Step-7: Correct events. Step b4 in ML-ATaCR.
 ## ===============================================================================
 ## ===============================================================================
-catalog = catalog.iloc[np.intersect1d(catalog.Station,['OBS32','M07A','CC08'],return_indices=True)[1]]
+catalog = catalog.iloc[np.intersect1d(catalog.Station,['M08A'],return_indices=True)[1]]
 cat = catalog.copy()
+cat = cat.reset_index()
+cat.loc[0,'Events'] = ['2012.069.07.09']
+
 # display(cat)
 event_mode = False
 Minmag,Maxmag=6.0,8.0
 fork = False
-STEPS = [1,2,3]
+STEPS = [7]
+days = 10
 ## =============================================================================== ## =============================================================================== ##
 ## =============================================================================== ## =============================================================================== ##
 ## =============================================================================== ## =============================================================================== ##

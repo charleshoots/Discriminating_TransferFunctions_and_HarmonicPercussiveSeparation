@@ -22,8 +22,9 @@ import matplotlib.pyplot as plt
 from obstools.scripts import comply_calculate, atacr_clean_spectra, atacr_correct_event, atacr_daily_spectra, atacr_download_data, atacr_download_event, atacr_transfer_functions
 # |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 # from classes import OBSMetrics
-#### \\\\\\\\\\\\\\\\\\\\\\t\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-#### ---------------------------------------------------------------------------------------------------------------------------------------------------
+#### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+#### ----------------------------------------------------------
+#### ----------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def audit_events(eventsfolder,Minmag=6.0,Maxmag=7.0):
     client = Client()
@@ -880,6 +881,10 @@ def DownloadDayNoise(catalog,days=[],randomloop=True,end_delta=22,event_mode=Fal
                 elif isinstance(days,int):
                         # Random days
                         Starts,Ends = ObsQA.TOOLS.io.randomdays(Station.Start,Station.End,seed=seed,days=days)
+                        Addendum = [Station.Start + datetime.timedelta(days=90) + datetime.timedelta(days=int((Station.End - Station.Start + datetime.timedelta(days=90)).days/5))*i for i in range(4)]
+                        Starts.extend([d.strftime('%Y-%m-%dT00:00:00.000000Z') for d in Addendum])
+                        Starts = list(np.unique(Starts))
+                        Ends = [(UTCDateTime(d) + 3600*24).strftime('%Y-%m-%dT00:00:00.000000Z') for d in Starts]
                 else:
                         # Specific days
                         Starts = days
