@@ -857,7 +857,7 @@ def DayNoiseWhileLoop(catalog,NoiseFolder,ATaCR_Parent,days=10,attempts=50,seed=
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def DownloadDayNoise(catalog,days=[],randomloop=True,end_delta=22,event_mode=False,seed='MESSI_22FIFA_WORLD_CUP!',ATaCR_Parent=None,netsta_names=None,logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H'):
+def DownloadDayNoise(catalog,days=[],randomloop=True,end_delta=24,event_mode=False,seed='MESSI_22FIFA_WORLD_CUP!',ATaCR_Parent=None,netsta_names=None,logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H'):
         logfilename = log_prefix + '_Step_3_7_NoiseDownload_logfile.log'
         dateformat = '%Y.%j.%H.%M'
         if ATaCR_Parent is not None:

@@ -5,6 +5,7 @@ import shutil
 import numpy as np
 import pandas as pd
 import sys
+from obspy import UTCDateTime
 sys.path.append(str(project_path / 'Packages'))
 sys.path.insert(0, str(project_path / 'Packages' / 'ATaCR'))
 sys.path.insert(0, str(project_path / 'Packages' / 'CompCode'))
@@ -48,10 +49,10 @@ evaudit = pd.read_pickle(Path(ATaCR_Parent) / 'Catalogs' / 'event_record_audit.p
 ## Step-7: Correct events. Step b4 in ML-ATaCR.
 ## ===============================================================================
 ## ===============================================================================
-catalog = catalog.iloc[np.intersect1d(catalog.Station,['M08A'],return_indices=True)[1]]
+catalog = catalog.iloc[np.intersect1d(catalog.Station,['M07A'],return_indices=True)[1]]
 cat = catalog.copy()
-cat = cat.reset_index()
-cat.loc[0,'Events'] = ['2012.069.07.09']
+# cat = cat.reset_index()
+# cat.loc[0,'Events'] = ['2012.069.07.09']
 
 # display(cat)
 event_mode = False
@@ -59,6 +60,9 @@ Minmag,Maxmag=6.0,8.0
 fork = False
 STEPS = [7]
 days = 10
+
+# days = ['2012.061','2012.062','2012.063','2012.064']
+# days = [UTCDateTime.strptime(d,format='%Y.%j') for d in days]
 ## =============================================================================== ## =============================================================================== ##
 ## =============================================================================== ## =============================================================================== ##
 ## =============================================================================== ## =============================================================================== ##

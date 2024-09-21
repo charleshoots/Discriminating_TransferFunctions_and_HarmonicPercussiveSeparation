@@ -630,10 +630,9 @@ def fig_event_raw(evstream, fmin=1./150., fmax=2.):
     return plt
 
 
-# def fig_event_corrected(evstream, TF_list, fmin=1./150., fmax=2.,taper=0.1):
+# def fig_event_corrected(evstream, TF_list, fmin=1./250., fmax=2.,taper=0.1):
 #     """
 #     Function to plot the corrected vertical component seismograms.
-
 #     Parameters
 #     ----------
 #     evstream : :class:`~obtsools.classes.EventStream`
@@ -641,7 +640,6 @@ def fig_event_raw(evstream, fmin=1./150., fmax=2.):
 #     Tf_list : list
 #         List of Dictionary elements of transfer functions used
 #         for plotting the corrected vertical component.
-
 #     """
 #     # trZ = evstream.trZ.copy()
 #     # trZ.taper(taper,side='both')
@@ -655,7 +653,7 @@ def fig_event_raw(evstream, fmin=1./150., fmax=2.):
 #     # Aggregate
 #     st = Stream()
 #     st.append(evstream.trZ.copy())
-#     [st.append(Trace(data=evstream.correct[key],header=st[0].stats).copy()) for key in list(evstream.correct.keys())]
+#     [st.append(Trace(data=evstream.correct[key].copy(),header=st[0].stats).copy()) for key in list(evstream.correct.keys())]
 
 #     # Preproc
 #     # st.taper(taper,side='both')
@@ -685,7 +683,7 @@ def fig_event_raw(evstream, fmin=1./150., fmax=2.):
 #     return fig
 
 
-def fig_event_corrected(evstream, TF_list, fmin=1./150., fmax=2.):
+def fig_event_corrected(evstream, TF_list, fmin=1./250., fmax=2.):
     """
     Function to plot the corrected vertical component seismograms.
 
@@ -698,24 +696,24 @@ def fig_event_corrected(evstream, TF_list, fmin=1./150., fmax=2.):
         for plotting the corrected vertical component.
 
     """
-
+    taper = 0
     # Unpack vertical trace and filter
     trZ = evstream.trZ.copy()
-    trZ.filter(
-        'bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
+    if taper>0:
+        trZ.taper(taper)
+    trZ.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
     sr = trZ.stats.sampling_rate
     taxis = np.arange(0., trZ.stats.npts/sr, 1./sr)
 
     plt.figure(figsize=(8, 8))
 
     plt.subplot(611)
-    plt.plot(
-        taxis, trZ.data, 'lightgray', lw=0.5)
+    plt.plot(taxis, trZ.data, 'lightgray', lw=0.5)
     if TF_list['Z1']:
-        tr = Trace(
-            data=evstream.correct['Z1'],
-            header=trZ.stats).filter(
-            'bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
+        tr = Trace(data=evstream.correct['Z1'],header=trZ.stats)
+        if taper>0:
+            tr.taper(taper)
+        tr.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
         plt.plot(taxis, tr.data, 'k', lw=0.5)
     plt.title(evstream.key + ' ' + evstream.tstamp +
               ': Z1', fontdict={'fontsize': 8})
@@ -727,10 +725,10 @@ def fig_event_corrected(evstream, TF_list, fmin=1./150., fmax=2.):
     plt.plot(
         taxis, trZ.data, 'lightgray', lw=0.5)
     if TF_list['Z2-1']:
-        tr = Trace(
-            data=evstream.correct['Z2-1'],
-            header=trZ.stats).filter(
-            'bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
+        tr = Trace(data=evstream.correct['Z2-1'],header=trZ.stats)
+        if taper>0:
+            tr.taper(taper)        
+        tr.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
         plt.plot(taxis, tr.data, 'k', lw=0.5)
     plt.title(evstream.tstamp + ': Z2-1', fontdict={'fontsize': 8})
     plt.gca().ticklabel_format(axis='y', style='sci', useOffset=True,
@@ -741,10 +739,10 @@ def fig_event_corrected(evstream, TF_list, fmin=1./150., fmax=2.):
     plt.plot(
         taxis, trZ.data, 'lightgray', lw=0.5)
     if TF_list['ZP-21']:
-        tr = Trace(
-            data=evstream.correct['ZP-21'],
-            header=trZ.stats).filter(
-            'bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
+        tr = Trace(data=evstream.correct['ZP-21'],header=trZ.stats)
+        if taper>0:
+            tr.taper(taper)
+        tr.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
         plt.plot(taxis, tr.data, 'k', lw=0.5)
     plt.title(evstream.tstamp + ': ZP-21', fontdict={'fontsize': 8})
     plt.gca().ticklabel_format(axis='y', style='sci', useOffset=True,
@@ -755,10 +753,10 @@ def fig_event_corrected(evstream, TF_list, fmin=1./150., fmax=2.):
     plt.plot(
         taxis, trZ.data, 'lightgray', lw=0.5)
     if TF_list['ZH']:
-        tr = Trace(
-            data=evstream.correct['ZH'],
-            header=trZ.stats).filter(
-            'bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
+        tr = Trace(data=evstream.correct['ZH'],header=trZ.stats)
+        if taper>0:
+            tr.taper(taper)
+        tr.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
         plt.plot(taxis, tr.data, 'k', lw=0.5)
     plt.title(evstream.tstamp + ': ZH', fontdict={'fontsize': 8})
     plt.gca().ticklabel_format(axis='y', style='sci', useOffset=True,
@@ -769,10 +767,10 @@ def fig_event_corrected(evstream, TF_list, fmin=1./150., fmax=2.):
     plt.plot(
         taxis, trZ.data, 'lightgray', lw=0.5)
     if TF_list['ZP-H']:
-        tr = Trace(
-            data=evstream.correct['ZP-H'],
-            header=trZ.stats).filter(
-            'bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
+        tr = Trace(data=evstream.correct['ZP-H'],header=trZ.stats)
+        if taper>0:
+            tr.taper(taper)
+        tr.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
         plt.plot(taxis, tr.data, 'k', lw=0.5)
     plt.title(evstream.tstamp + ': ZP-H', fontdict={'fontsize': 8})
     plt.gca().ticklabel_format(axis='y', style='sci', useOffset=True,
@@ -783,10 +781,10 @@ def fig_event_corrected(evstream, TF_list, fmin=1./150., fmax=2.):
     plt.plot(
         taxis, trZ.data, 'lightgray', lw=0.5)
     if TF_list['ZP']:
-        tr = Trace(
-            data=evstream.correct['ZP'],
-            header=trZ.stats).filter(
-            'bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
+        tr = Trace(data=evstream.correct['ZP'],header=trZ.stats)
+        if taper>0:
+            tr.taper(taper)
+        tr.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
         plt.plot(taxis, tr.data, 'k', lw=0.5)
     plt.title(evstream.tstamp + ': ZP', fontdict={'fontsize': 8})
     plt.gca().ticklabel_format(axis='y', style='sci', useOffset=True,
