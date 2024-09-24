@@ -29,7 +29,16 @@ import numpy as np
 from matplotlib import pyplot as plt
 from obstools.atacr import utils
 from obspy import Trace
-from obspy import Stream
+from obspy import Stream,UTCDateTime
+from obspy.clients.syngine import Client as SynClient
+
+def get_synthetic(stanm,event,components='Z',units='velocity',dt=0.2,evformat='%Y.%j.%H.%M'):
+    synclient = SynClient()
+    net,sta = stanm.split('.')
+    evid=''.join(['GCMT:','C',UTCDateTime.strptime(event,evformat).strftime('%Y%m%d%H%M'),'A'])
+    print(''.join(['Downloading synthetic event: ',evid,',  Components: ',components, ', Units: ', units]))
+    st = synclient.get_waveforms(model='prem_a_2s', network=net, station=sta,eventid=evid,label=''.join([stanm,'_',event]),components=components,units=units,dt=dt)
+    return st
 
 def fig_QC(f, power, gooddays, ncomp, key='',diff2accel=True,mode='DayNoise'):
     """
@@ -582,11 +591,13 @@ def fig_event_raw(evstream, fmin=1./150., fmax=2.):
     trZ = evstream.trZ.copy()
     trP = evstream.trP.copy()
     st = Stream(traces=[tr for tr in [tr1, tr2, trZ, trP] if np.any(tr.data)])
+
     st.filter(
         'bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
-    sr = trZ.stats.sampling_rate
+    stats = trZ.stats
+    sr = stats.sampling_rate
 
-    taxis = np.arange(0., trZ.stats.npts/sr, 1./sr)
+    taxis = np.arange(0., stats.npts/sr, 1./sr)
 
     fig = plt.figure(figsize=(6, 6))
 
@@ -596,7 +607,7 @@ def fig_event_raw(evstream, fmin=1./150., fmax=2.):
                  ': Z', fontdict={'fontsize': 8})
     ax.ticklabel_format(axis='y', style='sci', useOffset=True,
                         scilimits=(-3, 3))
-    ax.set_xlim((0., trZ.stats.npts/sr))
+    ax.set_xlim((0., stats.npts/sr))
 
     if len(tr1.data > 0):
         ax = fig.add_subplot(4, 1, 2)
@@ -608,7 +619,7 @@ def fig_event_raw(evstream, fmin=1./150., fmax=2.):
 
         ax = fig.add_subplot(4, 1, 3)
         ax.plot(taxis, tr2.data, 'k', lw=0.5)
-        ax.set_xlim((0., trZ.stats.npts/sr))
+        ax.set_xlim((0., stats.npts/sr))
         ax.set_title(evstream.tstamp + ': 2', fontdict={'fontsize': 8})
         ax.ticklabel_format(axis='y', style='sci', useOffset=True,
                             scilimits=(-3, 3))
@@ -621,7 +632,7 @@ def fig_event_raw(evstream, fmin=1./150., fmax=2.):
         ax.plot(taxis, trP.data, 'k', lw=0.5)
         ax.ticklabel_format(axis='y', style='sci', useOffset=True,
                             scilimits=(-3, 3))
-        ax.set_xlim((0., trZ.stats.npts/sr))
+        ax.set_xlim((0., stats.npts/sr))
         ax.set_title(evstream.tstamp + ': P', fontdict={'fontsize': 8})
 
     plt.xlabel('Time since earthquake (sec)')
@@ -645,7 +656,7 @@ def fig_event_raw(evstream, fmin=1./150., fmax=2.):
 #     # trZ.taper(taper,side='both')
 #     # trZ.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
 #     # corrected = dict()
-#     # [corrected.update({key:Trace(data=evstream.correct[key],header=trZ.stats).copy()}) for key in list(evstream.correct.keys())]
+#     # [corrected.update({key:Trace(data=evstream.correct[key],header=stats).copy()}) for key in list(evstream.correct.keys())]
 #     # [corrected[c].taper(taper,side='both') for c in list(corrected.keys())]
 #     # [corrected[c].filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True) for c in list(corrected.keys())]
 #     # Unpack vertical trace and filter
@@ -683,7 +694,7 @@ def fig_event_raw(evstream, fmin=1./150., fmax=2.):
 #     return fig
 
 
-def fig_event_corrected(evstream, TF_list, fmin=1./250., fmax=2.):
+def fig_event_corrected(evstream, TF_list, fmin=1./150., fmax=2,synthetics=True,taper = 0.05):
     """
     Function to plot the corrected vertical component seismograms.
 
@@ -696,101 +707,57 @@ def fig_event_corrected(evstream, TF_list, fmin=1./250., fmax=2.):
         for plotting the corrected vertical component.
 
     """
-    taper = 0
     # Unpack vertical trace and filter
     trZ = evstream.trZ.copy()
+    stats = trZ.stats
+    stanm = '.'.join([stats.network,stats.station])
+    trimS,trimE = stats.starttime,stats.endtime
+    if synthetics:
+        synth = get_synthetic(stanm,stats.starttime.strftime('%Y.%j.%H.%M'))[0]
+        fmin,fmax = 1/100,0.5
+        synth.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
+        trimS,trimE = stats.starttime,stats.starttime+3600
+        synth.trim(trimS,trimE)
+    # ----------------------------------
+    keys = ['Z1','Z2-1','ZP-21','ZH','ZP-H','ZP']
+    # Aggregate
+    st = Stream()
+    st.append(evstream.trZ.copy())
+    [st.append(Trace(data=evstream.correct[key].copy(),header=st[0].stats).copy()) for key in list(evstream.correct.keys())]
+    # Preproc
     if taper>0:
-        trZ.taper(taper)
-    trZ.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
-    sr = trZ.stats.sampling_rate
-    taxis = np.arange(0., trZ.stats.npts/sr, 1./sr)
+        st.taper(taper,side='both')
+    st.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
+    st.trim(trimS,trimE)
+    # Disagregate
+    trZ,st = st[0],st[1:]
+    corrected = dict()
+    dummyindex = trZ.copy()
+    dummyindex.data = dummyindex.data*np.nan
+    [corrected.update({key:dummyindex}) for key in keys]
+    [corrected.update({key:tr}) for key,tr in zip(list(evstream.correct.keys()),st)]
+
+    # ylim = [j([j(corrected[k].data) for k in list(evstream.correct.keys())]) for j in [np.min,np.max]]
+    ylim = [j(trZ.data) for j in [np.min,np.max]]
+    # if synthetics:
+    #     ylim = [j(synth.data) for j in [np.min,np.max]]
+    # ----------------------------------
+
+    taxis = st[0].times()
+    tstamp = evstream.tstamp
 
     plt.figure(figsize=(8, 8))
 
-    plt.subplot(611)
-    plt.plot(taxis, trZ.data, 'lightgray', lw=0.5)
-    if TF_list['Z1']:
-        tr = Trace(data=evstream.correct['Z1'],header=trZ.stats)
-        if taper>0:
-            tr.taper(taper)
-        tr.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
-        plt.plot(taxis, tr.data, 'k', lw=0.5)
-    plt.title(evstream.key + ' ' + evstream.tstamp +
-              ': Z1', fontdict={'fontsize': 8})
-    plt.gca().ticklabel_format(axis='y', style='sci', useOffset=True,
-                               scilimits=(-3, 3))
-    plt.xlim((0., trZ.stats.npts/sr))
-
-    plt.subplot(612)
-    plt.plot(
-        taxis, trZ.data, 'lightgray', lw=0.5)
-    if TF_list['Z2-1']:
-        tr = Trace(data=evstream.correct['Z2-1'],header=trZ.stats)
-        if taper>0:
-            tr.taper(taper)        
-        tr.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
-        plt.plot(taxis, tr.data, 'k', lw=0.5)
-    plt.title(evstream.tstamp + ': Z2-1', fontdict={'fontsize': 8})
-    plt.gca().ticklabel_format(axis='y', style='sci', useOffset=True,
-                               scilimits=(-3, 3))
-    plt.xlim((0., trZ.stats.npts/sr))
-
-    plt.subplot(613)
-    plt.plot(
-        taxis, trZ.data, 'lightgray', lw=0.5)
-    if TF_list['ZP-21']:
-        tr = Trace(data=evstream.correct['ZP-21'],header=trZ.stats)
-        if taper>0:
-            tr.taper(taper)
-        tr.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
-        plt.plot(taxis, tr.data, 'k', lw=0.5)
-    plt.title(evstream.tstamp + ': ZP-21', fontdict={'fontsize': 8})
-    plt.gca().ticklabel_format(axis='y', style='sci', useOffset=True,
-                               scilimits=(-3, 3))
-    plt.xlim((0., trZ.stats.npts/sr))
-
-    plt.subplot(614)
-    plt.plot(
-        taxis, trZ.data, 'lightgray', lw=0.5)
-    if TF_list['ZH']:
-        tr = Trace(data=evstream.correct['ZH'],header=trZ.stats)
-        if taper>0:
-            tr.taper(taper)
-        tr.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
-        plt.plot(taxis, tr.data, 'k', lw=0.5)
-    plt.title(evstream.tstamp + ': ZH', fontdict={'fontsize': 8})
-    plt.gca().ticklabel_format(axis='y', style='sci', useOffset=True,
-                               scilimits=(-3, 3))
-    plt.xlim((0., trZ.stats.npts/sr))
-
-    plt.subplot(615)
-    plt.plot(
-        taxis, trZ.data, 'lightgray', lw=0.5)
-    if TF_list['ZP-H']:
-        tr = Trace(data=evstream.correct['ZP-H'],header=trZ.stats)
-        if taper>0:
-            tr.taper(taper)
-        tr.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
-        plt.plot(taxis, tr.data, 'k', lw=0.5)
-    plt.title(evstream.tstamp + ': ZP-H', fontdict={'fontsize': 8})
-    plt.gca().ticklabel_format(axis='y', style='sci', useOffset=True,
-                               scilimits=(-3, 3))
-    plt.xlim((0., trZ.stats.npts/sr))
-
-    plt.subplot(616)
-    plt.plot(
-        taxis, trZ.data, 'lightgray', lw=0.5)
-    if TF_list['ZP']:
-        tr = Trace(data=evstream.correct['ZP'],header=trZ.stats)
-        if taper>0:
-            tr.taper(taper)
-        tr.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
-        plt.plot(taxis, tr.data, 'k', lw=0.5)
-    plt.title(evstream.tstamp + ': ZP', fontdict={'fontsize': 8})
-    plt.gca().ticklabel_format(axis='y', style='sci', useOffset=True,
-                               scilimits=(-3, 3))
-    plt.xlim((0., trZ.stats.npts/sr))
-
+    for row,key in enumerate(keys):
+        plt.subplot(611 + row)
+        plt.plot(taxis, trZ.data, 'lightgray', lw=0.5)
+        plt.plot(taxis,corrected[key].data,'k',lw=0.5)
+        if synthetics:
+            plt.plot(synth.times(),synth.data,'r:',lw=0.5)
+        plt.title(stanm + ' ' + tstamp + ': ' + key, fontdict={'fontsize': 8})
+        plt.gca().ticklabel_format(axis='y', style='sci', useOffset=True,scilimits=(-3, 3))
+        plt.xlim(taxis[0],taxis[-1])
+        plt.ylim(ylim)
     plt.xlabel('Time since earthquake (sec)')
     plt.tight_layout()
 

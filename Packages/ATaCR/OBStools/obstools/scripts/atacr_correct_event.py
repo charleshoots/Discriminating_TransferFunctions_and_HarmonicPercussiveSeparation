@@ -411,7 +411,7 @@ def main(args=None):
                                 if plotpath:
                                     plot.savefig(
                                         plotpath / (fname + '.' + args.form),
-                                        dpi=300, bbox_inches='tight',
+                                        dpi=700, bbox_inches='tight',
                                         format=args.form)
                                     plotting.plt.close('all')
                                 else:
@@ -490,7 +490,7 @@ def main(args=None):
                                 if plotpath:
                                     plot.savefig(
                                         plotpath / (fname + '.' + args.form),
-                                        dpi=300, bbox_inches='tight',
+                                        dpi=700, bbox_inches='tight',
                                         format=args.form)
                                     plotting.plt.close('all')
                                 else:

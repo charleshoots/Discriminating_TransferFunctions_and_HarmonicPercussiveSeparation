@@ -49,7 +49,7 @@ evaudit = pd.read_pickle(Path(ATaCR_Parent) / 'Catalogs' / 'event_record_audit.p
 ## Step-7: Correct events. Step b4 in ML-ATaCR.
 ## ===============================================================================
 ## ===============================================================================
-catalog = catalog.iloc[np.intersect1d(catalog.Station,['M08A'],return_indices=True)[1]]
+catalog = catalog.iloc[np.intersect1d(catalog.Station,['M07A'],return_indices=True)[1]]
 cat = catalog.copy()
 # cat = cat.reset_index()
 # cat.loc[0,'Events'] = ['2012.069.07.09']
@@ -57,14 +57,16 @@ cat = catalog.copy()
 event_mode = False
 Minmag,Maxmag=6.0,8.0
 fork = False
-STEPS = [1,3,4,5,6,7]
+STEPS = [7]
 days = 10
 
 days = ['2012.061','2012.062','2012.063','2012.064']
 days = [UTCDateTime.strptime('2012.061',format='%Y.%j') + i*3600*24 for i in range(30)]
+
 ## =============================================================================== ## =============================================================================== ##
 ## =============================================================================== ## =============================================================================== ##
 ## =============================================================================== ## =============================================================================== ##
+
 for STEP in STEPS:
     if STEP==-3:
         NoiseFolder = dirs['Py_RawDayData']
