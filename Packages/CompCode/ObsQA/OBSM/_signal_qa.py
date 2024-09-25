@@ -7,6 +7,8 @@ from obspy.core.util.attribdict import AttribDict
 from obspy import read
 from obspy.io.xseed import Parser
 from obspy.signal import PPSD
+import matplotlib.pyplot as plt
+
 def ft(self,r,window=None,overlap=None):
         tr = self.traces[r]
         ft = []
@@ -15,12 +17,9 @@ def ft(self,r,window=None,overlap=None):
                 ft.append(_np.mean(ft0,axis=-1))
         return f,_np.array(ft).squeeze()
 def psd(self,r,window=None,overlap=None):
-        tr = self.traces[r]
-        ft = []
-        f = self.f
-        for tr in self.traces[r]:
-                f,ft0 = self._psd(tr,window=window,overlap=overlap)
-                ft.append(ft0)
+        tr = self.traces.select(channel='*' + r.replace('P','DH'))[0].copy()
+        f,ft = self._psd(tr.data,window=window,overlap=overlap)
+        # ft.append(ft0)
         ft = _np.mean(_np.array(ft).squeeze(),axis=0)
         ft = ft[f>=0]
         f = f[f>=0]

@@ -133,7 +133,7 @@ def get_event_arguments(argv=None):
         action="store",
         type=float,
         dest="new_sampling_rate",
-        default=5.,
+        default=20.,
         help="Specify new sampling rate (float, in Hz). " +
         "[Default 5.]")
     FreqGroup.add_argument(

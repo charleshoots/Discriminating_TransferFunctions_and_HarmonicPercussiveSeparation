@@ -99,6 +99,7 @@ class OBSMetrics(object):
         _calc_phase = _signal_helpers._calc_phase
         _calc_admittance = _signal_helpers._calc_admittance
         _calc_coherence = _signal_helpers._calc_coherence
+        _calc_trace_coherence = _signal_helpers._calc_trace_coherence
         _csd_helper = _signal_helpers._csd_helper
         _stft = _signal_helpers._stft
         librosa_stft = _signal_helpers.librosa_stft

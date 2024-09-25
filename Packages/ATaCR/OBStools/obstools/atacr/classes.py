@@ -22,6 +22,7 @@
 
 
 import sys
+from scipy.signal import windows
 from scipy.signal import stft, detrend
 from scipy.linalg import norm
 import matplotlib.pyplot as plt
@@ -1886,13 +1887,13 @@ class TFNoise(object):
         pickle.dump(self, file)
         file.close()
 
-    def calc_tf_taper(self,f,fn,exp=600):
-        taper = (np.abs(f) - fn)
-        taper = -taper + np.max(taper)
-        taper = taper**exp
-        taper[np.abs(f)<=fn] = 0
-        taper[np.abs(f)<=fn] = np.max(taper)
-        taper = taper/taper.max()
+    def calc_tf_taper(self,f,fn,fall=0.1):
+        frac = 2*min(np.where(f>=fn)[0])/len(f)
+        ctukey = 1-windows.tukey(len(f),frac)
+        bar = ctukey[min(np.where(f>=fn*(1-fall))[0])]
+        ctukey[ctukey>=bar] = bar
+        ctukey = ctukey/max(ctukey)
+        taper = ctukey
         return taper
 
     def fnotch(self,d):

@@ -592,8 +592,7 @@ def fig_event_raw(evstream, fmin=1./150., fmax=2.):
     trP = evstream.trP.copy()
     st = Stream(traces=[tr for tr in [tr1, tr2, trZ, trP] if np.any(tr.data)])
 
-    st.filter(
-        'bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
+    st.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=2, zerophase=True)
     stats = trZ.stats
     sr = stats.sampling_rate
 
@@ -694,7 +693,7 @@ def fig_event_raw(evstream, fmin=1./150., fmax=2.):
 #     return fig
 
 
-def fig_event_corrected(evstream, TF_list, fmin=1./150., fmax=2,synthetics=True,taper = 0.05):
+def fig_event_corrected(evstream, TF_list, fmin=1./250., fmax=2,synthetics=False,taper = 0.05):
     """
     Function to plot the corrected vertical component seismograms.
 
@@ -710,6 +709,7 @@ def fig_event_corrected(evstream, TF_list, fmin=1./150., fmax=2,synthetics=True,
     # Unpack vertical trace and filter
     trZ = evstream.trZ.copy()
     stats = trZ.stats
+    depth = round(abs(trZ.stats.sac.stel)*1000)
     stanm = '.'.join([stats.network,stats.station])
     trimS,trimE = stats.starttime,stats.endtime
     if synthetics:
@@ -746,7 +746,7 @@ def fig_event_corrected(evstream, TF_list, fmin=1./150., fmax=2,synthetics=True,
     taxis = st[0].times()
     tstamp = evstream.tstamp
 
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(6, 8))
 
     for row,key in enumerate(keys):
         plt.subplot(611 + row)
@@ -754,7 +754,7 @@ def fig_event_corrected(evstream, TF_list, fmin=1./150., fmax=2,synthetics=True,
         plt.plot(taxis,corrected[key].data,'k',lw=0.5)
         if synthetics:
             plt.plot(synth.times(),synth.data,'r:',lw=0.5)
-        plt.title(stanm + ' ' + tstamp + ': ' + key, fontdict={'fontsize': 8})
+        plt.title(stanm + ' ,' + str(depth) + 'm |' + tstamp + ': ' + key, fontdict={'fontsize': 8})
         plt.gca().ticklabel_format(axis='y', style='sci', useOffset=True,scilimits=(-3, 3))
         plt.xlim(taxis[0],taxis[-1])
         plt.ylim(ylim)

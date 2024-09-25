@@ -113,9 +113,9 @@ def event_generator(catalog,evireq=None,net=None,sta=None):
 
 def get_metrics_comp(net,sta,methodfolder,event,return_atacr=True,return_hps=True,return_raw=True,return_noise=True,events_folder = 'EVENTS',avg='STA',tf='ZP-21',hps_win_length=200,width=None,Metrics=dict()):
         Comps = dict()
-        atacr_parent = Path(methodfolder) / 'ATaCR' / 'ATaCR_Python'
+        atacr_parent = Path(methodfolder)
         atacr_data_folder = atacr_parent / events_folder
-        hps_data_folder = Path(methodfolder) / 'NoiseCut' / 'Data' / 'Output'
+        hps_data_folder = Path(methodfolder) / 'HPS_Data' / 'Data' / 'Output'
         noise_data_folder = atacr_parent
         if return_atacr:
             if return_raw:
@@ -262,6 +262,48 @@ def preparetraces(stream,trim=(0,7200),band=None,sortindex=None,max_percentage=0
         for _ in range(2):
             stream = demean_detrend(stream.copy())
         return stream
+
+
+def update_event_catalog(catalog,eventsfolder=None,events_list=None):
+        # wins = [[catalog[catalog.Network==e].Start.min() ,catalog[catalog.Network==e].End.max()] for e in catalog.Network.unique()]
+        cat = catalog.copy()
+        # Just a good all-around default set of windows for my dataset
+
+        for stai,station in enumerate(cat.iloc):
+            from obspy.clients.fdsn import Client
+            client = Client()
+            query = []
+            if events_list:
+                events = events_list
+            elif eventsfolder:
+                evfold = Path(eventsfolder) / (station.Network + '.' + station.Station)
+                events = [f.name.split('.HZ.SAC')[0] for f in list(evfold.glob('*Z.SAC'))]
+            else:
+                events = station.Events
+
+            events = np.sort(events)
+            for wi,Start in enumerate(events):
+                s = UTCDateTime.strptime(Start,'%Y.%j.%H.%M')
+                result = client.get_events(starttime=s, endtime=s+120,minmagnitude=6.0,maxmagnitude=8.0,orderby='magnitude')[0]
+                query.append(result)
+            Magnitude_mw = [a.magnitudes[0].mag for a in query]
+            Origin = [a.origins[0] for a in query]
+            Metadata = query
+            Averaging = []
+            Events = [a.origins[0].time.strftime('%Y.%j.%H.%M') for a in query]
+            Files = []
+            Depth_KM = [a.origins[0].depth/1000 for a in query]
+            cat.at[stai,'n_events'] = len(query)
+            cat.at[stai,'Magnitude_mw'] = Magnitude_mw
+            cat.at[stai,'Origin'] = Origin
+            cat.at[stai,'Metadata'] = Metadata
+            cat.at[stai,'Averaging'] = Averaging
+            cat.at[stai,'Events'] = Events
+            cat.at[stai,'Files'] = Files
+            cat.at[stai,'Depth_KM'] = Depth_KM
+            cat = cat.reset_index(drop=True)
+        return cat
+
 
 def build_event_catalog(new_catalog,N_permag_perwin=7,mags=[[6.6,7.0],[6.4,6.59],[6.0,6.39]],windows=None,hardcap=None):
         # wins = [[catalog[catalog.Network==e].Start.min() ,catalog[catalog.Network==e].End.max()] for e in catalog.Network.unique()]

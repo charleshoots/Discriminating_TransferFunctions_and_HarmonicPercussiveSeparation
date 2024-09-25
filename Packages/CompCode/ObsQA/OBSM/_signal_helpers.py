@@ -24,7 +24,7 @@ def _calc_csd(self,a_ft,b_ft):
         cab = a_ft*_np.conj(b_ft)
         return cab
 def _psd(self,tr,window=None,overlap=None):
-        f,_t,ft = self._stft(tr,scaling='psd',return_onesided=True,window=window,overlap=overlap)
+        f,_t,ft = self._stft(tr,scaling='spectrum',return_onesided=True,window=window,overlap=overlap)
         psd = _np.abs(ft)**2
         return f,psd
 def _calc_phase(self,ab):
@@ -36,9 +36,17 @@ def _calc_admittance(self,ab,bb):
 def _calc_coherence(self,ab,aa,bb):
         coh = ((abs(ab)**2)/(aa*bb))
         return coh
-def _csd_helper(self,a,b,window=None,overlap=None):
-        f,_t,a_ft = self._stft(a,window=window,overlap=overlap)
-        f,_t,b_ft = self._stft(b,window=window,overlap=overlap)
+
+def _calc_trace_coherence(self,a,b):
+        f,ab = _csd_helper(self,a,b,return_onesided=True)
+        f,aa = _csd_helper(self,a,a,return_onesided=True)
+        f,bb = _csd_helper(self,b,b,return_onesided=True)
+        coh = ((abs(ab)**2)/(aa*bb))
+        return f,coh
+
+def _csd_helper(self,a,b,window=None,overlap=None,return_onesided=False):
+        f,_t,a_ft = self._stft(a,window=window,overlap=overlap,return_onesided=return_onesided)
+        f,_t,b_ft = self._stft(b,window=window,overlap=overlap,return_onesided=return_onesided)
         cab = _np.mean(self._calc_csd(a_ft,b_ft),axis=0)
         return f,cab
 def _stft(self,tr,scaling='spectrum',window=None,overlap=None,return_onesided=False):
