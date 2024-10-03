@@ -259,7 +259,7 @@ def main(args=None):
 
         # Extract station information from dictionary
         sta = db[stkey]
-
+        stanm = '['+'.'.join([sta.network, sta.station])+']'
         # Path where transfer functions will be located
         transpath = Path('TF_STA') / stkey
         if not transpath.is_dir():
@@ -305,25 +305,25 @@ def main(args=None):
         sta.location = tlocs
 
         # Update Display
-        print(" ")
-        print(" ")
-        print("|===============================================|")
-        print("|===============================================|")
-        print("|                   {0:>8s}                    |".format(
+        print(stanm," ")
+        print(stanm," ")
+        print(stanm,"|===============================================|")
+        print(stanm,"|===============================================|")
+        print(stanm,"|                   {0:>8s}                    |".format(
             sta.station))
-        print("|===============================================|")
-        print("|===============================================|")
-        print("|  Station: {0:>2s}.{1:5s}                            |".format(
+        print(stanm,"|===============================================|")
+        print(stanm,"|===============================================|")
+        print(stanm,"|  Station: {0:>2s}.{1:5s}                            |".format(
             sta.network, sta.station))
-        print("|      Channel: {0:2s}; Locations: {1:15s}  |".format(
+        print(stanm,"|      Channel: {0:2s}; Locations: {1:15s}  |".format(
             sta.channel, ",".join(tlocs)))
-        print("|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
+        print(stanm,"|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
             sta.longitude, sta.latitude))
-        print("|      Start time: {0:19s}          |".format(
+        print(stanm,"|      Start time: {0:19s}          |".format(
             sta.startdate.strftime("%Y-%m-%d %H:%M:%S")))
-        print("|      End time:   {0:19s}          |".format(
+        print(stanm,"|      End time:   {0:19s}          |".format(
             sta.enddate.strftime("%Y-%m-%d %H:%M:%S")))
-        print("|-----------------------------------------------|")
+        print(stanm,"|-----------------------------------------------|")
 
         # Get all components
         trE1, trE2, trEZ, trEP = utils.get_event(eventpath, tstart, tend)
@@ -340,7 +340,7 @@ def main(args=None):
         # Cycle through available data
         for tr1, tr2, trZ, trP in zip(trE1, trE2, trEZ, trEP):
             eventstream = EventStream(tr1, tr2, trZ, trP)
-            print('==================================EVENT: ' + eventstream.prefix + '==================================')
+            print(stanm,'==================================EVENT: ' + eventstream.prefix + '==================================')
             # Check if Trace is from SAC file with event info
             evlo = None
             evla = None
@@ -372,7 +372,7 @@ def main(args=None):
                     continue
 
                 tfprefix = transfile.name.split('transfunc')[0]
-                # print(transfile)
+                # print(stanm,transfile)
 
                 # This case refers to the "cleaned" spectral averages
                 if len(tfprefix) > 9:
@@ -386,7 +386,7 @@ def main(args=None):
                         dateev = eventstream.evtime
 
                         if dateev >= date1 and dateev <= date2:
-                            print(str(transfile) +
+                            print(stanm,str(transfile) +
                                   " file found - applying transfer functions")
 
                             try:
@@ -394,7 +394,7 @@ def main(args=None):
                                 tfaverage = pickle.load(file)
                                 file.close()
                             except Exception:
-                                print("File "+str(transfile) +
+                                print(stanm,"File "+str(transfile) +
                                       " exists but cannot be loaded")
                                 continue
 
@@ -421,9 +421,9 @@ def main(args=None):
                             if not correctpath.is_dir():
                                 correctpath.mkdir(parents=True)
                             file = correctpath / eventstream.prefix
-                            # print('  |TF Loaded: /' + str(transfile.name))
-                            # print('  |SAC Loaded: /' + eventstream.prefix)
-                            # print('  |Output saved: /' + str(file.name))
+                            # print(stanm,'  |TF Loaded: /' + str(transfile.name))
+                            # print(stanm,'  |SAC Loaded: /' + eventstream.prefix)
+                            # print(stanm,'  |Output saved: /' + str(file.name))
                             eventstream.save(str(file) + '.sta.pkl')
 
                             # Now save as SAC files
@@ -449,7 +449,7 @@ def main(args=None):
                                     # Save as SAC file
                                     trZ.write(str(fileZ), format='SAC')
                         else:
-                            print(' Clean case date skipped: ' + tfprefix)
+                            print(stanm,' Clean case date skipped: ' + tfprefix)
 
                 # This case refers to the "daily" spectral averages
                 else:
@@ -466,14 +466,14 @@ def main(args=None):
 
                         # if tfprefix == evstamp:
                         if tfprefix==nearestday:
-                            print(str(transfile) +
+                            print(stanm,str(transfile) +
                                   " file found - applying transfer functions")
                             try:
                                 file = open(transfile, 'rb')
                                 tfaverage = pickle.load(file)
                                 file.close()
                             except Exception:
-                                print("File "+str(transfile) +
+                                print(stanm,"File "+str(transfile) +
                                       " exists but cannot be loaded")
                                 continue
 
@@ -500,9 +500,9 @@ def main(args=None):
                             if not correctpath.is_dir():
                                 correctpath.mkdir(parents=True)
                             file = correctpath / eventstream.prefix
-                            # print('  |TF Loaded: /' + str(transfile.name))
-                            # print('  |SAC Loaded: /' + eventstream.prefix)
-                            # print('  |Output saved: /' + str(file.name))
+                            # print(stanm,'  |TF Loaded: /' + str(transfile.name))
+                            # print(stanm,'  |SAC Loaded: /' + eventstream.prefix)
+                            # print(stanm,'  |Output saved: /' + str(file.name))
                             eventstream.save(str(file) + '.day.pkl')
                             # Now save as SAC files
                             for key, value in tfaverage.tf_list.items():

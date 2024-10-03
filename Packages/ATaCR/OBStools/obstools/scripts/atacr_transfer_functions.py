@@ -241,7 +241,7 @@ def main(args=None):
 
         # Extract station information from dictionary
         sta = db[stkey]
-
+        stanm = '['+'.'.join([sta.network, sta.station])+']'
         if not args.skip_daily:
             # Path where spectra are located
             specpath = Path('SPECTRA') / stkey
@@ -253,18 +253,18 @@ def main(args=None):
             # Path where average spectra will be saved
             avstpath = Path('AVG_STA') / stkey
             if not avstpath.is_dir():
-                print("Path to "+str(avstpath) +
+                print(stanm,"Path to "+str(avstpath) +
                       " doesn't exist - skipping cleaned station spectra")
                 args.skip_clean = True
 
         if args.skip_daily and args.skip_clean:
-            print("skipping both daily and clean spectra")
+            print(stanm,"skipping both daily and clean spectra")
             continue
 
         # Path where transfer functions will be located
         tfpath = Path('TF_STA') / stkey
         if not tfpath.is_dir():
-            print("Path to "+str(tfpath)+" doesn't exist - creating it")
+            print(stanm,"Path to "+str(tfpath)+" doesn't exist - creating it")
             tfpath.mkdir(parents=True)
 
         # Path where plots will be saved
@@ -300,26 +300,26 @@ def main(args=None):
         sta.location = tlocs
 
         # Update Display
-        print(" ")
-        print(" ")
-        print("|===============================================|")
-        # print("|============== TAPER MODE: " + str(args.taper_mode) + " =================|")
-        print("|===============================================|")
-        print("|                   {0:>8s}                    |".format(
+        print(stanm," ")
+        print(stanm," ")
+        print(stanm,"|===============================================|")
+        # print(stanm,"|============== TAPER MODE: " + str(args.taper_mode) + " =================|")
+        print(stanm,"|===============================================|")
+        print(stanm,"|                   {0:>8s}                    |".format(
             sta.station))
-        print("|===============================================|")
-        print("|===============================================|")
-        print("|  Station: {0:>2s}.{1:5s}                            |".format(
+        print(stanm,"|===============================================|")
+        print(stanm,"|===============================================|")
+        print(stanm,"|  Station: {0:>2s}.{1:5s}                            |".format(
             sta.network, sta.station))
-        print("|      Channel: {0:2s}; Locations: {1:15s}  |".format(
+        print(stanm,"|      Channel: {0:2s}; Locations: {1:15s}  |".format(
             sta.channel, ",".join(tlocs)))
-        print("|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
+        print(stanm,"|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
             sta.longitude, sta.latitude))
-        print("|      Start time: {0:19s}          |".format(
+        print(stanm,"|      Start time: {0:19s}          |".format(
             sta.startdate.strftime("%Y-%m-%d %H:%M:%S")))
-        print("|      End time:   {0:19s}          |".format(
+        print(stanm,"|      End time:   {0:19s}          |".format(
             sta.enddate.strftime("%Y-%m-%d %H:%M:%S")))
-        print("|-----------------------------------------------|")
+        print(stanm,"|-----------------------------------------------|")
 
         # Filename for output transfer functions
         dstart = str(tstart.year).zfill(4)+'.'+str(tstart.julday).zfill(3)+'-'
@@ -329,7 +329,7 @@ def main(args=None):
         # Find all files in directories
         p = specpath.glob('*spectra.pkl')
         spectra_files = [x for x in p if x.is_file()]
-        print('Spectra files found: ' + str(len(spectra_files)))
+        print(stanm,'Spectra files found: ' + str(len(spectra_files)))
         if not args.skip_clean:
             p = avstpath.glob('*avg_sta.pkl')
             average_files = [x for x in p if x.is_file()]
@@ -344,8 +344,8 @@ def main(args=None):
                 year = filespec.name.split('.')[0]
                 jday = filespec.name.split('.')[1]
 
-                print("\n"+"*"*60)
-                print("* Calculating transfer functions for key " +
+                print(stanm,"\n"+"*"*60)
+                print(stanm,"* Calculating transfer functions for key " +
                       stkey+" and day "+year+"."+jday)
                 tstamp = year+'.'+jday+'.'
                 filename = tfpath / (tstamp + 'transfunc.pkl')
@@ -372,7 +372,7 @@ def main(args=None):
                 day_transfer_functions.append(daytransfer.transfunc)
 
                 # Save daily transfer functions to file
-                print('Transfer Function Saved: ' + str(filename))
+                print(stanm,'Transfer Function Saved: ' + str(filename))
                 daytransfer.save(filename)
 
         if not args.skip_clean:
@@ -382,8 +382,8 @@ def main(args=None):
 
                 name = fileavst.name.split('avg_sta')
 
-                print("\n"+"*"*60)
-                print("* Calculating transfer functions for key " +
+                print(stanm,"\n"+"*"*60)
+                print(stanm,"* Calculating transfer functions for key " +
                       stkey+" and range "+name[0])
                 filename = tfpath / (name[0] + 'transfunc.pkl')
 
@@ -412,7 +412,7 @@ def main(args=None):
                 sta_transfer_functions = statransfer.transfunc
 
                 # Save average transfer functions to file
-                print('Transfer Function Saved: ' + str(filename))
+                print(stanm,'Transfer Function Saved: ' + str(filename))
                 statransfer.save(filename)
 
         if args.fig_TF:

@@ -750,6 +750,10 @@ def build_staquery(d,chan='H',ATaCR_Parent=None,staquery_output='./sta_query.pkl
                 else:
                         os.chdir(ATaCR_Parent)
                         staquery_output = str(ATaCR_Parent) + '/' + staquery_output.replace('./','')
+        else:
+                staquery_output.parent.mkdir(parents=True,exist_ok=True)
+                os.chdir(str(staquery_output.parent))
+
         for csta in d.iloc:
                 net = csta.Network
                 sta = csta.Station
@@ -759,7 +763,7 @@ def build_staquery(d,chan='H',ATaCR_Parent=None,staquery_output='./sta_query.pkl
         output = pd.DataFrame.from_dict(out)
         if staquery_output is not None:
                 output.to_pickle(staquery_output)
-                print('Station Query File Written to: ' + staquery_output)
+                print('Station Query File Written to: ' + str(staquery_output))
         else:
                 return output
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -901,14 +905,18 @@ def DownloadDayNoise(catalog,days=[],randomloop=True,end_delta=24,event_mode=Fal
                 print('--' + staname + '--',flush=True)
 
                 ObsQA.TOOLS.io.build_staquery(d=Station.to_frame().T,staquery_output = staquery_output,chan=chan,ATaCR_Parent = ATaCR_Parent)
-                if randomloop & isinstance(days,int):
+                if randomloop & isinstance(days,int) & (not event_mode):
                         NoiseFolder = Path(ATaCR_Parent) / 'Data'
                         ObsQA.TOOLS.io.DayNoiseWhileLoop(Station.to_frame().T,NoiseFolder,ATaCR_Parent,days=days,attempts=100)
                 else:
                         for j,(NoiseStart,NoiseEnd) in enumerate(zip(Starts,Ends)):
                                 print('<||>'*30)
                                 print(staname + ' Station ' +str(i+1) + '/' + str(len(catalog)) + ' - Day ' + str(j+1) + '/' + str(len(Starts)),flush=True)
-                                args = [staquery_output,'--start={}'.format(NoiseStart), '--end={}'.format(NoiseEnd)]
+                                if event_mode:
+                                        args = [str(staquery_output),'--start={}'.format(NoiseStart), '--end={}'.format(NoiseEnd),'--channels=Z']
+                                else:
+                                        args = [str(staquery_output),'--start={}'.format(NoiseStart), '--end={}'.format(NoiseEnd)]
+                                
                                 atacr_download_data.main(atacr_download_data.get_daylong_arguments(args))
         print(' ')
         print('----Noise Download Complete----')

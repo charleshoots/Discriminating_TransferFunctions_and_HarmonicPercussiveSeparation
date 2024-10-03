@@ -278,7 +278,7 @@ def main(args=None):
 
         # Extract station information from dictionary
         sta = db[stkey]
-
+        stanm = '['+'.'.join([sta.network, sta.station])+']'
         # Path where spectra are located
         specpath = Path('SPECTRA') / stkey
         if not specpath.is_dir():
@@ -289,7 +289,7 @@ def main(args=None):
         # Path where average spectra will be saved
         avstpath = Path('AVG_STA') / stkey
         if not avstpath.is_dir():
-            print("Path to "+str(avstpath)+" doesn`t exist - creating it")
+            print(stanm,"Path to "+str(avstpath)+" doesn`t exist - creating it")
             avstpath.mkdir(parents=True)
 
         # Path where plots will be saved
@@ -325,23 +325,23 @@ def main(args=None):
         sta.location = tlocs
 
         # Update Display
-        print("\n|===============================================|")
-        print("|===============================================|")
-        print("|                   {0:>8s}                    |".format(
+        print(stanm,"\n|===============================================|")
+        print(stanm,"|===============================================|")
+        print(stanm,"|                   {0:>8s}                    |".format(
             sta.station))
-        print("|===============================================|")
-        print("|===============================================|")
-        print("|  Station: {0:>2s}.{1:5s}                            |".format(
+        print(stanm,"|===============================================|")
+        print(stanm,"|===============================================|")
+        print(stanm,"|  Station: {0:>2s}.{1:5s}                            |".format(
             sta.network, sta.station))
-        print("|      Channel: {0:2s}; Locations: {1:15s}  |".format(
+        print(stanm,"|      Channel: {0:2s}; Locations: {1:15s}  |".format(
             sta.channel, ",".join(tlocs)))
-        print("|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
+        print(stanm,"|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
             sta.longitude, sta.latitude))
-        print("|      Start time: {0:19s}          |".format(
+        print(stanm,"|      Start time: {0:19s}          |".format(
             sta.startdate.strftime("%Y-%m-%d %H:%M:%S")))
-        print("|      End time:   {0:19s}          |".format(
+        print(stanm,"|      End time:   {0:19s}          |".format(
             sta.enddate.strftime("%Y-%m-%d %H:%M:%S")))
-        print("|-----------------------------------------------|")
+        print(stanm,"|-----------------------------------------------|")
 
         # Filename for output average spectra
         dstart = str(tstart.year).zfill(4)+'.'+str(tstart.julday).zfill(3)+'-'
@@ -350,7 +350,7 @@ def main(args=None):
 
         if fileavst.exists():
             if not args.ovr:
-                print("*   -> file "+str(fileavst)+" exists - continuing")
+                print(stanm,"*   -> file "+str(fileavst)+" exists - continuing")
                 continue
 
         # Containers for power and cross spectra
@@ -392,10 +392,10 @@ def main(args=None):
 
             # Load file if it exists
             if filespec.exists():
-                print("\n"+"*"*60)
-                print('* Calculating noise spectra for key ' +
+                print(stanm,"\n"+"*"*60)
+                print(stanm,'* Calculating noise spectra for key ' +
                       stkey+' and day '+year+'.'+jday)
-                print("*   -> file "+str(filespec)+" found - loading")
+                print(stanm,"*   -> file "+str(filespec)+" found - loading")
                 file = open(filespec, 'rb')
                 daynoise = pickle.load(file)
                 file.close()
@@ -408,7 +408,7 @@ def main(args=None):
             ph_all.append(daynoise.rotation.ph)
 
             # Coherence
-            # print('[' + str(stkey) + '] Collect Coherences')
+            # print(stanm,'[' + str(stkey) + '] Collect Coherences')
             coh_12_all.append(
                 utils.smooth(
                     utils.coherence(
@@ -446,7 +446,7 @@ def main(args=None):
                         daynoise.power.cZZ,
                         daynoise.power.cPP), 50))
 
-            # print('[' + str(stkey) + '] Collect Phase')
+            # print(stanm,'[' + str(stkey) + '] Collect Phase')
             # Phase
             try:
                 ph_12_all.append(
@@ -480,7 +480,7 @@ def main(args=None):
                 ph_ZP_all.append(None)
 
             # Admittance
-            # print('[' + str(stkey) + '] Collect Admittance')
+            # print(stanm,'[' + str(stkey) + '] Collect Admittance')
             ad_12_all.append(utils.smooth(utils.admittance(
                 daynoise.cross.c12, daynoise.power.c11), 50))
             ad_1Z_all.append(utils.smooth(utils.admittance(
@@ -499,7 +499,7 @@ def main(args=None):
         # Convert to numpy arrays
         coh_all = np.array(coh_all)
         ph_all = np.array(ph_all)
-        # print(np.shape(coh_12_all))
+        # print(stanm,np.shape(coh_12_all))
         coh_12_all = np.array(coh_12_all)
         coh_1Z_all = np.array(coh_1Z_all)
         coh_1P_all = np.array(coh_1P_all)
@@ -518,7 +518,7 @@ def main(args=None):
         ad_2Z_all = np.array(ad_2Z_all)
         ad_2P_all = np.array(ad_2P_all)
         ad_ZP_all = np.array(ad_ZP_all)
-        # print('516 - Store TFs in Cross')
+        # print(stanm,'516 - Store TFs in Cross')
         # Store transfer functions as objects for plotting
         coh = Cross(coh_12_all, coh_1Z_all, coh_1P_all,
                     coh_2Z_all, coh_2P_all, coh_ZP_all)
@@ -528,18 +528,18 @@ def main(args=None):
                    ad_2Z_all, ad_2P_all, ad_ZP_all)
 
         # Quality control to identify outliers
-        print('[' + str(stkey) + '] QC-Spectra')
+        print(stanm,'[' + str(stkey) + '] QC-Spectra')
         stanoise.QC_sta_spectra(pd=args.pd, tol=args.tol, alpha=args.alpha,
                                 fig_QC=args.fig_QC, debug=args.debug,
                                 save=plotpath, form=args.form)
         
-        print('[' + str(stkey) + '] QC-Spectra-Complete')
+        print(stanm,'[' + str(stkey) + '] QC-Spectra-Complete')
         # Average spectra for good days
-        # print('[' + str(stkey) + '] AVG-Spectra')
+        # print(stanm,'[' + str(stkey) + '] AVG-Spectra')
         stanoise.average_sta_spectra(
             fig_average=args.fig_average,
             save=plotpath, form=args.form)
-        # print('[' + str(stkey) + '] AVG-Spectra-Complete')
+        # print(stanm,'[' + str(stkey) + '] AVG-Spectra-Complete')
 
         if args.fig_av_cross:
             fname = stkey + '.' + 'av_coherence'
@@ -589,7 +589,7 @@ def main(args=None):
                 plot.show()
 
         # Save to file
-        print('Saving: ' + str(fileavst))
+        print(stanm,'Saving: ' + str(fileavst))
         stanoise.save(fileavst)
 
 

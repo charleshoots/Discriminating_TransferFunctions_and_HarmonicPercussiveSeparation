@@ -34,6 +34,7 @@ from matplotlib import pyplot as plt
 from obspy.core import read, Stream, Trace, AttribDict, UTCDateTime
 from obspy.core.inventory.inventory import read_inventory
 from pathlib import Path
+import warnings
 
 def traceshift(trace, tt):
     """
@@ -276,7 +277,6 @@ def get_data(datapath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0],
                     trN2.resample(trNP[0].stats.sampling_rate, no_filter=False)
     return trN1, trN2, trNZ, trNP
 
-
 def get_event(eventpath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
 
     """
@@ -319,7 +319,9 @@ def get_event(eventpath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0
     # Cycle over all available files in time range
     for event, tstamp in zip(evDateTime, evstamp):
         if event >= tstart and event <= tend:
-
+            # with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            # warnings.simplefilter("ignore")
             # Cycle through directory and load files
             p = list(eventpath.glob('*.SAC'))
             files = [x for x in p if x.is_file()]
@@ -735,8 +737,10 @@ def get_data_generator(datapath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45
     for files in file_list:
         yield load_data(files,seismic_pre_filt=seismic_pre_filt,seismic_units=seismic_units,pressure_units=pressure_units,pressure_pre_filt=pressure_pre_filt,pressure_water_level=pressure_water_level,seismic_water_level=seismic_water_level)
 
-def make_inventory(stats,response,instrument_key='sac'):
+def make_inventory(stats,response):
     from obspy.core.inventory import Inventory, Network, Station, Channel, Site
+    if 'sac' in list(stats.__dict__.keys()):instrument_key = 'sac'
+    else: instrument_key = 'mseed'
     # We'll first create all the various objects. These strongly follow the
     # hierarchy of StationXML files.
     inv = Inventory(
@@ -774,7 +778,6 @@ def make_inventory(stats,response,instrument_key='sac'):
         azimuth=0.0,
         dip=-90.0,
         sample_rate=1/stats.delta)
-
     # Now tie it all together.
     cha.response = response
     sta.channels.append(cha)
@@ -782,9 +785,12 @@ def make_inventory(stats,response,instrument_key='sac'):
     inv.networks.append(net)
     return inv
 
-def save_inventory(filename,trZ,tr1,tr2,trP):
-    inventory = make_inventory(trZ.stats,trZ.stats.response)
-    for st in [tr1.copy(),tr2.copy(),trP.copy()]:
-        inventory+= make_inventory(st.stats,st.stats.response)
+def save_inventory(filename,st):
+    tr = st.select(channel='*Z')
+    if len(tr)==0:tr = st[0]
+    else:tr = tr[0]
+    inventory = make_inventory(tr.copy().stats,tr.copy().stats.response)
+    for tr in st:
+        inventory+= make_inventory(tr.copy().stats,tr.copy().stats.response)
     print('...saving station inventory')
     inventory.write(filename,format="STATIONXML")

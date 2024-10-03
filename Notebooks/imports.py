@@ -53,6 +53,7 @@ import cmath
 from comp_tools import *
 from pathlib import Path
 from scipy.signal import csd as _csd
+from scipy.signal import stft, detrend
 from helper_functions import *
 DataFolder = project_path / '_DataArchive'/ 'ATaCR_Data'
 archive =  project_path / '_DataArchive'
@@ -69,7 +70,7 @@ catalog = pd.read_pickle(catfolder / 'sta_catalog_proxima_test.pkl')
 Folder = Path(plotfolder) / 'MeetingFigs'
 Folder.mkdir(exist_ok=True)
 
-catalog = catalog[catalog.Station.isin(['M08A','M07A'])]
-catalog = catalog.reset_index()
-catalog = update_event_catalog(catalog,eventsfolder,['2012.069.07.09','2012.181.21.07'])
+# catalog = catalog[catalog.Station.isin(['M08A','M07A'])]
+# catalog = catalog.reset_index()
+# catalog = update_event_catalog(catalog,eventsfolder,['2012.069.07.09','2012.181.21.07'])
 k=1

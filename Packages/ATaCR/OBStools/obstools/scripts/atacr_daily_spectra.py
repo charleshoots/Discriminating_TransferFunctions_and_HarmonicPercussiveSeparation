@@ -337,17 +337,17 @@ def main(args=None):
 
         # Extract station information from dictionary
         sta = db[stkey]
-
+        stanm = '['+'.'.join([sta.network, sta.station])+']'
         # Path where data are located
         datapath = Path('DATA') / stkey
         if not datapath.is_dir():
-            print("\nPath to "+str(datapath)+" doesn`t exist - continuing")
+            print(stanm,"\nPath to "+str(datapath)+" doesn`t exist - continuing")
             continue
 
         # Path where spectra will be saved
         specpath = Path('SPECTRA') / stkey
         if not specpath.is_dir():
-            print("\nPath to "+str(specpath)+" doesn`t exist - creating it")
+            print(stanm,"\nPath to "+str(specpath)+" doesn`t exist - creating it")
             specpath.mkdir(parents=True)
 
         # Path where plots will be saved
@@ -383,30 +383,30 @@ def main(args=None):
         sta.location = tlocs
 
         # Update Display
-        print("\n|===============================================|")
-        print("|===============================================|")
-        print("|                   {0:>8s}                    |".format(
+        print(stanm,"\n|===============================================|")
+        print(stanm,"|===============================================|")
+        print(stanm,"|                   {0:>8s}                    |".format(
             sta.station))
-        print("|===============================================|")
-        print("|===============================================|")
-        print("|  Station: {0:>2s}.{1:5s}                            |".format(
+        print(stanm,"|===============================================|")
+        print(stanm,"|===============================================|")
+        print(stanm,"|  Station: {0:>2s}.{1:5s}                            |".format(
             sta.network, sta.station))
-        print("|      Channel: {0:2s}; Locations: {1:15s}  |".format(
+        print(stanm,"|      Channel: {0:2s}; Locations: {1:15s}  |".format(
             sta.channel, ",".join(tlocs)))
-        print("|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
+        print(stanm,"|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
             sta.longitude, sta.latitude))
-        print("|      Start time: {0:19s}          |".format(
+        print(stanm,"|      Start time: {0:19s}          |".format(
             sta.startdate.strftime("%Y-%m-%d %H:%M:%S")))
-        print("|      End time:   {0:19s}          |".format(
+        print(stanm,"|      End time:   {0:19s}          |".format(
             sta.enddate.strftime("%Y-%m-%d %H:%M:%S")))
-        print("|-----------------------------------------------|")
+        print(stanm,"|-----------------------------------------------|")
 
         # Get all components
         # trN1, trN2, trNZ, trNP = utils.get_data(datapath, tstart, tend)
 
         # # -----------------------------------------------------------------
         # # -----------------------------------------------------------------<<<<<ORIGINAL>>>>>
-        # print('< ORIGINAL >-' * 500)
+        # print(stanm,'< ORIGINAL >-' * 500)
         # trace_generator = utils.get_data_generator(datapath, 
         #                     UTCDateTime(tstart), UTCDateTime(tend),
         #                     seismic_units="DISP",
@@ -449,15 +449,15 @@ def main(args=None):
             year = str(trZ.stats.starttime.year).zfill(4)
             jday = str(trZ.stats.starttime.julday).zfill(3)
 
-            print("\n"+"*"*60)
-            print("* Calculating noise spectra for key " +
+            print(stanm,"\n"+"*"*60)
+            print(stanm,"* Calculating noise spectra for key " +
                 stkey+" and day "+year+"."+jday)
             tstamp = year+'.'+jday+'.'
             filename = specpath / (tstamp+'spectra.pkl')
 
             if filename.exists():
                 if not args.ovr:
-                    print("*   -> file "+str(filename)+" exists - continuing")
+                    print(stanm,"*   -> file "+str(filename)+" exists - continuing")
                     continue
 
             # Initialize instance of DayNoise
@@ -472,11 +472,11 @@ def main(args=None):
             # Check if we have enough good windows
             nwin = np.sum(daynoise.goodwins)
             if nwin < minwin:
-                print("*   Too few good data segments to calculate " +
+                print(stanm,"*   Too few good data segments to calculate " +
                     "average day spectra")
                 # continue
             else:
-                print("*   {0} good windows. Proceeding...".format(nwin))
+                print(stanm,"*   {0} good windows. Proceeding...".format(nwin))
 
             # Average spectra for good windows
             daynoise.average_daily_spectra(
