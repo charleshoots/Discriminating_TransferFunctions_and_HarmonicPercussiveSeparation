@@ -3,6 +3,7 @@ import ObsQA
 # from ObsQA.imports import *
 # from ObsQA import classes
 # from ObsQA.noisecut import *
+import fnmatch
 import glob as g
 import numpy as np
 import pandas as pd
@@ -19,10 +20,11 @@ from concurrent.futures import wait
 import time
 import logging
 import matplotlib.pyplot as plt
+from NoiseCut.Source.src import *
 from obstools.scripts import comply_calculate, atacr_clean_spectra, atacr_correct_event, atacr_daily_spectra, atacr_download_data, atacr_download_event, atacr_transfer_functions
 # |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-# from classes import OBSMetrics
-#### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+# from classes import OBSMetrics 
+#### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ----------------------------------------------------------
 #### ----------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -74,6 +76,7 @@ def audit_events(eventsfolder,Minmag=6.0,Maxmag=7.0):
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 def get_ATACR_HPS_Comp(d,atacr_TFs_used='ZP-21', win_length=163.84):
         RawP = d.Raw[0]['trP'].copy()
         RawZ = d.Raw[0]['trZ'].copy()
@@ -82,6 +85,7 @@ def get_ATACR_HPS_Comp(d,atacr_TFs_used='ZP-21', win_length=163.84):
         PostHPS, spectrograms = noisecut(RawZ.copy(), ret_spectrograms=True,win_length=win_length)
         PostBoth, spectrograms = noisecut(PostATACR.copy(), ret_spectrograms=True,win_length=win_length)
         return RawP,RawZ,PostATACR,PostHPS,PostBoth
+
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -479,35 +483,32 @@ def get_noisecut_output(net,sta,event,noisecut_datafolder):
         for i,_ in enumerate(st.Raw[0]):
                 st.Raw[0][i].stats.location = 'Raw'
         return st
-  
+
 def get_noisecut_event(parentfolder,staname,event,channel=['*1','*2','*Z','*H'],len_hrs=2,pre_trim=False,post_trim=True,win_length=163.84,width=None):
-        # event_dt = 22  #<--This isn't necessary
+        datafold = 'Data'
         dateformat = '%Y.%j.%H.%M'
         event = UTCDateTime.strptime(str(event),dateformat)
         origin = event
+        file_day = event
         channel = [cc.replace('**','*') for cc in ['*' + c for c in np.array([channel]).flatten().tolist()]]
-        folder = Path(str(parentfolder)) / 'Data' / staname / 'HPS_Data'  
-        files = []
-        # [files.extend(list(folder.glob((event-(3600*event_dt*i)).strftime('%Y.%j') + '*.SAC'))) for i in range(2)]
-        [files.extend(list(folder.glob(event.strftime('%Y.%j') + '*.SAC'))) for i in range(1)]
-        if len(files)==0:
-                print('||--24hr event data not found')
+        folder = Path(str(parentfolder)) / datafold / staname
+        files = list(folder.glob(file_day.strftime(dateformat) + '*Z.SAC'))
+        if len(files)==0:print('||--24hr event data not found');return []
+        raw = load_sac(files[0])
+        if (event+2*3600)>raw[0].stats.endtime:
+                print(staname+'| Data Gap')
                 return []
-        raw = Stream([read(f)[0] for f in files])
-        raw = Stream([raw.select(channel=c)[0].copy() for c in channel])
-        if pre_trim:
-                raw.trim(origin,origin+3600*len_hrs)
+
+        if pre_trim:raw.trim(origin,origin+3600*len_hrs)
         raw = demean_detrend(raw.copy())
+        print(staname,'|',event.strftime(dateformat),'|','Begin NoiseCut')
         hps_out = [noisecut(s.copy(),ret_spectrograms=True,win_length=win_length,width=width) for s in raw]
         corrected = Stream([h[0].copy() for h in hps_out])
-
-        if post_trim:
-                corrected.trim(origin,origin+3600*len_hrs)
-                raw.trim(origin,origin+3600*len_hrs)
+        if post_trim:corrected.trim(origin,origin+3600*len_hrs);raw.trim(origin,origin+3600*len_hrs)
 
         hps_spectrograms = [h[1] for h in hps_out]
-        raw_collect = {'trZ':raw.select(channel='*Z')[0].copy(),'tr1':raw.select(channel='*1')[0].copy(),'tr2':raw.select(channel='*2')[0].copy(),'trP':raw.select(channel='*H')[0].copy()}
-        corrected_collect = {'trZ':corrected.select(channel='*Z')[0].copy(),'tr1':corrected.select(channel='*1')[0].copy(),'tr2':corrected.select(channel='*2')[0].copy(),'trP':corrected.select(channel='*H')[0].copy()}
+        raw_collect = raw
+        corrected_collect = corrected
         out = pd.DataFrame({'Event':event,'Network':staname.split('.')[0],'Station':staname.split('.')[1],'Raw':[raw_collect],'Corrected':[corrected_collect],'Spectrograms':[hps_spectrograms]})
         return out
 
@@ -878,10 +879,8 @@ def DownloadDayNoise(catalog,days=[],randomloop=True,end_delta=24,event_mode=Fal
         for i,Station in enumerate(catalog.iloc):
                 if event_mode:
                         Origins = Station.Origin
-                        Starts = Origins
-                        if isinstance(Origins[0],obspy.core.event.origin.Origin):
-                                Starts = [e.time for e in Origins]
-                        Ends = [e+(3600*24) for e in Starts]
+                        Ends = [e + 3600*2 for e in Origins]
+                        Starts = [e-(3600*24) for e in Ends]
                 elif isinstance(days,int):
                         # Random days
                         Starts,Ends = ObsQA.TOOLS.io.randomdays(Station.Start,Station.End,seed=seed,days=days)
@@ -911,9 +910,12 @@ def DownloadDayNoise(catalog,days=[],randomloop=True,end_delta=24,event_mode=Fal
                 else:
                         for j,(NoiseStart,NoiseEnd) in enumerate(zip(Starts,Ends)):
                                 print('<||>'*30)
+                                if Station.StaName=='2D.OBS10':
+                                       if j==13:
+                                              ki = 1
                                 print(staname + ' Station ' +str(i+1) + '/' + str(len(catalog)) + ' - Day ' + str(j+1) + '/' + str(len(Starts)),flush=True)
                                 if event_mode:
-                                        args = [str(staquery_output),'--start={}'.format(NoiseStart), '--end={}'.format(NoiseEnd),'--channels=Z']
+                                        args = [str(staquery_output),'--start={}'.format(NoiseStart), '--end={}'.format(NoiseEnd),'--channels=Z','--evn']
                                 else:
                                         args = [str(staquery_output),'--start={}'.format(NoiseStart), '--end={}'.format(NoiseEnd)]
                                 
@@ -971,7 +973,7 @@ def DownloadEVNoise(catalog,ATaCR_Parent=None,netsta_names=None,pre_event_day_ap
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def DailySpectra(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '-O --figQC --figAverage --figCoh --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H',fork=True,max_workers=1):
+def DailySpectra(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--figQC --figAverage --figCoh --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H',fork=True,max_workers=1):
         # sys.stdout.flush()
         datafolder = './Data/'
         if logoutput_subfolder is not None:
@@ -1033,7 +1035,7 @@ def Fork(fn, *args, **kwargs):
     return future
 
 
-def CleanSpectra(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '-O --figQC --figAverage --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H',fork=True,max_workers=1):
+def CleanSpectra(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--figQC --figAverage --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H',fork=True,max_workers=1):
         # sys.stdout.flush()
         #  --figQC --figAverage --save-fig
         datafolder = './Data/'
@@ -1079,7 +1081,7 @@ def CleanSpectra(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '-O -
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def TransferFunctions(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '-O --figTF --save-fig'
+def TransferFunctions(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--figTF --save-fig'
                 #       ,taper_mode=1
                       ,logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H',fork=True,max_workers=1):
         # sys.stdout.flush()
@@ -1155,10 +1157,10 @@ def CorrectEvents(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--f
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def Run_ATaCR(catalog, ATaCR_Parent = None, STEPS=[1,2,3,4,5,6,7], netsta_names=None, chan='H', Minmag=6.3, Maxmag=6.7, limit=1000, pre_event_min_aperture=1, pre_event_day_aperture=30, dailyspectra_flags='-O --figQC --figAverage --figCoh --save-fig', cleanspectra_flags='-O --figQC --figAverage --figCoh --figCross --save-fig', tf_flags='-O --figTF --save-fig', correctevents_flags='--figRaw --figClean --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output = './sta_query.pkl',fork=True,days=10,seed='MESSI_22FIFA_WORLD_CUP!',max_workers=1,event_mode=False,event_dt=None,
+def Run_ATaCR(catalog, ATaCR_Parent = None, STEPS=[1,2,3,4,5,6,7], netsta_names=None, chan='H', Minmag=6.3, Maxmag=6.7, limit=1000, pre_event_min_aperture=1, pre_event_day_aperture=30, dailyspectra_flags='--figQC --figAverage --figCoh --save-fig', cleanspectra_flags='--figQC --figAverage --figCoh --figCross --save-fig', tf_flags='--figTF --save-fig', correctevents_flags='--figRaw --figClean --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output = './sta_query.pkl',fork=True,days=10,seed='MESSI_22FIFA_WORLD_CUP!',max_workers=1,event_mode=False,event_dt=None,
         #       taper_mode=0
               ):
-        # dailyspectra_flags='-O --figQC --figAverage --figCoh --save-fig'
+        # dailyspectra_flags='--figQC --figAverage --figCoh --save-fig'
         # STEPS = [1,2,3,4,5,6,7] #Absolutely every step - Downloading adds hour(s) or more to the process
         # STEPS = [2,3] #Everything but the download steps - About 4min for six stations.
         # STEPS = [4,5,6,7] #Everything but the download steps - About 4min for six stations
@@ -1198,14 +1200,14 @@ def Run_ATaCR(catalog, ATaCR_Parent = None, STEPS=[1,2,3,4,5,6,7], netsta_names=
                 print('Step 4/7 - COMPLETE: Quality Control Noise Data')
         if 5 in STEPS:
                 print('Step 5/7 - BEGIN: Spectral Average of Noise Data')
-                # !atacr_clean_spectra -O --figQC --figAverage --figCoh --figCross --save-fig --start='{SpecStart}' --end='{SpecEnd}' ./Data/sta_query.pkl> ./Data/Step_5_7_CleanSpectra_logfile.log
+                # !atacr_clean_spectra --figQC --figAverage --figCoh --figCross --save-fig --start='{SpecStart}' --end='{SpecEnd}' ./Data/sta_query.pkl> ./Data/Step_5_7_CleanSpectra_logfile.log
                 if logoutput_subfolder is None:
                         logoutput_subfolder = dirs['Py_Logs'] + '/5_7'
                 ObsQA.TOOLS.io.CleanSpectra(catalog,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,extra_flags=cleanspectra_flags,logoutput_subfolder=logoutput_subfolder,staquery_output=staquery_output,chan=chan,log_prefix=log_prefix,fork=fork,max_workers=max_workers)
                 print('Step 5/7 - COMPLETE: Spectral Average of Noise Data')
         if 6 in STEPS:
                 print('Step 6/7 - BEGIN: Calculate Transfer Functions')
-                # !atacr_transfer_functions -O --figTF --save-fig ./Data/sta_query.pkl> ./Data/Step_6_7_CalcTFs_logfile.log
+                # !atacr_transfer_functions --figTF --save-fig ./Data/sta_query.pkl> ./Data/Step_6_7_CalcTFs_logfile.log
                 if logoutput_subfolder is None:
                         logoutput_subfolder = dirs['Py_Logs'] + '/6_7'
                 ObsQA.TOOLS.io.TransferFunctions(catalog,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names
@@ -1220,6 +1222,174 @@ def Run_ATaCR(catalog, ATaCR_Parent = None, STEPS=[1,2,3,4,5,6,7], netsta_names=
                 ObsQA.TOOLS.io.CorrectEvents(catalog,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,extra_flags=correctevents_flags,logoutput_subfolder=logoutput_subfolder,staquery_output=staquery_output,chan=chan,log_prefix=log_prefix,fork=fork,max_workers=max_workers)
                 print('Step 7/7 - COMPLETE: Correct Event Data')
         plt.close('all')
+
+
+def get_data(datapath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
+    """
+    Function to grab all available noise data given a path and data time range
+
+    Parameters
+    ----------
+    datapath : str
+        Path to noise data folder
+    tstart : :class:`~obspy.class.UTCDateTime`
+        Start time for query
+    tend : :class:`~obspy.class.UTCDateTime`
+        End time for query
+
+    Returns
+    -------
+    tr1, tr2, trZ, trP : :class:`~obspy.core.Trace` object
+        Corresponding trace objects for components H1, H2, HZ and HP. Returns
+        empty traces for missing components.
+
+    """
+
+    # Define empty streams
+    trN1 = Stream()
+    trN2 = Stream()
+    trNZ = Stream()
+    trNP = Stream()
+
+    # Time iterator
+    t1 = tstart
+    
+    # Cycle through each day within time range
+    while t1 < tend:
+
+        # Time stamp used in file name
+        tstamp = str(t1.year).zfill(4)+'.'+str(t1.julday).zfill(3)+'.'
+
+        # Cycle through directory and load files
+        p = datapath.glob('*.*')
+        files = [x for x in p if x.is_file()]
+        for file in files:
+            inv = read_inventory(Path(str(file)).parent / '*_inventory.xml')
+            if fnmatch.fnmatch(str(file), '*' + tstamp + '*1.SAC'):
+                tr = read(str(file))
+                tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+                trN1.append(tr[0])
+            elif fnmatch.fnmatch(str(file), '*' + tstamp + '*2.SAC'):
+                tr = read(str(file))
+                tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+                trN2.append(tr[0])
+            elif fnmatch.fnmatch(str(file), '*' + tstamp + '*Z.SAC'):
+                tr = read(str(file))
+                tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+                trNZ.append(tr[0])
+            elif fnmatch.fnmatch(str(file), '*' + tstamp + '*H.SAC'):
+                tr = read(str(file))
+                tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
+                trNP.append(tr[0])
+
+        # Increase increment
+        t1 += 3600.*24.
+
+    # Fill with empty traces if components are not found
+    ntr = len(trNZ)
+    if not trN1 and not trN2:
+        for i in range(ntr):
+            trN1.append(Trace())
+            trN2.append(Trace())
+    if not trNP:
+        for i in range(ntr):
+            trNP.append(Trace())
+
+    if ntr > 0:
+        # Check that all sampling rates are equal - otherwise resample
+        if trNZ[0].stats.sampling_rate != trNP[0].stats.sampling_rate:
+
+            # These checks assume that all seismic data have the same sampling
+            if trNZ[0].stats.sampling_rate < trNP[0].stats.sampling_rate:
+                trNP.resample(trNZ[0].stats.sampling_rate, no_filter=False)
+            else:
+                trNZ.resample(trNP[0].stats.sampling_rate, no_filter=False)
+                if trN1:
+                    trN1.resample(trNP[0].stats.sampling_rate, no_filter=False)
+                if trN2:
+                    trN2.resample(trNP[0].stats.sampling_rate, no_filter=False)
+    return trN1, trN2, trNZ, trNP
+
+def load_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
+    # Define empty streams
+    inv = read_inventory(Path(str(file)).parent / '*_inventory.xml')
+    if fnmatch.fnmatch(str(file),'*1.SAC'):
+        tr = read(str(file))
+        tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+    elif fnmatch.fnmatch(str(file),'*2.SAC'):
+        tr = read(str(file))
+        tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+    elif fnmatch.fnmatch(str(file),'*Z.SAC'):
+        tr = read(str(file))
+        tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+    elif fnmatch.fnmatch(str(file),'*H.SAC'):
+        tr = read(str(file))
+        tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
+    return tr
+
+def get_event(eventpath, tstart=None, tend=None,evlist=None,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
+    """
+    Function to grab all available earthquake data given a path and data time
+    range
+    Parameters
+    ----------
+    eventpath : str
+        Path to earthquake data folder
+    tstart : :class:`~obspy.class.UTCDateTime`
+        Start time for query
+    tend : :class:`~obspy.class.UTCDateTime`
+        End time for query
+    Returns
+    -------
+    tr1, tr2, trZ, trP : :class:`~obspy.core.Trace` object
+        Corresponding trace objects for components H1, H2, HZ and HP. Returns
+        empty traces for missing components.
+    """
+    # Define empty streams
+    tr1,tr2,trP,trZ = Stream(),Stream(),Stream(),Stream()
+    # Cycle over all available files in time range
+    if evlist is None:
+        # Find out how many events from Z.SAC files
+        eventfiles = list(eventpath.glob('*Z.SAC'))
+        if not eventfiles:
+            raise(Exception("No event found in folder "+str(eventpath)))
+        # Extract events from time stamps
+        prefix = [file.name.split('.') for file in eventfiles]
+        evstamp = [p[0]+'.'+p[1]+'.'+p[2]+'.'+p[3]+'.' for p in prefix]
+        evDateTime = [UTCDateTime(p[0]+'-'+p[1]+'T'+p[2]+":"+p[3]) for p in prefix]
+        for event, tstamp in zip(evDateTime, evstamp):
+            if event >= tstart and event <= tend:
+                warnings.filterwarnings("ignore")
+                p = list(eventpath.glob('*Z.SAC'))
+                files = [x for x in p if x.is_file()]
+                for file in files:
+                    tr1=load_sac(Path(str(file).replace('Z.SAC','*1.SAC')))
+                    tr2=load_sac(Path(str(file).replace('Z.SAC','*2.SAC')))
+                    trZ=load_sac(Path(str(file).replace('Z.SAC','*Z.SAC')))
+                    trP=load_sac(Path(str(file).replace('Z.SAC','*H.SAC')))
+                    tr1, tr2, trZ, trP = check_fs(tr1,tr2,trZ,trP)
+                    yield tr1[0], tr2[0], trZ[0], trP[0]
+    else:
+        for ev in evlist:
+            tr1=load_sac(Path(str(eventpath / ev)+'*1.SAC'))
+            tr2=load_sac(Path(str(eventpath / ev)+'*2.SAC'))
+            trZ=load_sac(Path(str(eventpath / ev)+'*Z.SAC'))
+            trP=load_sac(Path(str(eventpath / ev)+'*H.SAC'))
+            tr1, tr2, trZ, trP = check_fs(tr1,tr2,trZ,trP)
+            yield tr1[0], tr2[0], trZ[0], trP[0]
+
+def check_fs(tr1,tr2,trZ,trP):
+    if trZ[0].stats.sampling_rate != trP[0].stats.sampling_rate:
+        if trZ[0].stats.sampling_rate < trP[0].stats.sampling_rate:
+            trP.resample(trZ[0].stats.sampling_rate, no_filter=False)
+    else:
+        trZ.resample(trP[0].stats.sampling_rate, no_filter=False)
+        if tr1:
+            tr1.resample(trP[0].stats.sampling_rate, no_filter=False)
+        if tr2:
+            tr2.resample(trP[0].stats.sampling_rate, no_filter=False)
+    return tr1,tr2,trZ,trP
+
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

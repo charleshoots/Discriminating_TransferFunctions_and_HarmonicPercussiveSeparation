@@ -26,6 +26,8 @@ catalog_full = pd.read_excel(str(project_path / '_DataArchive' / 'utilities' / '
 catalog = pd.read_pickle(Path(ATaCR_Parent) / 'Catalogs' / 'sta_catalog_proxima_test.pkl')
 # evaudit = ObsQA.io.audit_events(eventsfolder)
 evaudit = pd.read_pickle(Path(ATaCR_Parent) / 'Catalogs' / 'event_record_audit.pkl')
+hps_staquery_output = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp/_DataArchive/HPS_Data/sta_query.pkl')
+
 # ---------------------------------------------------------------------------------------------------
 # ============================================ LOAD DATA ===========================================
 # ---------------------------------------------------------------------------------------------------
@@ -49,52 +51,42 @@ evaudit = pd.read_pickle(Path(ATaCR_Parent) / 'Catalogs' / 'event_record_audit.p
 ## Step-7: Correct events. Step b4 in ML-ATaCR.
 ## ===============================================================================
 ## ===============================================================================
-# catalog = catalog.iloc[np.intersect1d(catalog.Station,['M07A'],return_indices=True)[1]]
-cat = catalog.copy()
-# cat = cat.reset_index()
-# cat.loc[0,'Events'] = ['2012.069.07.09']
-# display(cat)
-event_mode = False
 Minmag,Maxmag=6.0,8.0
 fork = False
+event_mode = False
 # STEPS = [1,2,3,4,5,6,7]
-# STEPS = [1,5,6,7]
-STEPS = [1,5]
-# STEPS = [1,4]
+# STEPS = [1,3,4,5,6,7]
 # STEPS = [1,4,5,6,7]
-days = 10
-
+# STEPS = [7]
+STEPS = [7]
+# STEPS,event_mode = [3],True
+# days = 10
 # ...For testing...
 # days = ['2012.061','2012.062','2012.063','2012.064']
 # days = [UTCDateTime.strptime('2012.061',format='%Y.%j') + i*3600*24 for i in range(30)]
 # catalog = catalog[catalog.Station.isin(['M07A','M08A',])]
 # catalog = catalog.reset_index()
 # catalog = update_event_catalog(catalog,eventsfolder,['2012.069.07.09','2012.181.21.07'])
-
-# ---
-evf = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp/_DataArchive/ATaCR_Data/ATaCR_Python/EVENTS')
-tff = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp/_DataArchive/ATaCR_Data/ATaCR_Python/TF_STA')
-# catalog = catalog.iloc[np.array([len(list((evf/ s.StaName).glob('*Z.SAC'))) for s in catalog.iloc])<10]
-
-catalog = catalog.iloc[:np.where(catalog.Station=='S01W')[0][0]+1]
-catalog = catalog.iloc[np.array([len(list((tff/ s.StaName).glob('*.pkl'))) for s in catalog.iloc])==0]
-catalog = catalog.iloc[np.where(catalog.Station=='LD41')[0][0]:]
-# catalog = catalog.iloc[np.where(catalog.Station=='J50A')[0][0]+1:]
-# catalog = catalog.iloc[:np.where(catalog.Station=='CC05')[0][0]+1]
-# catalog = catalog.iloc[np.where(catalog.Station=='J46C')[0][0]+1:]
-cat = catalog.copy()
-# ----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-## =============================================================================== ## =============================================================================== ##|
-# ----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-## =============================================================================== ## =============================================================================== ##|
-# ----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-## =============================================================================== ## =============================================================================== ##|
-# ----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-STEPS.pop(np.where(np.array(STEPS)==1)[0][0])
+# catalog = catalog.iloc[np.where(catalog.Station=='CC06')[0][0]].to_frame().T
+# catalog = catalog.iloc[[61,62]]
+## =============================================================================== ## =============================================================================== ##
+# ========================================== #
+cat = catalog.copy() # =============================================================================== #
+# ========================================== #
+# ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+## =============================================================================== ## =============================================================================== ##
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+## =============================================================================== ## =============================================================================== ##
+if event_mode:
+    staquery_output = hps_staquery_output
+else:
+    staquery_output = './sta_query.pkl'
+if 1 in STEPS:
+    STEPS.pop(np.where(np.array(STEPS)==1)[0][0])
 for STEP in STEPS:
     for ii,Station in enumerate(cat.iloc):
-        if Station.Station=='LD41':
-            continue
         ## StaFolder = Path(dirs['Py_RawDayData']) / Station.StaName
         ## Files = list(StaFolder.glob('*.SAC'))
         staname = Station.StaName
@@ -103,19 +95,7 @@ for STEP in STEPS:
         print('----Station: ' + staname +  ' (' + str(ii+1) + ' of ' + str(len(cat)) + ')')
         icatalog = Station.to_frame().T
         print('[//////////////////////////]'*2)
-        ObsQA.TOOLS.io.Run_ATaCR(icatalog,days=days,fork=fork,event_mode=event_mode, ATaCR_Parent = ATaCR_Parent,STEPS=[STEP],log_prefix=Station.StaName,Minmag=Minmag,Maxmag=Maxmag)
-    if event_mode & (STEP==3):
-        Origins = Station.Origin
-        Starts = Origins
-        if isinstance(Origins[0],obspy.core.event.origin.Origin):
-                Starts = [e.time for e in Origins]
-        dateformat = '%Y.%j.%H.%M'
-        hps_data_folder = (Path(dirs['Py_RawDayData']) / Station.StaName / 'HPS_Data')
-        hps_data_folder.mkdir(exist_ok=True)
-        days = list(np.unique([s.strftime('%Y.%j') for s in Starts]))
-        [[shutil.move(fi,hps_data_folder / fi.name) for fi in list((Path(dirs['Py_RawDayData']) / Station.StaName).glob(d + '*.SAC'))] for d in days]
-        # shutil.
-        print('....done')
+        ObsQA.TOOLS.io.Run_ATaCR(icatalog,fork=fork,staquery_output=staquery_output,event_mode=event_mode, ATaCR_Parent = ATaCR_Parent,STEPS=[STEP],log_prefix=Station.StaName,Minmag=Minmag,Maxmag=Maxmag)
 ## =============================================================================== ## =============================================================================== ##
 ## =============================================================================== ## =============================================================================== ##
 ## =============================================================================== ## =============================================================================== ##

@@ -81,7 +81,7 @@ def get_dailyspec_arguments(argv=None):
         "-O", "--overwrite",
         action="store_true",
         dest="ovr",
-        default=True,
+        default=False,
         help="Force the overwriting of pre-existing data. " +
         "[Default False]")
 
@@ -341,13 +341,13 @@ def main(args=None):
         # Path where data are located
         datapath = Path('DATA') / stkey
         if not datapath.is_dir():
-            print(stanm,"\nPath to "+str(datapath)+" doesn`t exist - continuing")
+            print('DailySpectra (A4) |',stanm,"\nPath to "+str(datapath)+" doesn`t exist - continuing")
             continue
 
         # Path where spectra will be saved
         specpath = Path('SPECTRA') / stkey
         if not specpath.is_dir():
-            print(stanm,"\nPath to "+str(specpath)+" doesn`t exist - creating it")
+            print('DailySpectra (A4) |',stanm,"\nPath to "+str(specpath)+" doesn`t exist - creating it")
             specpath.mkdir(parents=True)
 
         # Path where plots will be saved
@@ -383,30 +383,30 @@ def main(args=None):
         sta.location = tlocs
 
         # Update Display
-        print(stanm,"\n|===============================================|")
-        print(stanm,"|===============================================|")
-        print(stanm,"|                   {0:>8s}                    |".format(
+        print('DailySpectra (A4) |',stanm,"\n|===============================================|")
+        print('DailySpectra (A4) |',stanm,"|===============================================|")
+        print('DailySpectra (A4) |',stanm,"|                   {0:>8s}                    |".format(
             sta.station))
-        print(stanm,"|===============================================|")
-        print(stanm,"|===============================================|")
-        print(stanm,"|  Station: {0:>2s}.{1:5s}                            |".format(
+        print('DailySpectra (A4) |',stanm,"|===============================================|")
+        print('DailySpectra (A4) |',stanm,"|===============================================|")
+        print('DailySpectra (A4) |',stanm,"|  Station: {0:>2s}.{1:5s}                            |".format(
             sta.network, sta.station))
-        print(stanm,"|      Channel: {0:2s}; Locations: {1:15s}  |".format(
+        print('DailySpectra (A4) |',stanm,"|      Channel: {0:2s}; Locations: {1:15s}  |".format(
             sta.channel, ",".join(tlocs)))
-        print(stanm,"|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
+        print('DailySpectra (A4) |',stanm,"|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
             sta.longitude, sta.latitude))
-        print(stanm,"|      Start time: {0:19s}          |".format(
+        print('DailySpectra (A4) |',stanm,"|      Start time: {0:19s}          |".format(
             sta.startdate.strftime("%Y-%m-%d %H:%M:%S")))
-        print(stanm,"|      End time:   {0:19s}          |".format(
+        print('DailySpectra (A4) |',stanm,"|      End time:   {0:19s}          |".format(
             sta.enddate.strftime("%Y-%m-%d %H:%M:%S")))
-        print(stanm,"|-----------------------------------------------|")
+        print('DailySpectra (A4) |',stanm,"|-----------------------------------------------|")
 
         # Get all components
         # trN1, trN2, trNZ, trNP = utils.get_data(datapath, tstart, tend)
 
         # # -----------------------------------------------------------------
         # # -----------------------------------------------------------------<<<<<ORIGINAL>>>>>
-        # print(stanm,'< ORIGINAL >-' * 500)
+        # print('DailySpectra (A4) |',stanm,'< ORIGINAL >-' * 500)
         # trace_generator = utils.get_data_generator(datapath, 
         #                     UTCDateTime(tstart), UTCDateTime(tend),
         #                     seismic_units="DISP",
@@ -429,7 +429,6 @@ def main(args=None):
         # Window size
         window = args.window
         overlap = args.overlap
-
         # minimum numer of windows
         minwin = args.minwin
 
@@ -449,15 +448,15 @@ def main(args=None):
             year = str(trZ.stats.starttime.year).zfill(4)
             jday = str(trZ.stats.starttime.julday).zfill(3)
 
-            print(stanm,"\n"+"*"*60)
-            print(stanm,"* Calculating noise spectra for key " +
+            print('DailySpectra (A4) |',stanm,"\n"+"*"*60)
+            print('DailySpectra (A4) |',stanm,"* Calculating noise spectra for key " +
                 stkey+" and day "+year+"."+jday)
             tstamp = year+'.'+jday+'.'
             filename = specpath / (tstamp+'spectra.pkl')
 
             if filename.exists():
                 if not args.ovr:
-                    print(stanm,"*   -> file "+str(filename)+" exists - continuing")
+                    print('DailySpectra (A4) |',stanm,"*   -> file "+str(filename)+" exists - continuing")
                     continue
 
             # Initialize instance of DayNoise
@@ -472,11 +471,11 @@ def main(args=None):
             # Check if we have enough good windows
             nwin = np.sum(daynoise.goodwins)
             if nwin < minwin:
-                print(stanm,"*   Too few good data segments to calculate " +
+                print('DailySpectra (A4) |',stanm,"*   Too few good data segments to calculate " +
                     "average day spectra")
                 # continue
             else:
-                print(stanm,"*   {0} good windows. Proceeding...".format(nwin))
+                print('DailySpectra (A4) |',stanm,"*   {0} good windows. Proceeding...".format(nwin))
 
             # Average spectra for good windows
             daynoise.average_daily_spectra(

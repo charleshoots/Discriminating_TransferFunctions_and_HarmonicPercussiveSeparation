@@ -20,51 +20,32 @@ def get_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=
         warnings.filterwarnings("ignore")
         tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
     return tr[0]
-# def pull_cohphadm(stanm,EvFolder,tf='ZP-21'):
-#     correvpath = EvFolder / stanm / 'CORRECTED'
-#     rawevpath = EvFolder / stanm
-#     fclip = '.sta.' + tf
-#     correvs = [f.name for f in list(correvpath.glob('*' + fclip + '.HZ.SAC'))]
-#     rawevs = [f.replace(fclip,'').replace(stanm + '.','') for f in correvs]
-#     events = [c.replace('.sta','').replace('.HZ.SAC','').split(stanm + '.')[-1].split('.' + tf)[0] for c in correvs]
-#     cpa_list = []
-#     for r,c in zip(rawevs,correvs):
-#         # r = rawevs[0]
-#         # c = correvs[0]
-#         rawst = read(rawevpath / r)[0]
-#         corrst = read(correvpath / c)[0]
-#         cpa = cohphadm(rawst,corrst)
-#         cpa_list.append(cpa)
-#         # f,coh = cpa.COH()
-#         # plt.scatter(f,coh,s=0.05)
-#         # plt.axvline(cpa.fnotch(),linewidth=0.2,c='k')
-#         # plt.xscale('log')
-#         # plt.title('backup')
-#     return events,cpa_list
-def pull_cohphadm(stanm,EvFolder,tf='ZP-21',g=True):
-    correvpath = EvFolder / stanm / 'CORRECTED'
+def pull_cohphadm(stanm,EvFolder,CorrFolder,tf='ZP-21',g=True):
+    correvpath = CorrFolder / stanm 
     rawevpath = EvFolder / stanm
-    fclip = '.sta.' + tf
+    if len(tf)>0:
+        fclip = '.sta.' + tf
+    else:
+        fclip = ''
     correvs = [f.name for f in list(correvpath.glob('*' + fclip + '.HZ.SAC'))]
     rawevs = [f.replace(fclip,'').replace(stanm + '.','') for f in correvs]
-    events = [c.replace('.sta','').replace('.HZ.SAC','').split(stanm + '.')[-1].split('.' + tf)[0] for c in correvs]
+#     events = [c.replace('.sta','').replace('.HZ.SAC','').split(stanm + '.')[-1].split('.' + tf)[0] for c in correvs]
+    events = [c.replace('.sta','').replace('.HZ.SAC','').replace(stanm+'.','') for c in correvs]
     cpa_list = []
     for r,c in zip(rawevs,correvs):
-        # r = rawevs[0]
-        # c = correvs[0]
         if g:
             rawst = get_sac(rawevpath / r)
         else:
             rawst = read(rawevpath / r)[0]
         corrst = read(correvpath / c)[0]
 
+        tend = np.min([rawst.stats.endtime,corrst.stats.endtime])
+        rawst = rawst.copy().trim(tend-7200,tend)
+        corrst = corrst.copy().trim(tend-7200,tend)
+        if len(np.unique([len(rawst.data),len(corrst.data)]))>1:
+               raise Exception('Trace lenghts not equal')
         cpa = cohphadm(rawst,corrst)
         cpa_list.append(cpa)
-        # f,coh = cpa.COH()
-        # plt.scatter(f,coh,s=0.05)
-        # plt.axvline(cpa.fnotch(),linewidth=0.2,c='k')
-        # plt.xscale('log')
-        # plt.title('backup')
     return events,cpa_list
 class cohphadm(object):
         def __init__(self,A=None, B=None,overlap=0.3,csd=None,f=None,fs=None):
@@ -146,4 +127,6 @@ class cohphadm(object):
                 ft = np.atleast_2d(ft)
                 ft = ft*ws
                 return _f.T,_t.T,ft.T
-# --------
+# ------------------------------------------------      ------------------------------------------------                ------------------------------------------------
+# ------------------------------------------------------------------------------------------------              ------------------------------------------------
+# ------------------------------------------------      ------------------------------------------------                ------------------------------------------------

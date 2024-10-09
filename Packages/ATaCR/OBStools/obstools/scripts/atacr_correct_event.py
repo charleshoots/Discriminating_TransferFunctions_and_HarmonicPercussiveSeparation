@@ -227,24 +227,19 @@ def get_correct_arguments(argv=None):
 
 
 def main(args=None):
-
     if args is None:
         # Run Input Parser
         args = get_correct_arguments()
-
     # Load Database
     # stdb>0.1.3
     try:
         db, stkeys = stdb.io.load_db(fname=args.indb, keys=args.stkeys)
-
     # stdb=0.1.3
     except Exception:
         db = stdb.io.load_db(fname=args.indb)
-
         # Construct station key loop
         allkeys = db.keys()
         sorted(allkeys)
-
         # Extract key subset
         if len(args.stkeys) > 0:
             stkeys = []
@@ -253,11 +248,10 @@ def main(args=None):
         else:
             stkeys = db.keys()
             sorted(stkeys)
-
     # Loop over station keys
     for stkey in list(stkeys):
-
         # Extract station information from dictionary
+        evi = -1
         sta = db[stkey]
         stanm = '['+'.'.join([sta.network, sta.station])+']'
         # Path where transfer functions will be located
@@ -265,13 +259,11 @@ def main(args=None):
         if not transpath.is_dir():
             raise(Exception("Path to "+str(transpath) +
                             " doesn`t exist - aborting. CWD: " + os.getcwd()))
-
         # Path where event data are located
         eventpath = Path('EVENTS') / stkey
         if not eventpath.is_dir():
             raise(Exception("Path to "+str(eventpath) +
                             " doesn`t exist - aborting"))
-
         # Path where plots will be saved
         if args.saveplot:
             plotpath = eventpath / 'PLOTS'
@@ -279,22 +271,18 @@ def main(args=None):
                 plotpath.mkdir(parents=True)
         else:
             plotpath = False
-
         # Get catalogue search start time
         if args.startT is None:
             tstart = sta.startdate
         else:
             tstart = args.startT
-
         # Get catalogue search end time
         if args.endT is None:
             tend = sta.enddate
         else:
             tend = args.endT
-
         if tstart > sta.enddate or tend < sta.startdate:
             continue
-
         # Temporary print locations
         tlocs = sta.location
         if len(tlocs) == 0:
@@ -303,232 +291,196 @@ def main(args=None):
             if len(tlocs[il]) == 0:
                 tlocs[il] = "--"
         sta.location = tlocs
-
         # Update Display
-        print(stanm," ")
-        print(stanm," ")
-        print(stanm,"|===============================================|")
-        print(stanm,"|===============================================|")
-        print(stanm,"|                   {0:>8s}                    |".format(
+        print('CorrectEvent (A7) |',stanm," ")
+        print('CorrectEvent (A7) |',stanm," ")
+        print('CorrectEvent (A7) |',stanm,"|===============================================|")
+        print('CorrectEvent (A7) |',stanm,"|===============================================|")
+        print('CorrectEvent (A7) |',stanm,"|                   {0:>8s}                    |".format(
             sta.station))
-        print(stanm,"|===============================================|")
-        print(stanm,"|===============================================|")
-        print(stanm,"|  Station: {0:>2s}.{1:5s}                            |".format(
+        print('CorrectEvent (A7) |',stanm,"|===============================================|")
+        print('CorrectEvent (A7) |',stanm,"|===============================================|")
+        print('CorrectEvent (A7) |',stanm,"|  Station: {0:>2s}.{1:5s}                            |".format(
             sta.network, sta.station))
-        print(stanm,"|      Channel: {0:2s}; Locations: {1:15s}  |".format(
+        print('CorrectEvent (A7) |',stanm,"|      Channel: {0:2s}; Locations: {1:15s}  |".format(
             sta.channel, ",".join(tlocs)))
-        print(stanm,"|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
+        print('CorrectEvent (A7) |',stanm,"|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
             sta.longitude, sta.latitude))
-        print(stanm,"|      Start time: {0:19s}          |".format(
+        print('CorrectEvent (A7) |',stanm,"|      Start time: {0:19s}          |".format(
             sta.startdate.strftime("%Y-%m-%d %H:%M:%S")))
-        print(stanm,"|      End time:   {0:19s}          |".format(
+        print('CorrectEvent (A7) |',stanm,"|      End time:   {0:19s}          |".format(
             sta.enddate.strftime("%Y-%m-%d %H:%M:%S")))
-        print(stanm,"|-----------------------------------------------|")
-
+        print('CorrectEvent (A7) |',stanm,"|-----------------------------------------------|")
         # Get all components
-        trE1, trE2, trEZ, trEP = utils.get_event(eventpath, tstart, tend)
-
+        if args.ovr:
+            evlist = [f.name.replace('.HZ.SAC','') for f in list(eventpath.glob('*Z.SAC'))]
+            tr_generator = utils.get_event(eventpath, tstart, tend)
+        else:
+            fls = [f.name.replace('HZ.SAC','*HZ.SAC') for f in list(eventpath.glob('*Z.SAC'))]
+            evlist = [g.replace('.*HZ.SAC','') for g in fls if len(list((eventpath/'CORRECTED').glob('*' + g.replace('*HZ','day.*HZ'))))==0]
+            evlist.extend([g.replace('.*HZ.SAC','') for g in fls if len(list((eventpath/'CORRECTED').glob('*' + g.replace('*HZ','sta.*HZ'))))==0])
+            evlist = list(np.unique(evlist))
+            if len(evlist)>0:
+                tr_generator = utils.get_event(eventpath,evlist=evlist)
         # Find all TF files in directory
         p = list(transpath.glob('*.*'))
         trans_files = [x for x in p if x.is_file()]
-
         # Check if folders contain anything
         if not trans_files:
             raise(Exception("There are no transfer functions in folder " +
                             str(transpath)))
         dateformat = '%Y.%j.%H.%M'
         # Cycle through available data
-        for tr1, tr2, trZ, trP in zip(trE1, trE2, trEZ, trEP):
-            eventstream = EventStream(tr1, tr2, trZ, trP)
-            print(stanm,'==================================EVENT: ' + eventstream.prefix + '==================================')
-            # Check if Trace is from SAC file with event info
-            evlo = None
-            evla = None
-            if hasattr(trZ.stats, 'sac'):
-                if hasattr(trZ.stats.sac, 'evlo'):
-                    evlo = trZ.stats.sac.evlo
-                    evla = trZ.stats.sac.evla
-
-            if args.fig_event_raw:
-                fname = stkey + '.' + eventstream.tstamp + 'raw'
-                plot = plotting.fig_event_raw(
-                    eventstream,
-                    fmin=args.fmin, fmax=args.fmax)
-
-                if plotpath:
-                    plot.savefig(
-                        plotpath / (fname + '.' + args.form),
-                        dpi=300, bbox_inches='tight', format=args.form)
-                    plotting.plt.close('all')
-                else:
-                    plot.show()
-
-            # Cycle through corresponding TF files
-
-            for transfile in trans_files:
-
-                # Skip hidden files and folders
-                if transfile.name[0] == '.':
+        if len(evlist)==0:
+            print('CorrectEvent (A7) |',stanm,'| No events to correct | Overwrite:',str(args.ovr))
+        else:
+            for tr1, tr2, trZ, trP in tr_generator:
+                evi+=1
+                ncomp = np.sum([np.any(tr.data) for tr in [tr1, tr2, trZ, trP]])
+                if ncomp <= 1 or len(trZ.data) == 0:
+                    print('CorrectEvent (A7) | '+stanm+evlist[evi]+' | Bad Data. Skipping.')
                     continue
-
-                tfprefix = transfile.name.split('transfunc')[0]
-                # print(stanm,transfile)
-
-                # This case refers to the "cleaned" spectral averages
-                if len(tfprefix) > 9:
-                    if not args.skip_clean:
-                        yr1 = tfprefix.split('-')[0].split('.')[0]
-                        jd1 = tfprefix.split('-')[0].split('.')[1]
-                        yr2 = tfprefix.split('-')[1].split('.')[0]
-                        jd2 = tfprefix.split('-')[1].split('.')[1]
-                        date1 = UTCDateTime(yr1+'-'+jd1)
-                        date2 = UTCDateTime(yr2+'-'+jd2)
-                        dateev = eventstream.evtime
-
-                        if dateev >= date1 and dateev <= date2:
-                            print(stanm,str(transfile) +
-                                  " file found - applying transfer functions")
-
-                            try:
-                                file = open(transfile, 'rb')
-                                tfaverage = pickle.load(file)
-                                file.close()
-                            except Exception:
-                                print(stanm,"File "+str(transfile) +
-                                      " exists but cannot be loaded")
-                                continue
-
-                            # List of possible transfer functions for station
-                            # average files
-                            eventstream.correct_data(tfaverage)
-                            eventstream.transfile = transfile.name
-                            correct_sta = eventstream.correct
-                            if args.fig_plot_corrected:
-                                fname = eventstream.prefix + '.sta_corrected'
-                                plot = plotting.fig_event_corrected(
-                                    eventstream, tfaverage.tf_list)
-                                # Save or show figure
-                                if plotpath:
-                                    plot.savefig(
-                                        plotpath / (fname + '.' + args.form),
-                                        dpi=700, bbox_inches='tight',
-                                        format=args.form)
-                                    plotting.plt.close('all')
-                                else:
-                                    plot.show()
-                            # Save corrected data to disk
-                            correctpath = eventpath / 'CORRECTED'
-                            if not correctpath.is_dir():
-                                correctpath.mkdir(parents=True)
-                            file = correctpath / eventstream.prefix
-                            # print(stanm,'  |TF Loaded: /' + str(transfile.name))
-                            # print(stanm,'  |SAC Loaded: /' + eventstream.prefix)
-                            # print(stanm,'  |Output saved: /' + str(file.name))
-                            eventstream.save(str(file) + '.sta.pkl')
-
-                            # Now save as SAC files
-                            for key, value in tfaverage.tf_list.items():
-                                if value and eventstream.ev_list[key]:
-
-                                    # Postfix
-                                    nameZ = '.sta.' + key + '.'
-                                    nameZ += sta.channel + 'Z.SAC'
-
-                                    # Add Prefix and Postfix
-                                    fileZ = str(file) + nameZ
-
-                                    # Select Z component and update trace
-                                    trZ = eventstream.trZ.copy()
-                                    trZ.data = eventstream.correct[key]
-                                    trZ = utils.update_stats(
-                                        trZ, sta.latitude, sta.longitude,
-                                        sta.elevation, sta.channel+'Z',
-                                        evla=evla,
-                                        evlo=evlo)
-
-                                    # Save as SAC file
-                                    trZ.write(str(fileZ), format='SAC')
-                        else:
-                            print(stanm,' Clean case date skipped: ' + tfprefix)
-
-                # This case refers to the "daily" spectral averages
-                else:
-                    if not args.skip_daily:
-                        evprefix = eventstream.tstamp.split('.')
-                        evstamp = evprefix[0]+'.'+evprefix[1]+'.'
-
-                        #Prioritizes choosing the nearest preceeding day. If one does not exist, it chooses the nearest following day.
-                        days = [UTCDateTime.strptime(str(f.name).split('.transfunc.pkl')[0],format='%Y.%j') for f in trans_files if not '-' in str(f)]
-                        if min([d-UTCDateTime.strptime(evstamp,'%Y.%j.') for d in days])<0:
-                            nearestday = max([d for d in days if d<UTCDateTime.strptime(evstamp,'%Y.%j.')]).strftime('%Y.%j.')
-                        else:
-                            nearestday = min(days).strftime('%Y.%j.')
-
-                        # if tfprefix == evstamp:
-                        if tfprefix==nearestday:
-                            print(stanm,str(transfile) +
-                                  " file found - applying transfer functions")
-                            try:
-                                file = open(transfile, 'rb')
-                                tfaverage = pickle.load(file)
-                                file.close()
-                            except Exception:
-                                print(stanm,"File "+str(transfile) +
-                                      " exists but cannot be loaded")
-                                continue
-
-                            # List of possible transfer functions for station
-                            # average files
-                            eventstream.correct_data(tfaverage)
-                            eventstream.transfile = transfile.name
-                            correct_day = eventstream.correct
-                            if args.fig_plot_corrected:
-                                fname = eventstream.prefix + '.day_corrected'
-                                plot = plotting.fig_event_corrected(
-                                    eventstream, tfaverage.tf_list)
-                                # Save or show figure
-                                if plotpath:
-                                    plot.savefig(
-                                        plotpath / (fname + '.' + args.form),
-                                        dpi=700, bbox_inches='tight',
-                                        format=args.form)
-                                    plotting.plt.close('all')
-                                else:
-                                    plot.show()
-                            # Save corrected data to disk
-                            correctpath = eventpath / 'CORRECTED'
-                            if not correctpath.is_dir():
-                                correctpath.mkdir(parents=True)
-                            file = correctpath / eventstream.prefix
-                            # print(stanm,'  |TF Loaded: /' + str(transfile.name))
-                            # print(stanm,'  |SAC Loaded: /' + eventstream.prefix)
-                            # print(stanm,'  |Output saved: /' + str(file.name))
-                            eventstream.save(str(file) + '.day.pkl')
-                            # Now save as SAC files
-                            for key, value in tfaverage.tf_list.items():
-                                if value and eventstream.ev_list[key]:
-
-                                    # Postfix
-                                    nameZ = '.day.' + key + '.'
-                                    nameZ += sta.channel+'Z.SAC'
-
-                                    # Add Prefix and Postfix
-                                    fileZ = str(file) + nameZ
-
-                                    # Select Z component and update trace
-                                    trZ = eventstream.trZ.copy()
-                                    trZ.data = eventstream.correct[key]
-                                    trZ = utils.update_stats(
-                                        trZ, sta.latitude, sta.longitude,
-                                        sta.elevation, sta.channel+'Z',
-                                        evla=evla,
-                                        evlo=evlo)
-
-                                    # Save as SAC file
-                                    trZ.write(str(fileZ), format='SAC')
+                eventstream = EventStream(tr1, tr2, trZ, trP)
+                print('CorrectEvent (A7) |',stanm,'==================================EVENT ['+str(evi)+'/'+str(len(evlist))+']: ' + eventstream.prefix + '==================================')
+                # Check if Trace is from SAC file with event info
+                evlo = None
+                evla = None
+                if hasattr(trZ.stats, 'sac'):
+                    if hasattr(trZ.stats.sac, 'evlo'):
+                        evlo = trZ.stats.sac.evlo
+                        evla = trZ.stats.sac.evla
+                if args.fig_event_raw:
+                    fname = stkey + '.' + eventstream.tstamp + 'raw'
+                    plot = plotting.fig_event_raw(eventstream,fmin=args.fmin, fmax=args.fmax)
+                    if plotpath:
+                        plot.savefig(
+                            plotpath / (fname + '.' + args.form),
+                            dpi=300, bbox_inches='tight', format=args.form)
+                        plotting.plt.close('all')
+                    else:
+                        plot.show()
+                # Cycle through corresponding TF files
+                for transfile in trans_files:
+                    # Skip hidden files and folders
+                    if transfile.name[0] == '.':
+                        continue
+                    tfprefix = transfile.name.split('transfunc')[0]
+                    # print('CorrectEvent (A7) |',stanm,transfile)
+                    # This case refers to the "cleaned" spectral averages
+                    if len(tfprefix) > 9:
+                        if not args.skip_clean:
+                            yr1 = tfprefix.split('-')[0].split('.')[0]
+                            jd1 = tfprefix.split('-')[0].split('.')[1]
+                            yr2 = tfprefix.split('-')[1].split('.')[0]
+                            jd2 = tfprefix.split('-')[1].split('.')[1]
+                            date1 = UTCDateTime(yr1+'-'+jd1)
+                            date2 = UTCDateTime(yr2+'-'+jd2)
+                            dateev = eventstream.evtime
+                            if dateev >= date1 and dateev <= date2:
+                                print('CorrectEvent (A7) |',stanm,str(transfile) + " [Station Averaged] file found - applying transfer functions")
+                                try:
+                                    file = open(transfile, 'rb')
+                                    tfaverage = pickle.load(file)
+                                    file.close()
+                                except Exception:
+                                    print('CorrectEvent (A7) |',stanm,"File "+str(transfile) + " exists but cannot be loaded")
+                                    continue
+                                # List of possible transfer functions for station
+                                eventstream.correct_data(tfaverage)
+                                eventstream.transfile = transfile.name
+                                if args.fig_plot_corrected:
+                                    fname = eventstream.prefix + '.sta_corrected'
+                                    plot = plotting.fig_event_corrected(eventstream, tfaverage.tf_list)
+                                    # Save or show figure
+                                    if plotpath:
+                                        plot.savefig(plotpath / (fname + '.' + args.form),dpi=700, bbox_inches='tight',format=args.form)
+                                        plotting.plt.close('all')
+                                    else:
+                                        plot.show()
+                                # Save corrected data to disk
+                                correctpath = eventpath / 'CORRECTED'
+                                if not correctpath.is_dir():
+                                    correctpath.mkdir(parents=True)
+                                file = correctpath / eventstream.prefix
+                                eventstream.save(str(file) + '.sta.pkl')
+                                # Now save as SAC files
+                                for key, value in tfaverage.tf_list.items():
+                                    if value and eventstream.ev_list[key]:
+                                        # Postfix
+                                        nameZ = '.sta.' + key + '.'
+                                        nameZ += sta.channel + 'Z.SAC'
+                                        # Add Prefix and Postfix
+                                        fileZ = str(file) + nameZ
+                                        # Select Z component and update trace
+                                        trZ = eventstream.trZ.copy()
+                                        trZ.data = eventstream.correct[key]
+                                        trZ = utils.update_stats(
+                                            trZ, sta.latitude, sta.longitude,
+                                            sta.elevation, sta.channel+'Z',
+                                            evla=evla,
+                                            evlo=evlo)
+                                        # Save as SAC file
+                                        trZ.write(str(fileZ), format='SAC')
+                            else:
+                                print('CorrectEvent (A7) |',stanm,' Clean case date skipped: ' + tfprefix)
+                    # This case refers to the "daily" spectral averages
+                    else:
+                        if not args.skip_daily:
+                            evprefix = eventstream.tstamp.split('.')
+                            evstamp = evprefix[0]+'.'+evprefix[1]+'.'
+                            #Prioritizes choosing the nearest preceeding day. If one does not exist, it chooses the nearest following day.
+                            days = [UTCDateTime.strptime(str(f.name).split('.transfunc.pkl')[0],format='%Y.%j') for f in trans_files if not '-' in str(f)]
+                            if min([d-UTCDateTime.strptime(evstamp,'%Y.%j.') for d in days])<0:
+                                nearestday = max([d for d in days if d<UTCDateTime.strptime(evstamp,'%Y.%j.')]).strftime('%Y.%j.')
+                            else:
+                                nearestday = min(days).strftime('%Y.%j.')
+                            # if tfprefix == evstamp:
+                            if tfprefix==nearestday:
+                                print('CorrectEvent (A7) |',stanm,str(transfile) + " [Day Averaged] file found - applying transfer functions")
+                                try:
+                                    file = open(transfile, 'rb')
+                                    tfaverage = pickle.load(file)
+                                    file.close()
+                                except Exception:
+                                    print('CorrectEvent (A7) |',stanm,"File "+str(transfile) + " exists but cannot be loaded")
+                                    continue
+                                # List of possible transfer functions for station
+                                # average files
+                                eventstream.correct_data(tfaverage)
+                                eventstream.transfile = transfile.name
+                                correct_day = eventstream.correct
+                                if args.fig_plot_corrected:
+                                    fname = eventstream.prefix + '.day_corrected'
+                                    plot = plotting.fig_event_corrected(eventstream, tfaverage.tf_list)
+                                    # Save or show figure
+                                    if plotpath:
+                                        plot.savefig(plotpath / (fname + '.' + args.form),dpi=700, bbox_inches='tight',format=args.form)
+                                        plotting.plt.close('all')
+                                    else:
+                                        plot.show()
+                                # Save corrected data to disk
+                                correctpath = eventpath / 'CORRECTED'
+                                if not correctpath.is_dir():
+                                    correctpath.mkdir(parents=True)
+                                file = correctpath / eventstream.prefix
+                                eventstream.save(str(file) + '.day.pkl')
+                                # Now save as SAC files
+                                for key, value in tfaverage.tf_list.items():
+                                    if value and eventstream.ev_list[key]:
+                                        # Postfix
+                                        nameZ = '.day.' + key + '.'
+                                        nameZ += sta.channel+'Z.SAC'
+                                        # Add Prefix and Postfix
+                                        fileZ = str(file) + nameZ
+                                        # Select Z component and update trace
+                                        trZ = eventstream.trZ.copy()
+                                        trZ.data = eventstream.correct[key]
+                                        trZ = utils.update_stats(trZ, sta.latitude, sta.longitude,
+                                        sta.elevation, sta.channel+'Z',evla=evla,evlo=evlo)
+                                        # Save as SAC file
+                                        trZ.write(str(fileZ), format='SAC')
 
 
 if __name__ == "__main__":
-
     # Run main program
     main()

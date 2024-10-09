@@ -46,6 +46,8 @@ import ObsQA as ob
 from ObsQA.TOOLS import io
 from ObsQA.TOOLS.io import get_Noise
 from ObsQA.OBSM.classes import OBSMetrics as OBSM
+from ObsQA.TOOLS.io import *
+from NoiseCut.Source.src import *
 # from ObsQA.plots import qtp
 from ObsQA import *
 import obstools as obs
@@ -74,3 +76,15 @@ Folder.mkdir(exist_ok=True)
 # catalog = catalog.reset_index()
 # catalog = update_event_catalog(catalog,eventsfolder,['2012.069.07.09','2012.181.21.07'])
 k=1
+
+
+def write_pickle(file,var):
+    import pickle
+    with open(str(file), 'wb') as handle:
+        pickle.dump(var, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    print('Saved to :' + str(file))
+def load_pickle(file):
+    import pickle
+    with open(file, 'rb') as handle:
+        b = pickle.load(handle)
+    return b

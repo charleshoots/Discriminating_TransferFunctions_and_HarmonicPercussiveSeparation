@@ -209,24 +209,19 @@ def get_transfer_arguments(argv=None):
 
 
 def main(args=None):
-
     if args is None:
         # Run Input Parser
         args = get_transfer_arguments()
-
     # Load Database
     # stdb>0.1.3
     try:
         db, stkeys = stdb.io.load_db(fname=args.indb, keys=args.stkeys)
-
     # stdb=0.1.3
     except Exception:
         db = stdb.io.load_db(fname=args.indb)
-
         # Construct station key loop
         allkeys = db.keys()
         sorted(allkeys)
-
         # Extract key subset
         if len(args.stkeys) > 0:
             stkeys = []
@@ -235,10 +230,8 @@ def main(args=None):
         else:
             stkeys = db.keys()
             sorted(stkeys)
-
     # Loop over station keys
     for stkey in list(stkeys):
-
         # Extract station information from dictionary
         sta = db[stkey]
         stanm = '['+'.'.join([sta.network, sta.station])+']'
@@ -246,27 +239,21 @@ def main(args=None):
             # Path where spectra are located
             specpath = Path('SPECTRA') / stkey
             if not specpath.is_dir():
-                raise(Exception(
-                    "Path to "+str(specpath)+" doesn't exist - aborting"))
-
+                raise(Exception("Path to "+str(specpath)+" doesn't exist - aborting"))
         if not args.skip_clean:
             # Path where average spectra will be saved
             avstpath = Path('AVG_STA') / stkey
             if not avstpath.is_dir():
-                print(stanm,"Path to "+str(avstpath) +
-                      " doesn't exist - skipping cleaned station spectra")
+                print('TransferFunctions (A6) |',stanm,"Path to "+str(avstpath) + " doesn't exist - skipping cleaned station spectra")
                 args.skip_clean = True
-
         if args.skip_daily and args.skip_clean:
-            print(stanm,"skipping both daily and clean spectra")
+            print('TransferFunctions (A6) |',stanm,"skipping both daily and clean spectra")
             continue
-
         # Path where transfer functions will be located
         tfpath = Path('TF_STA') / stkey
         if not tfpath.is_dir():
-            print(stanm,"Path to "+str(tfpath)+" doesn't exist - creating it")
+            print('TransferFunctions (A6) |',stanm,"Path to "+str(tfpath)+" doesn't exist - creating it")
             tfpath.mkdir(parents=True)
-
         # Path where plots will be saved
         if args.saveplot:
             plotpath = tfpath / 'PLOTS'
@@ -274,22 +261,18 @@ def main(args=None):
                 plotpath.mkdir(parents=True)
         else:
             plotpath = False
-
         # Get catalogue search start time
         if args.startT is None:
             tstart = sta.startdate
         else:
             tstart = args.startT
-
         # Get catalogue search end time
         if args.endT is None:
             tend = sta.enddate
         else:
             tend = args.endT
-
         if tstart > sta.enddate or tend < sta.startdate:
             continue
-
         # Temporary print locations
         tlocs = sta.location
         if len(tlocs) == 0:
@@ -298,140 +281,106 @@ def main(args=None):
             if len(tlocs[il]) == 0:
                 tlocs[il] = "--"
         sta.location = tlocs
-
         # Update Display
-        print(stanm," ")
-        print(stanm," ")
-        print(stanm,"|===============================================|")
-        # print(stanm,"|============== TAPER MODE: " + str(args.taper_mode) + " =================|")
-        print(stanm,"|===============================================|")
-        print(stanm,"|                   {0:>8s}                    |".format(
+        print('TransferFunctions (A6) |',stanm," ")
+        print('TransferFunctions (A6) |',stanm," ")
+        print('TransferFunctions (A6) |',stanm,"|===============================================|")
+        # print('TransferFunctions (A6) |',stanm,"|============== TAPER MODE: " + str(args.taper_mode) + " =================|")
+        print('TransferFunctions (A6) |',stanm,"|===============================================|")
+        print('TransferFunctions (A6) |',stanm,"|                   {0:>8s}                    |".format(
             sta.station))
-        print(stanm,"|===============================================|")
-        print(stanm,"|===============================================|")
-        print(stanm,"|  Station: {0:>2s}.{1:5s}                            |".format(
+        print('TransferFunctions (A6) |',stanm,"|===============================================|")
+        print('TransferFunctions (A6) |',stanm,"|===============================================|")
+        print('TransferFunctions (A6) |',stanm,"|  Station: {0:>2s}.{1:5s}                            |".format(
             sta.network, sta.station))
-        print(stanm,"|      Channel: {0:2s}; Locations: {1:15s}  |".format(
+        print('TransferFunctions (A6) |',stanm,"|      Channel: {0:2s}; Locations: {1:15s}  |".format(
             sta.channel, ",".join(tlocs)))
-        print(stanm,"|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
+        print('TransferFunctions (A6) |',stanm,"|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
             sta.longitude, sta.latitude))
-        print(stanm,"|      Start time: {0:19s}          |".format(
+        print('TransferFunctions (A6) |',stanm,"|      Start time: {0:19s}          |".format(
             sta.startdate.strftime("%Y-%m-%d %H:%M:%S")))
-        print(stanm,"|      End time:   {0:19s}          |".format(
+        print('TransferFunctions (A6) |',stanm,"|      End time:   {0:19s}          |".format(
             sta.enddate.strftime("%Y-%m-%d %H:%M:%S")))
-        print(stanm,"|-----------------------------------------------|")
-
+        print('TransferFunctions (A6) |',stanm,"|-----------------------------------------------|")
         # Filename for output transfer functions
         dstart = str(tstart.year).zfill(4)+'.'+str(tstart.julday).zfill(3)+'-'
         dend = str(tend.year).zfill(4)+'.'+str(tend.julday).zfill(3)+'.'
         fileavst = avstpath / (dstart+dend+'avg_sta.pkl')
-
         # Find all files in directories
         p = specpath.glob('*spectra.pkl')
         spectra_files = [x for x in p if x.is_file()]
-        print(stanm,'Spectra files found: ' + str(len(spectra_files)))
+        print('TransferFunctions (A6) |',stanm,'Spectra files found: ' + str(len(spectra_files)))
         if not args.skip_clean:
             p = avstpath.glob('*avg_sta.pkl')
             average_files = [x for x in p if x.is_file()]
-
         if not args.skip_daily:
-
             day_transfer_functions = []
-
             # Cycle through available files
             for filespec in spectra_files:
-
                 year = filespec.name.split('.')[0]
                 jday = filespec.name.split('.')[1]
-
-                print(stanm,"\n"+"*"*60)
-                print(stanm,"* Calculating transfer functions for key " +
-                      stkey+" and day "+year+"."+jday)
+                print('TransferFunctions (A6) |',stanm,"\n"+"*"*60)
+                print('TransferFunctions (A6) |',stanm,"* Calculating transfer functions for key " + stkey+" and day "+year+"."+jday)
                 tstamp = year+'.'+jday+'.'
                 filename = tfpath / (tstamp + 'transfunc.pkl')
-
+                if filename.exists():
+                    if not args.ovr:
+                        print('TransferFunctions (A6) |',stanm,"*   -> file "+str(filename)+" exists - continuing")
+                        continue
                 # Load file
                 file = open(filespec, 'rb')
                 daynoise = pickle.load(file)
                 file.close()
-                
-                # taper_mode = int(args.taper_mode)
-
                 # Load spectra into TFNoise object
-                daytransfer = TFNoise(daynoise,
-                                    #   taper_mode=taper_mode
-                                      )
-
+                daytransfer = TFNoise(daynoise)
                 # Calculate the transfer functions
                 daytransfer.transfer_func()
-
                 # Store the frequency axis
                 f = daytransfer.f
-
                 # Append to list of transfer functions
                 day_transfer_functions.append(daytransfer.transfunc)
-
                 # Save daily transfer functions to file
-                print(stanm,'Transfer Function Saved: ' + str(filename))
+                print('TransferFunctions (A6) |',stanm,'Transfer Function Saved: ' + str(filename))
                 daytransfer.save(filename)
-
         if not args.skip_clean:
-
             # Cycle through available files
             for fileavst in average_files:
-
                 name = fileavst.name.split('avg_sta')
-
-                print(stanm,"\n"+"*"*60)
-                print(stanm,"* Calculating transfer functions for key " +
-                      stkey+" and range "+name[0])
+                print('TransferFunctions (A6) |',stanm,"\n"+"*"*60)
+                print('TransferFunctions (A6) |',stanm,"* Calculating transfer functions for key " + stkey+" and range "+name[0])
                 filename = tfpath / (name[0] + 'transfunc.pkl')
-
                 # Load file
                 file = open(fileavst, 'rb')
                 stanoise = pickle.load(file)
                 file.close()
-
                 # Load spectra into TFNoise object - no Rotation object
                 # for station averages
                 rotation = Rotation(None, None, None)
                 
                 # taper_mode = int(args.taper_mode)
                 
-                statransfer = TFNoise(stanoise,
-                                    #   taper_mode=taper_mode
-                                      )
-
+                statransfer = TFNoise(stanoise)
                 # Calculate the transfer functions
                 statransfer.transfer_func()
-
                 # Store the frequency axis
                 f = statransfer.f
-
                 # Extract the transfer functions
                 sta_transfer_functions = statransfer.transfunc
-
                 # Save average transfer functions to file
-                print(stanm,'Transfer Function Saved: ' + str(filename))
+                print('TransferFunctions (A6) |',stanm,'Transfer Function Saved: ' + str(filename))
                 statransfer.save(filename)
-
         if args.fig_TF:
-            fname = stkey + '.' + 'transfer_functions' #+ '_Taper' + str(args.taper_mode)
-            plot = plotting.fig_TF(
-                f, day_transfer_functions, daynoise.tf_list,
-                sta_transfer_functions, stanoise.tf_list, skey=stkey,
-                # append_title='Taper: ' + str(args.taper_mode) + ' | '
-                )
-
-            if plotpath:
-                plot.savefig(
-                    plotpath / (fname + '.' + args.form),
-                    dpi=300, bbox_inches='tight', format=args.form)
-            else:
-                plot.show()
+            if len(day_transfer_functions)>0:
+                fname = stkey + '.' + 'transfer_functions' #+ '_Taper' + str(args.taper_mode)
+                plot = plotting.fig_TF(f, day_transfer_functions, daynoise.tf_list,sta_transfer_functions, stanoise.tf_list, skey=stkey)
+                if plotpath:
+                    plot.savefig(
+                        plotpath / (fname + '.' + args.form),
+                        dpi=300, bbox_inches='tight', format=args.form)
+        else:
+            plot.show()
 
 
 if __name__ == "__main__":
-
     # Run main program
     main()

@@ -1969,8 +1969,7 @@ class EventStream(object):
         correct=False):
 
         if tr1 == 'demo':
-            print("Uploading demo earthquake data - March 09, 2012, " +
-                  "station 7D.M08A")
+            print("Uploading demo earthquake data - March 09, 2012, " + "station 7D.M08A")
             exmpl_path = Path(resource_filename('obstools', 'examples'))
             fn = exmpl_path / 'event' / '2012.069*.SAC'
             st = read(str(fn))
@@ -1981,9 +1980,7 @@ class EventStream(object):
 
         ncomp = np.sum([np.any(tr.data) for tr in [tr1, tr2, trZ, trP]])
         if ncomp <= 1 or len(trZ.data) == 0:
-            raise(Exception(
-                "Incorrect initialization of EventStream object: " +
-                "missing a vertical component or too few components"))
+            raise(Exception("Incorrect initialization of EventStream object: " + "missing a vertical component or too few components"))
 
         self.tr1 = tr1
         self.tr2 = tr2

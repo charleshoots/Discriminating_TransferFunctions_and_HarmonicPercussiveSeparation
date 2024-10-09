@@ -21,8 +21,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-
 # Import modules and functions
 import numpy as np
 import os.path
@@ -95,7 +93,13 @@ def get_daylong_arguments(argv=None):
         default=False,
         help="Force the overwriting of pre-existing data. " +
         "[Default False]")
-
+    parser.add_argument(
+        "-e", "--evn",
+        action="store_true",
+        dest="evn",
+        default=False,
+        help="Forces the download manager to write downloaded files to event specific filenames." +
+        "[Default False]")
     # Server Settings
     ServerGroup = parser.add_argument_group(
         title="Server Settings",
@@ -120,7 +124,6 @@ def get_daylong_arguments(argv=None):
         help="Enter your IRIS Authentification Username and Password " +
         "(--User-Auth='username:authpassword') to access and download " +
         "restricted data. [Default no user and password]")
-
     """
     # Database Settings
     DataGroup = parser.add_argument_group(
@@ -283,24 +286,19 @@ def get_daylong_arguments(argv=None):
 
 
 def main(args=None):
-
     if args is None:
         # Run Input Parser
         args = get_daylong_arguments()
-
     # Load Database
     # stdb>0.1.3
     try:
         db, stkeys = stdb.io.load_db(fname=args.indb, keys=args.stkeys)
-
     # stdb=0.1.3
     except Exception:
         db = stdb.io.load_db(fname=args.indb)
-
         # Construct station key loop
         allkeys = db.keys()
         sorted(allkeys)
-
         # Extract key subset
         if len(args.stkeys) > 0:
             stkeys = []
@@ -309,10 +307,8 @@ def main(args=None):
         else:
             stkeys = db.keys()
             sorted(stkeys)
-
     # Loop over station keys
     for stkey in list(stkeys):
-
         # Extract station information from dictionary
         sta = db[stkey]
         stanm = '['+'.'.join([sta.network, sta.station])+']'
@@ -321,29 +317,24 @@ def main(args=None):
         if not datapath.is_dir():
             print(stanm,'\nPath to '+str(datapath)+' doesn`t exist - creating it')
             datapath.mkdir(parents=True)
-
         # Establish client
         if len(args.UserAuth) == 0:
             client = Client(args.Server)
         else:
             client = Client(
                 args.Server, user=args.UserAuth[0], password=args.UserAuth[1])
-
         # Get catalogue search start time
         if args.startT is None:
             tstart = sta.startdate
         else:
             tstart = args.startT
-
         # Get catalogue search end time
         if args.endT is None:
             tend = sta.enddate
         else:
             tend = args.endT
-
         if tstart > sta.enddate or tend < sta.startdate:
             continue
-
         # Temporary print locations
         tlocs = sta.location
         if len(tlocs) == 0:
@@ -352,7 +343,6 @@ def main(args=None):
             if len(tlocs[il]) == 0:
                 tlocs[il] = "--"
         sta.location = tlocs
-
         # Update Display
         print(stanm,"\n|===============================================|")
         print(stanm,"|===============================================|")
@@ -381,7 +371,7 @@ def main(args=None):
         t1 = tstart
         t2 = tstart + dt
         while t2 <= tend:
-            stp,sth = None,None
+            stp,sth = [],[]
             # Time stamp
             tstamp = str(t1.year).zfill(4)+'.'+str(t1.julday).zfill(3)+'.'
             print(stanm,"\n"+"*"*60)
@@ -397,19 +387,21 @@ def main(args=None):
             fileZ = datapath / (tstamp+'.'+sta.channel+'Z.SAC')
             # Pressure channel
             fileP = datapath / (tstamp+'.'+sta.channel[0]+'DH.SAC')
+
+            if args.evn:
+                fileZ = datapath / ((t2-2*3600).strftime('%Y.%j.%H.%M')+'.'+sta.channel+'Z.SAC')
+
             if ("1" in args.channels) & ("2" in args.channels) & ("Z" in args.channels):
                 # If data files exist, continue
                 if fileZ.exists() and file1.exists() and file2.exists():
                     if not args.ovr:
-                        print(stanm,
-                            "*   "+tstamp +
-                            "*SAC                                 ")
-                        print(stanm,
-                            "*   -> Files already exist, " +
-                            "continuing            ")
+                        print(stanm,"*   "+tstamp + "*SAC                                 ")
+                        print(stanm,"*   -> Files already exist, continuing            ")
                         t1 += dt
                         t2 += dt
                         continue
+
+
                 channels = 'B' + sta.channel.upper() + '1,' + \
                 'B' + sta.channel.upper() + '2,' + \
                 'B' + sta.channel.upper() + 'Z,' + \
@@ -430,13 +422,16 @@ def main(args=None):
                     continue
             elif "Z" in args.channels:
                 # If data files exist, continue
-                if fileZ.exists() and fileP.exists():
+                if fileZ.exists():
                     if not args.ovr:
                         print(stanm,"*   "+tstamp + "*SAC                                 ")
                         print(stanm,"*   -> Files already exist, " + "continuing            ")
                         t1 += dt
                         t2 += dt
                         continue
+
+
+
                 channels = 'B' + sta.channel.upper() + 'Z,' + \
                 'H' + sta.channel.upper() + 'Z'
                 # Get waveforms from client
@@ -452,6 +447,13 @@ def main(args=None):
                     t2 += dt
                     continue
             if "P" in args.channels:
+                if fileP.exists():
+                    if not args.ovr:
+                        print(stanm,"*   "+tstamp + "*SAC                                 ")
+                        print(stanm,"*   -> Files already exist, " + "continuing            ")
+                        t1 += dt
+                        t2 += dt
+                        continue
                 try:
                     print(stanm,"*   -> Downloading Pressure data...")
                     stp = client.get_waveforms(
@@ -473,18 +475,18 @@ def main(args=None):
                     t1 += dt
                     t2 += dt
                     continue
-            if sth:
+            if len(sth)>0:
                 sth.detrend('demean')
                 if not sth[0].stats.sampling_rate==args.new_sampling_rate:
                     sth.filter('lowpass', freq=0.5*args.new_sampling_rate,corners=2, zerophase=True)
                     sth.resample(args.new_sampling_rate)
-            if stp:
+            if len(stp)>0:
                 if not stp[0].stats.sampling_rate==args.new_sampling_rate:
                     stp.filter('lowpass', freq=0.5*args.new_sampling_rate,corners=2, zerophase=True)
                     stp.resample(args.new_sampling_rate)
-            if stp and sth:
+            if len(sth)>0 and len(stp)>0:
                 st = sth + stp
-            else:
+            elif len(sth)>0:
                 st = sth
             # Check streams
             is_ok, st = utils.QC_streams(t1, t2, st)

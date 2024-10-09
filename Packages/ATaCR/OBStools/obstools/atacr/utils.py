@@ -277,12 +277,27 @@ def get_data(datapath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0],
                     trN2.resample(trNP[0].stats.sampling_rate, no_filter=False)
     return trN1, trN2, trNZ, trNP
 
-def get_event(eventpath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
+def load_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
+    # Define empty streams
+    inv = read_inventory(Path(str(file)).parent / '*_inventory.xml')
+    if fnmatch.fnmatch(str(file),'*1.SAC'):
+        tr = read(str(file))
+        tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+    elif fnmatch.fnmatch(str(file),'*2.SAC'):
+        tr = read(str(file))
+        tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+    elif fnmatch.fnmatch(str(file),'*Z.SAC'):
+        tr = read(str(file))
+        tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+    elif fnmatch.fnmatch(str(file),'*H.SAC'):
+        tr = read(str(file))
+        tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
+    return tr
 
+def get_event(eventpath, tstart=None, tend=None,evlist=None,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
     """
     Function to grab all available earthquake data given a path and data time
     range
-
     Parameters
     ----------
     eventpath : str
@@ -291,85 +306,56 @@ def get_event(eventpath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0
         Start time for query
     tend : :class:`~obspy.class.UTCDateTime`
         End time for query
-
     Returns
     -------
     tr1, tr2, trZ, trP : :class:`~obspy.core.Trace` object
         Corresponding trace objects for components H1, H2, HZ and HP. Returns
         empty traces for missing components.
-
     """
-
-    # Find out how many events from Z.SAC files
-    eventfiles = list(eventpath.glob('*Z.SAC'))
-    if not eventfiles:
-        raise(Exception("No event found in folder "+str(eventpath)))
-
-    # Extract events from time stamps
-    prefix = [file.name.split('.') for file in eventfiles]
-    evstamp = [p[0]+'.'+p[1]+'.'+p[2]+'.'+p[3]+'.' for p in prefix]
-    evDateTime = [UTCDateTime(p[0]+'-'+p[1]+'T'+p[2]+":"+p[3]) for p in prefix]
-
     # Define empty streams
-    tr1 = Stream()
-    tr2 = Stream()
-    trZ = Stream()
-    trP = Stream()
-
+    tr1,tr2,trP,trZ = Stream(),Stream(),Stream(),Stream()
     # Cycle over all available files in time range
-    for event, tstamp in zip(evDateTime, evstamp):
-        if event >= tstart and event <= tend:
-            # with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            # warnings.simplefilter("ignore")
-            # Cycle through directory and load files
-            p = list(eventpath.glob('*.SAC'))
-            files = [x for x in p if x.is_file()]
-            for file in files:
-                inv = read_inventory(Path(str(file)).parent / '*_inventory.xml')
-                if fnmatch.fnmatch(str(file), '*' + tstamp + '*1.SAC'):
-                    tr = read(str(file))
-                    tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
-                    tr1.append(tr[0])
-                elif fnmatch.fnmatch(str(file), '*' + tstamp + '*2.SAC'):
-                    tr = read(str(file))
-                    tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
-                    tr2.append(tr[0])
-                elif fnmatch.fnmatch(str(file), '*' + tstamp + '*Z.SAC'):
-                    tr = read(str(file))
-                    tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
-                    trZ.append(tr[0])
-                elif fnmatch.fnmatch(str(file), '*' + tstamp + '*H.SAC'):
-                    tr = read(str(file))
-                    tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
-                    trP.append(tr[0])
+    if evlist is None:
+        # Find out how many events from Z.SAC files
+        eventfiles = list(eventpath.glob('*Z.SAC'))
+        if not eventfiles:
+            raise(Exception("No event found in folder "+str(eventpath)))
+        # Extract events from time stamps
+        prefix = [file.name.split('.') for file in eventfiles]
+        evstamp = [p[0]+'.'+p[1]+'.'+p[2]+'.'+p[3]+'.' for p in prefix]
+        evDateTime = [UTCDateTime(p[0]+'-'+p[1]+'T'+p[2]+":"+p[3]) for p in prefix]
+        for event, tstamp in zip(evDateTime, evstamp):
+            if event >= tstart and event <= tend:
+                warnings.filterwarnings("ignore")
+                p = list(eventpath.glob('*Z.SAC'))
+                files = [x for x in p if x.is_file()]
+                for file in files:
+                    tr1=load_sac(Path(str(file).replace('Z.SAC','*1.SAC')))
+                    tr2=load_sac(Path(str(file).replace('Z.SAC','*2.SAC')))
+                    trZ=load_sac(Path(str(file).replace('Z.SAC','*Z.SAC')))
+                    trP=load_sac(Path(str(file).replace('Z.SAC','*H.SAC')))
+                    tr1, tr2, trZ, trP = check_fs(tr1,tr2,trZ,trP)
+                    yield tr1[0], tr2[0], trZ[0], trP[0]
+    else:
+        for ev in evlist:
+            tr1=load_sac(Path(str(eventpath / ev)+'*1.SAC'))
+            tr2=load_sac(Path(str(eventpath / ev)+'*2.SAC'))
+            trZ=load_sac(Path(str(eventpath / ev)+'*Z.SAC'))
+            trP=load_sac(Path(str(eventpath / ev)+'*H.SAC'))
+            tr1, tr2, trZ, trP = check_fs(tr1,tr2,trZ,trP)
+            yield tr1[0], tr2[0], trZ[0], trP[0]
 
-    # Fill with empty traces if components are not found
-    ntr = len(trZ)
-    if not tr1 and not tr2:
-        for i in range(ntr):
-            tr1.append(Trace())
-            tr2.append(Trace())
-    if not trP:
-        for i in range(ntr):
-            trP.append(Trace())
-
-    if ntr > 0:
-        # Check that all sampling rates are equal - otherwise resample
-        if trZ[0].stats.sampling_rate != trP[0].stats.sampling_rate:
-
-            # These checks assume that all seismic data have the same sampling
-            if trZ[0].stats.sampling_rate < trP[0].stats.sampling_rate:
-                trP.resample(trZ[0].stats.sampling_rate, no_filter=False)
-            else:
-                trZ.resample(trP[0].stats.sampling_rate, no_filter=False)
-                if tr1:
-                    tr1.resample(trP[0].stats.sampling_rate, no_filter=False)
-                if tr2:
-                    tr2.resample(trP[0].stats.sampling_rate, no_filter=False)
-
-    return tr1, tr2, trZ, trP
-
+def check_fs(tr1,tr2,trZ,trP):
+    if trZ[0].stats.sampling_rate != trP[0].stats.sampling_rate:
+        if trZ[0].stats.sampling_rate < trP[0].stats.sampling_rate:
+            trP.resample(trZ[0].stats.sampling_rate, no_filter=False)
+    else:
+        trZ.resample(trP[0].stats.sampling_rate, no_filter=False)
+        if tr1:
+            tr1.resample(trP[0].stats.sampling_rate, no_filter=False)
+        if tr2:
+            tr2.resample(trP[0].stats.sampling_rate, no_filter=False)
+    return tr1,tr2,trZ,trP
 
 def calculate_tilt(ft1, ft2, ftZ, ftP, f, goodwins, tiltfreq=[0.005, 0.035]):
     """
