@@ -3,13 +3,16 @@ from quick_class import *
 import warnings
 import fnmatch
 from obspy.core.inventory.inventory import read_inventory
-
+from obspy.core.util.attribdict import AttribDict as attr
 
 HPSDataFolder = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp/_DataArchive/HPS_Data')
 
 # get_noisecut_event(parentfolder,staname,event,channel=['*1','*2','*Z','*H'],len_hrs=2,pre_trim=False,post_trim=True,win_length=163.84,width=None)
+
 ovr = False
 cat = catalog.copy()
+
+# cat = cat.iloc[np.min(np.where(catalog.Network=='XE')):]
 for stai,Station in enumerate(cat.iloc):
     for evi,Event in enumerate(Station.Events):
         stanm = Station.StaName

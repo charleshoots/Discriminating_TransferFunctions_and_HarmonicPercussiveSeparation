@@ -20,25 +20,23 @@ def get_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=
         warnings.filterwarnings("ignore")
         tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
     return tr[0]
-def pull_cohphadm(stanm,EvFolder,CorrFolder,tf='ZP-21',g=True):
+
+def pull_cohphadm(stanm,EvFolder,CorrFolder,tf='ZP-21',gs=True):
     correvpath = CorrFolder / stanm 
     rawevpath = EvFolder / stanm
     if len(tf)>0:
         fclip = '.sta.' + tf
-    else:
-        fclip = ''
+        correvpath = correvpath / 'CORRECTED'
+    else:fclip = ''
     correvs = [f.name for f in list(correvpath.glob('*' + fclip + '.HZ.SAC'))]
     rawevs = [f.replace(fclip,'').replace(stanm + '.','') for f in correvs]
 #     events = [c.replace('.sta','').replace('.HZ.SAC','').split(stanm + '.')[-1].split('.' + tf)[0] for c in correvs]
-    events = [c.replace('.sta','').replace('.HZ.SAC','').replace(stanm+'.','') for c in correvs]
-    cpa_list = []
-    for r,c in zip(rawevs,correvs):
-        if g:
-            rawst = get_sac(rawevpath / r)
-        else:
-            rawst = read(rawevpath / r)[0]
+    events = [c.replace('.sta','').replace('.HZ.SAC','').replace(stanm+'.','').replace('.'+tf,'') for c in correvs]
+    cpa_list,ev_list = [],[]
+    for ev,r,c in zip(events,rawevs,correvs):
+        if gs:rawst = get_sac(rawevpath / r)
+        else:rawst = read(rawevpath / r)[0]
         corrst = read(correvpath / c)[0]
-
         tend = np.min([rawst.stats.endtime,corrst.stats.endtime])
         rawst = rawst.copy().trim(tend-7200,tend)
         corrst = corrst.copy().trim(tend-7200,tend)
@@ -46,7 +44,8 @@ def pull_cohphadm(stanm,EvFolder,CorrFolder,tf='ZP-21',g=True):
                raise Exception('Trace lenghts not equal')
         cpa = cohphadm(rawst,corrst)
         cpa_list.append(cpa)
-    return events,cpa_list
+        ev_list.append(ev)
+    return ev_list,cpa_list
 class cohphadm(object):
         def __init__(self,A=None, B=None,overlap=0.3,csd=None,f=None,fs=None):
                 self.overlap = overlap
@@ -92,8 +91,8 @@ class cohphadm(object):
                 self.net = self.A.stats.network
                 self.sta = self.A.stats.station
                 self.chan = self.A.stats.channel
-                if self.tlen>7200:self.window = 7200
-                else:self.window = 500
+                # if self.tlen>7200:self.window = 7200
+                self.window = 500
         def _window(self,window=None,overlap=None):
                 if overlap is None:overlap=self.overlap
                 if window is None:window=self.window
