@@ -1,38 +1,33 @@
 # ===================================================================================================
 # ============================================ IMPORTS ==============================================
 # ===================================================================================================
-from pathlib import Path
-import shutil
-import numpy as np
-import pandas as pd
-import sys
-project_path = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp')
+from pathlib import Path;import shutil,sys,os;import numpy as np;import pandas as pd
+parent = Path('/Users/charlesh/Documents/Codes');sys.path.insert(1,str(parent))
+sys.path.insert(1,str(Path(parent/'OBS_Methods/NOISE')))
+sys.path.append(str(Path(parent/'OBS_Methods/NOISE/METHODS')))
+project_path = parent /'OBS_Methods'/'NOISE'/'ATACR_HPS_Comp'
+sys.path.insert(1,str(project_path))
 sys.path.append(str(project_path / 'Packages'))
 sys.path.insert(0, str(project_path / 'Packages' / 'ATaCR'))
 sys.path.insert(0, str(project_path / 'Packages' / 'CompCode'))
 sys.path.insert(0, str(project_path / 'Packages' / 'ATaCR'/ 'OBStools'))
-import math
+from OrientPy import *
+import math,scipy
 import scipy
 import numpy as np
-import librosa
-import os
-import shutil
 from scipy.signal import stft, detrend
 os.environ['PYDEVD_WARN_SLOW_RESOLVE_TIMEOUT'] = '2'
 from obspy import Trace
-import librosa.display
+import librosa,librosa.display
 import matplotlib.pyplot as plt
 import matplotlib.image as img
 import matplotlib.gridspec as gridspec
 import matplotlib
-import sys
 import obspy
 import pickle as pkl
 import glob as g
 from obspy.clients.fdsn import Client
-import datetime
-import re
-import math
+import datetime,re
 from numpy import linalg as eigen
 import matplotlib.colors as mcolors
 import matplotlib.cm as cm2
@@ -41,8 +36,7 @@ import scipy.stats as stats
 from scipy import fft
 from cmcrameri import cm
 from scipy.interpolate import RBFInterpolator, InterpolatedUnivariateSpline #<----Experimental
-import ObsQA
-import ObsQA as ob
+import ObsQA;import ObsQA as ob
 from ObsQA.TOOLS import io
 from ObsQA.TOOLS.io import get_Noise
 from ObsQA.OBSM.classes import OBSMetrics as OBSM
@@ -67,8 +61,10 @@ dirs = io.dir_libraries(str(DataFolder))[1]
 datafolder = dirs['Py_DataParentFolder']
 catfolder = Path(dirs['Py_DataParentFolder']) / 'Catalogs'
 eventsfolder = dirs['Py_CorrectedTraces']
-catalog = pd.read_pickle(catfolder / 'event_catalog_updated.pkl')
-catalog = pd.read_pickle(catfolder / 'sta_catalog_proxima_test.pkl')
+# depreciated: catalog = pd.read_pickle(catfolder / 'event_catalog_updated.pkl')
+# depreciated: catalog = pd.read_pickle(catfolder / 'sta_catalog_proxima_test.pkl')
+catalog = pd.read_pickle(catfolder / 'sta_catalog_101524.pkl')
+
 Folder = Path(plotfolder) / 'MeetingFigs'
 Folder.mkdir(exist_ok=True)
 

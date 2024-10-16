@@ -746,20 +746,22 @@ def randomdays(TStart,TEnd,seed='MESSI_22FIFA_WORLD_CUP',days=10,dateformat = '%
 def build_staquery(d,chan='H',ATaCR_Parent=None,staquery_output='./sta_query.pkl'):
         out = dict()
         if not isinstance(staquery_output,Path):
-                if ATaCR_Parent is None:
+                if (ATaCR_Parent is None) & (staquery_output is not None):
                         staquery_output = os.getcwd() + staquery_output.replace('./','/')
                 else:
-                        os.chdir(ATaCR_Parent)
-                        staquery_output = str(ATaCR_Parent) + '/' + staquery_output.replace('./','')
+                        if staquery_output is not None:
+                                os.chdir(ATaCR_Parent)
+                                staquery_output = str(ATaCR_Parent) + '/' + staquery_output.replace('./','')
         else:
-                staquery_output.parent.mkdir(parents=True,exist_ok=True)
-                os.chdir(str(staquery_output.parent))
+                if staquery_output is not None:
+                        staquery_output.parent.mkdir(parents=True,exist_ok=True)
+                        os.chdir(str(staquery_output.parent))
 
         for csta in d.iloc:
                 net = csta.Network
                 sta = csta.Station
                 key = net + '.' + sta
-                csta_dict = {'station':sta, 'network':net, 'altnet':[],'channel':chan, 'location':['--'], 'latitude':csta['Latitude'], 'longitude':csta['Longitude'], 'elevation':-csta['Water_Depth_m']/1000, 'startdate':UTCDateTime(csta.Start), 'enddate':UTCDateTime(csta.End), 'polarity':1.0, 'azcorr':0.0, 'status':'open'}
+                csta_dict = {'station':sta, 'network':net, 'altnet':[],'channel':chan, 'location':['--'], 'latitude':csta['Latitude'], 'longitude':csta['Longitude'], 'elevation':-csta['StaDepth']/1000, 'startdate':UTCDateTime(csta.Start), 'enddate':UTCDateTime(csta.End), 'polarity':1.0, 'azcorr':0.0, 'status':'open'}
                 out[key] = csta_dict
         output = pd.DataFrame.from_dict(out)
         if staquery_output is not None:
@@ -770,7 +772,7 @@ def build_staquery(d,chan='H',ATaCR_Parent=None,staquery_output='./sta_query.pkl
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def DownloadEvents(catalog,ATaCR_Parent=None,netsta_names=None,Minmag=6.3,Maxmag=6.7,limit=1000,pre_event_min_aperture=1,logoutput_subfolder='',log_prefix = '',staquery_output = './sta_query.pkl',chan='H'):
+def DownloadEvents(catalog,ATaCR_Parent=None,netsta_names=None,Minmag=6.3,Maxmag=6.7,limit=1000,pre_event_min_aperture=1,logoutput_subfolder='',log_prefix = '',staquery_output = './sta_query.pkl',chan='H',event_window=7200,channels='Z,P,12'):
         # sys.stdout.flush()
         logfilename = '_Step_2_7_EventDownload_logfile.log'
         if logoutput_subfolder is not None:
@@ -809,7 +811,7 @@ def DownloadEvents(catalog,ATaCR_Parent=None,netsta_names=None,Minmag=6.3,Maxmag
                         if ATaCR_Parent is not None:
                                 os.chdir(ATaCR_Parent)
                         # args = [staquery_output,'--start={}'.format(EventStart), '--end={}'.format(EventEnd),'--min-mag={}'.format(Minmag),'--max-mag={}'.format(Maxmag),'--limit={}'.format(limit)]
-                        args = [staquery_output,'--start={}'.format(EventStart), '--end={}'.format(EventEnd),'--min-mag={}'.format(Minmag),'--max-mag={}'.format(Maxmag)]
+                        args = [str(staquery_output),'--start={}'.format(EventStart), '--end={}'.format(EventEnd),'--min-mag={}'.format(Minmag),'--max-mag={}'.format(Maxmag),'--window={}'.format(event_window),'--channels={}'.format(channels)]
                         # [print(ii) for ii in [staquery_output,'--start={}'.format(EventStart), '--end={}'.format(EventEnd),'--min-mag={}'.format(Minmag),'--max-mag={}'.format(Maxmag),'--limit={}'.format(limit)]]
                         # with open(log_fout, 'w') as sys.stdout:
                         atacr_download_event.main(atacr_download_event.get_event_arguments(args))
@@ -1157,9 +1159,7 @@ def CorrectEvents(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--f
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def Run_ATaCR(catalog, ATaCR_Parent = None, STEPS=[1,2,3,4,5,6,7], netsta_names=None, chan='H', Minmag=6.3, Maxmag=6.7, limit=1000, pre_event_min_aperture=1, pre_event_day_aperture=30, dailyspectra_flags='--figQC --figAverage --figCoh --save-fig', cleanspectra_flags='--figQC --figAverage --figCoh --figCross --save-fig', tf_flags='--figTF --save-fig', correctevents_flags='--figRaw --figClean --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output = './sta_query.pkl',fork=True,days=10,seed='MESSI_22FIFA_WORLD_CUP!',max_workers=1,event_mode=False,event_dt=None,
-        #       taper_mode=0
-              ):
+def Run_ATaCR(catalog, ATaCR_Parent = None, STEPS=[1,2,3,4,5,6,7], netsta_names=None, chan='H', Minmag=6.3, Maxmag=6.7, limit=1000, pre_event_min_aperture=1, pre_event_day_aperture=30, dailyspectra_flags='--figQC --figAverage --figCoh --save-fig', cleanspectra_flags='--figQC --figAverage --figCoh --figCross --save-fig', tf_flags='--figTF --save-fig', correctevents_flags='--figRaw --figClean --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output = './sta_query.pkl',fork=True,days=10,seed='MESSI_22FIFA_WORLD_CUP!',max_workers=1,event_mode=False,event_dt=None,event_window=7200,channels='Z,P,12'):
         # dailyspectra_flags='--figQC --figAverage --figCoh --save-fig'
         # STEPS = [1,2,3,4,5,6,7] #Absolutely every step - Downloading adds hour(s) or more to the process
         # STEPS = [2,3] #Everything but the download steps - About 4min for six stations.
@@ -1183,7 +1183,7 @@ def Run_ATaCR(catalog, ATaCR_Parent = None, STEPS=[1,2,3,4,5,6,7], netsta_names=
                 print('Step 2/7 - BEGIN: Download Event Data')
                 if logoutput_subfolder is None:
                         logoutput_subfolder = dirs['Py_Logs'] + '/2_7'
-                ObsQA.TOOLS.io.DownloadEvents(catalog,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,Minmag=Minmag,Maxmag=Maxmag,limit=limit,pre_event_min_aperture=pre_event_min_aperture,logoutput_subfolder=logoutput_subfolder,staquery_output=staquery_output,chan=chan,log_prefix=log_prefix)
+                ObsQA.TOOLS.io.DownloadEvents(catalog,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,Minmag=Minmag,Maxmag=Maxmag,limit=limit,pre_event_min_aperture=pre_event_min_aperture,logoutput_subfolder=logoutput_subfolder,staquery_output=staquery_output,chan=chan,log_prefix=log_prefix,event_window=event_window,channels=channels)
                 print('Step 2/7 - COMPLETE: Download Event Data')
         if 3 in STEPS:
                 print('Step 3/7 - BEGIN: Download Day Data')
@@ -1313,19 +1313,23 @@ def get_data(datapath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0],
 def load_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
     # Define empty streams
     inv = read_inventory(Path(str(file)).parent / '*_inventory.xml')
-    if fnmatch.fnmatch(str(file),'*1.SAC'):
-        tr = read(str(file))
-        tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
-    elif fnmatch.fnmatch(str(file),'*2.SAC'):
-        tr = read(str(file))
-        tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
-    elif fnmatch.fnmatch(str(file),'*Z.SAC'):
-        tr = read(str(file))
-        tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
-    elif fnmatch.fnmatch(str(file),'*H.SAC'):
-        tr = read(str(file))
-        tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
-    return tr
+    try:
+        if fnmatch.fnmatch(str(file),'*1.SAC'):
+                tr = read(str(file))
+                tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+        elif fnmatch.fnmatch(str(file),'*2.SAC'):
+                tr = read(str(file))
+                tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+        elif fnmatch.fnmatch(str(file),'*Z.SAC'):
+                tr = read(str(file))
+                tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+        elif fnmatch.fnmatch(str(file),'*H.SAC'):
+                tr = read(str(file))
+                tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
+        return tr,inv
+    except:
+           Stream(),inv
+
 
 def get_event(eventpath, tstart=None, tend=None,evlist=None,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
     """

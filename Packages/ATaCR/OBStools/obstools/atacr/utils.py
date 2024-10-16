@@ -292,7 +292,7 @@ def load_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt
     elif fnmatch.fnmatch(str(file),'*H.SAC'):
         tr = read(str(file))
         tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
-    return tr
+    return tr,*inv
 
 def get_event(eventpath, tstart=None, tend=None,evlist=None,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
     """

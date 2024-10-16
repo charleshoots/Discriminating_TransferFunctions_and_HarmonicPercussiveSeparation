@@ -18,13 +18,14 @@ from comp_tools import *
 project_path = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp')
 ATaCR_DataFolder = str(project_path / '_DataArchive' / 'ATaCR_Data')
 dirs = OBS.TOOLS.io.dir_libraries(ATaCR_DataFolder)[1]
+catfolder =  Path(dirs['Py_DataParentFolder']) / 'Catalogs'
 datafolder = dirs['Py_DataParentFolder']
 eventsfolder = dirs['Py_CorrectedTraces']
 eventsfolder = dirs['Py_CorrectedTraces']
 ATaCR_Parent = dirs['Py_DataParentFolder']
 catalog_full = pd.read_excel(str(project_path / '_DataArchive' / 'utilities' / 'Janiszewski_etal_2023_StationList.xlsx'))
-catalog = pd.read_pickle(Path(ATaCR_Parent) / 'Catalogs' / 'sta_catalog_proxima_test.pkl')
-# evaudit = ObsQA.io.audit_events(eventsfolder)
+catalog = pd.read_pickle(catfolder / 'sta_catalog_101524.pkl')
+
 evaudit = pd.read_pickle(Path(ATaCR_Parent) / 'Catalogs' / 'event_record_audit.pkl')
 hps_staquery_output = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp/_DataArchive/HPS_Data/sta_query.pkl')
 
@@ -59,7 +60,8 @@ event_mode = False
 # STEPS = [1,4,5,6,7]
 # STEPS = [7]
 # STEPS = [1,4,5,6,7]
-STEPS,event_mode = [3],True
+STEPS = [2]
+# STEPS,event_mode = [3],True
 # days = 10
 # ...For testing...
 # days = ['2012.061','2012.062','2012.063','2012.064']
@@ -68,6 +70,7 @@ STEPS,event_mode = [3],True
 # catalog = catalog.reset_index()
 # catalog = update_event_catalog(catalog,eventsfolder,['2012.069.07.09','2012.181.21.07'])
 # catalog = catalog.iloc[np.where(catalog.Station=='LD41')[0][0]].to_frame().T
+catalog = catalog[catalog.Network.isin(['7D','7A'])]
 ## =============================================================================== ## =============================================================================== ##
 cat = catalog.copy() # =============================================================================== #
 ## =============================================================================== ## =============================================================================== ##
@@ -77,12 +80,19 @@ cat = catalog.copy() # =========================================================
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ## =============================================================================== ## =============================================================================== ##
+dlopy_data = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp/_DataArchive/DLOPY_Data/sta_query.pkl')
 if event_mode:
     staquery_output = hps_staquery_output
 else:
     staquery_output = './sta_query.pkl'
 if 1 in STEPS:
     STEPS.pop(np.where(np.array(STEPS)==1)[0][0])
+
+# event_window = 7200
+event_window = 3600*4
+channels = 'Z,P,12'
+staquery_output = dlopy_data
+ATaCR_Parent = str(dlopy_data.parent)
 for STEP in STEPS:
     for ii,Station in enumerate(cat.iloc):
         ## StaFolder = Path(dirs['Py_RawDayData']) / Station.StaName
@@ -93,7 +103,8 @@ for STEP in STEPS:
         print('----Station: ' + staname +  ' (' + str(ii+1) + ' of ' + str(len(cat)) + ')')
         icatalog = Station.to_frame().T
         print('[//////////////////////////]'*2)
-        ObsQA.TOOLS.io.Run_ATaCR(icatalog,fork=fork,staquery_output=staquery_output,event_mode=event_mode, ATaCR_Parent = ATaCR_Parent,STEPS=[STEP],log_prefix=Station.StaName,Minmag=Minmag,Maxmag=Maxmag)
+        ObsQA.TOOLS.io.Run_ATaCR(icatalog,fork=fork,staquery_output=staquery_output,event_mode=event_mode, ATaCR_Parent = ATaCR_Parent,STEPS=[STEP],log_prefix=Station.StaName,Minmag=Minmag,Maxmag=Maxmag,event_window=event_window,channels=channels)
+
 ## =============================================================================== ## =============================================================================== ##
 ## =============================================================================== ## =============================================================================== ##
 ## =============================================================================== ## =============================================================================== ##

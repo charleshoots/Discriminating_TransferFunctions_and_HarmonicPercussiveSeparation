@@ -140,7 +140,7 @@ def get_event_arguments(argv=None):
         action="store",
         type=float,
         dest="new_sampling_rate",
-        default=10.,
+        default=40.,
         help="Specify new sampling rate (float, in Hz). " +
         "[Default 5.]")
     FreqGroup.add_argument(
@@ -404,6 +404,7 @@ def main(args=None):
             ievs = range(nevtT-1, -1, -1)
         # Read through catalogue
         for inum, iev in enumerate(ievs):
+            sth,stp=[],[]
             # Extract event
             ev = cat[iev]
             time = ev.origins[0].time
