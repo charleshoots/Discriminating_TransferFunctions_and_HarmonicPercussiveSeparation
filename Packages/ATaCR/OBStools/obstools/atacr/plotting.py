@@ -704,6 +704,9 @@ def fig_event_corrected(evstream, TF_list, fmin=1./250., fmax=2,synthetics=False
 
     """
     # Unpack vertical trace and filter
+    # fig,axes = plt.subplots(nrows=len(st), ncols=1,figsize=(8,13),layout='constrained',squeeze=False,sharey='all',sharex='all')
+    # [ax.plot(s.times(),s.data) for ax,s in zip(axes,st)]
+
     trZ = evstream.trZ.copy()
     stats = trZ.stats
     depth = round(abs(trZ.stats.sac.stel)*1000)

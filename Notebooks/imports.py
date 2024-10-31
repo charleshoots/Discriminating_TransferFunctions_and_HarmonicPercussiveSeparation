@@ -57,13 +57,12 @@ plotfolder = project_path / '_FigureArchive' / '_GEN5'
 # ===================================================================================================
 # ============================================  LOAD DATA ===========================================
 # ===================================================================================================
-dirs = io.dir_libraries(str(DataFolder))[1]
-datafolder = dirs['Py_DataParentFolder']
-catfolder = Path(dirs['Py_DataParentFolder']) / 'Catalogs'
-eventsfolder = dirs['Py_CorrectedTraces']
+dirs = io.dir_libraries(str(DataFolder))
+# catfolder = Path(dirs['Py_DataParentFolder']) / 'Catalogs'
+# eventsfolder = dirs['Py_CorrectedTraces']
 # depreciated: catalog = pd.read_pickle(catfolder / 'event_catalog_updated.pkl')
 # depreciated: catalog = pd.read_pickle(catfolder / 'sta_catalog_proxima_test.pkl')
-catalog = pd.read_pickle(catfolder / 'sta_catalog_101524.pkl')
+catalog = pd.read_pickle(dirs.Catalogs / 'sta_catalog_101524.pkl')
 
 Folder = Path(plotfolder) / 'MeetingFigs'
 Folder.mkdir(exist_ok=True)

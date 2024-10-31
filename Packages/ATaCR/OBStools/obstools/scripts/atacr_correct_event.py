@@ -23,6 +23,7 @@
 # SOFTWARE.
 
 # Import modules and functions
+from scipy.signal import savgol_filter
 import numpy as np
 from obspy import UTCDateTime, Stream
 import pickle
@@ -82,9 +83,17 @@ def get_correct_arguments(argv=None):
         "-O", "--overwrite",
         action="store_true",
         dest="ovr",
-        default=False,
+        default=True,
         help="Force the overwriting of pre-existing data. " +
         "[Default False]")
+    parser.add_argument(
+        "--sampling-rate",
+        action="store",
+        type=float,
+        dest="new_sampling_rate",
+        default=10.,
+        help="Specify new sampling rate (float, in Hz). " +
+        "[Default 5.]")
 
     # Event Selection Criteria
     DaysGroup = parser.add_argument_group(
@@ -340,6 +349,13 @@ def main(args=None):
                 if ncomp <= 1 or len(trZ.data) == 0:
                     print('CorrectEvent (A7) | '+stanm+evlist[evi]+' | Bad Data. Skipping.')
                     continue
+
+                if trZ.stats.sampling_rate is not args.new_sampling_rate:
+                    trZ.resample(args.new_sampling_rate)
+                    tr1.resample(args.new_sampling_rate)
+                    tr2.resample(args.new_sampling_rate)
+                    trP.resample(args.new_sampling_rate)
+
                 eventstream = EventStream(tr1, tr2, trZ, trP)
                 print('CorrectEvent (A7) |',stanm,'==================================EVENT ['+str(evi)+'/'+str(len(evlist))+']: ' + eventstream.prefix + '==================================')
                 # Check if Trace is from SAC file with event info
@@ -386,7 +402,27 @@ def main(args=None):
                                     print('CorrectEvent (A7) |',stanm,"File "+str(transfile) + " exists but cannot be loaded")
                                     continue
                                 # List of possible transfer functions for station
-                                eventstream.correct_data(tfaverage)
+                                if not eventstream.trZ.data.shape[0] / tfaverage.f.shape[0] == 1:
+                                    tlen = 2
+                                    trcut1 = [tr.slice(tr.stats.starttime,tr.stats.starttime+tlen*3600 - 1/tr.stats.sampling_rate,nearest_sample=False) for tr in [tr1.copy(),tr2.copy(),trZ.copy(),trP.copy()]]
+                                    trcut2 = [tr.slice(tr.stats.starttime+tlen*3600,tr.stats.endtime,nearest_sample=False) for tr in [tr1.copy(),tr2.copy(),trZ.copy(),trP.copy()]]
+                                    eventstream1 = EventStream(trcut1[0],trcut1[1],trcut1[2],trcut1[3])
+                                    eventstream2 = EventStream(trcut2[0],trcut2[1],trcut2[2],trcut2[3])
+                                    eventstream1.correct_data(tfaverage)
+                                    eventstream2.correct_data(tfaverage)
+                                    tr = eventstream1.trZ.copy()
+                                    eventstream1.tr1 = eventstream.tr1;eventstream1.tr2 = eventstream.tr2
+                                    eventstream1.trZ = eventstream.trZ;eventstream1.trP = eventstream.trP
+                                    for k in list(eventstream1.correct.keys()):
+                                        tr.data = eventstream1.correct[k];tr.taper(0.01);eventstream1.correct[k] = tr.data
+                                        tr.data = eventstream2.correct[k];tr.taper(0.01);eventstream2.correct[k] = tr.data
+                                    [eventstream1.correct.update( {k:np.concatenate([eventstream1.correct[k],eventstream2.correct[k]]) }) for k in list(eventstream1.correct.keys())]
+                                    if not eventstream.trZ.data.shape[0]==eventstream1.trZ.data.shape[0]:
+                                        raise Exception('Incorrect lengths. Partitioned correction has failed.')
+                                    eventstream = eventstream1
+                                else:
+                                    eventstream.correct_data(tfaverage)
+
                                 eventstream.transfile = transfile.name
                                 if args.fig_plot_corrected:
                                     fname = eventstream.prefix + '.sta_corrected'
@@ -446,7 +482,27 @@ def main(args=None):
                                     continue
                                 # List of possible transfer functions for station
                                 # average files
-                                eventstream.correct_data(tfaverage)
+
+                                if not eventstream.trZ.data.shape[0] / tfaverage.f.shape[0] == 1:
+                                    tlen = 2
+                                    trcut1 = [tr.slice(tr.stats.starttime,tr.stats.starttime+tlen*3600 - 1/tr.stats.sampling_rate,nearest_sample=False) for tr in [tr1.copy(),tr2.copy(),trZ.copy(),trP.copy()]]
+                                    trcut2 = [tr.slice(tr.stats.starttime+tlen*3600,tr.stats.endtime,nearest_sample=False) for tr in [tr1.copy(),tr2.copy(),trZ.copy(),trP.copy()]]
+                                    eventstream1 = EventStream(trcut1[0],trcut1[1],trcut1[2],trcut1[3])
+                                    eventstream2 = EventStream(trcut2[0],trcut2[1],trcut2[2],trcut2[3])
+                                    eventstream1.correct_data(tfaverage)
+                                    eventstream2.correct_data(tfaverage)
+                                    tr = eventstream1.trZ.copy()
+                                    eventstream1.tr1 = eventstream.tr1;eventstream1.tr2 = eventstream.tr2
+                                    eventstream1.trZ = eventstream.trZ;eventstream1.trP = eventstream.trP
+                                    for k in list(eventstream1.correct.keys()):
+                                        tr.data = eventstream1.correct[k];tr.taper(0.01);eventstream1.correct[k] = tr.data
+                                        tr.data = eventstream2.correct[k];tr.taper(0.01);eventstream2.correct[k] = tr.data
+                                    [eventstream1.correct.update( {k:np.concatenate([eventstream1.correct[k],eventstream2.correct[k]]) }) for k in list(eventstream1.correct.keys())]
+                                    if not eventstream.trZ.data.shape[0]==eventstream1.trZ.data.shape[0]:
+                                        raise Exception('Incorrect lengths. Partitioned correction has failed.')
+                                    eventstream = eventstream1
+                                else:
+                                    eventstream.correct_data(tfaverage)
                                 eventstream.transfile = transfile.name
                                 correct_day = eventstream.correct
                                 if args.fig_plot_corrected:

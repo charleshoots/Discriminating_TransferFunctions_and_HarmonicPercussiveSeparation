@@ -91,3 +91,4 @@ def _updatespec(self,window=None,overlap=None):
                         f,spec_AB= self._csd_helper(A.data,B.data,window=window,overlap=overlap)
                         self.csd['B'][p].append(spec_AB)
         self.f = f
+        self.updated=True

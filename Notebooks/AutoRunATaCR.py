@@ -60,7 +60,7 @@ event_mode = False
 # STEPS = [1,4,5,6,7]
 # STEPS = [7]
 # STEPS = [1,4,5,6,7]
-STEPS = [2]
+STEPS = [7]
 # STEPS,event_mode = [3],True
 # days = 10
 # ...For testing...
@@ -69,8 +69,9 @@ STEPS = [2]
 # catalog = catalog[catalog.Station.isin(['M07A','M08A',])]
 # catalog = catalog.reset_index()
 # catalog = update_event_catalog(catalog,eventsfolder,['2012.069.07.09','2012.181.21.07'])
-# catalog = catalog.iloc[np.where(catalog.Station=='LD41')[0][0]].to_frame().T
-catalog = catalog[catalog.Network.isin(['7D','7A'])]
+# catalog = catalog.iloc[np.where(catalog.Station=='J44C')[0][0]].to_frame().T
+catalog = catalog[catalog.Station.isin(['FN07A','FN14A','J50A','M07A'])]
+
 ## =============================================================================== ## =============================================================================== ##
 cat = catalog.copy() # =============================================================================== #
 ## =============================================================================== ## =============================================================================== ##
@@ -92,7 +93,7 @@ if 1 in STEPS:
 event_window = 3600*4
 channels = 'Z,P,12'
 staquery_output = dlopy_data
-ATaCR_Parent = str(dlopy_data.parent)
+ATaCR_Parent = dlopy_data.parent
 for STEP in STEPS:
     for ii,Station in enumerate(cat.iloc):
         ## StaFolder = Path(dirs['Py_RawDayData']) / Station.StaName

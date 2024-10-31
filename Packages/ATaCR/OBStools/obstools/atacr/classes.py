@@ -2114,10 +2114,10 @@ class EventStream(object):
         transfunc = tfnoise.transfunc
 
         # Extract traces
-        trZ = self.trZ
-        tr1 = self.tr1
-        tr2 = self.tr2
-        trP = self.trP
+        trZ = self.trZ.copy()
+        tr1 = self.tr1.copy()
+        tr2 = self.tr2.copy()
+        trP = self.trP.copy()
 
         # Get Fourier spectra
         ft1 = None
@@ -2139,10 +2139,18 @@ class EventStream(object):
 
         f = np.fft.fftfreq(self.npts, d=self.dt)
 
-        if not np.allclose(f, tfnoise.f):
-            raise(Exception(
-                'Frequency axes are different: ', f, tfnoise.f,
-                ' - the noise and event windows are not the same, aborting'))
+        self.npts = trZ.data.shape[0]
+        if not f.shape[0]==tfnoise.f.shape[0]:
+            f,ftZ=self.stft_adapter(trZ,overlap=0.3,window=tfnoise.f.shape[0]/trZ.stats.sampling_rate)
+            f,ft1=self.stft_adapter(tr1,overlap=0.3,window=tfnoise.f.shape[0]/tr1.stats.sampling_rate)
+            f,ft2=self.stft_adapter(tr2,overlap=0.3,window=tfnoise.f.shape[0]/tr2.stats.sampling_rate)
+            f,ftP=self.stft_adapter(trP,overlap=0.3,window=tfnoise.f.shape[0]/trP.stats.sampling_rate)
+            print('[WARNING] Event trace and tranfser functions have different lengths.'
+            '\nUsing STFT to adapt event spectra.')
+            if not np.allclose(f, tfnoise.f):
+                raise(Exception(
+                    'Frequency axes are different: ', f, tfnoise.f,
+                    ' - the noise and event windows are not the same, aborting'))
 
         for key, value in tf_list.items():
 
@@ -2218,6 +2226,28 @@ class EventStream(object):
             f = (g/(2*np.pi*d))**0.5
             return f
 
+    def stft_adapter(self,tr,overlap=0.3,window=7200):
+        # Points in window
+        dt = 1/tr.stats.sampling_rate
+        fs = tr.stats.sampling_rate
+        ws = int(window/dt)
+
+        # Number of points to overlap
+        ss = int(window*overlap/dt)
+
+        # hanning window
+        hanning = np.hanning(2*ss)
+        wind = np.ones(ws)
+        wind[0:ss] = hanning[0:ss]
+        wind[-ss:ws] = hanning[ss:ws]
+
+        # Calculate windowed FFTs and store as transpose
+        f, t, ft = stft(
+            tr, fs, return_onesided=False, boundary=None,
+            padded=False, window=wind, nperseg=ws, noverlap=ss,
+            detrend='constant')
+        return f,np.mean(ft,axis=1)
+    
     def save(self, filename):
         """
         Method to save the object to file using `~Pickle`.

@@ -30,6 +30,7 @@ def Phase(self,r,s=False):
         '''
         # if r[0].upper=='Z':
         #         r = r[::-1]
+        if not r=='ZP':r=''.join(sorted(r))
         f = self.f[self.f>=0]
         ph = [self._calc_phase(ab) for ab in self.csd['AB'][r]]
         ph = _np.real(_np.array(ph).squeeze()[self.f>=0])
@@ -54,12 +55,18 @@ def Admittance(self,r,s=False):
         adm = adm[f>=0]
         f = f[f>=0]
         return f,adm
+
+
+def _getspecs(self,r):
+        pass
+
 def Coherence(self,r,s=False,plot=False,lw=1,ax=None,xlabel=None,ylabel=None,label=None,c='k',ls='-',alpha=0.3,ttl=None):
         '''
         Takes three NDarrays of equal shape, the first (ab) containing the cross-power-spectral density between the two components, the second and third (aa and bb) containing the auto-power-spectral density of these two components.
         ie, For the spectral coherence between Z and P, a is the cross psd between the two and b and c are the auto-psd of Z and P, respectively.
         '''
         # r = ''.join(sorted(r))
+        if not r=='ZP':r=''.join(sorted(r))
         # if r[0].upper=='Z':
         #         r = r[::-1]
         f = self.f[self.f>=0]

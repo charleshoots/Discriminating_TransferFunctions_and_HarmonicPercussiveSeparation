@@ -334,6 +334,10 @@ def get_event(eventpath, tstart=None, tend=None,evlist=None,seismic_pre_filt=[0.
                     tr2=load_sac(Path(str(file).replace('Z.SAC','*2.SAC')))
                     trZ=load_sac(Path(str(file).replace('Z.SAC','*Z.SAC')))
                     trP=load_sac(Path(str(file).replace('Z.SAC','*H.SAC')))
+                    if len(tr1)>1:tr1=tr1[0]
+                    if len(tr2)>1:tr2=tr2[0]
+                    if len(trZ)>1:trZ=trZ[0]
+                    if len(trP)>1:trP=trP[0]
                     tr1, tr2, trZ, trP = check_fs(tr1,tr2,trZ,trP)
                     yield tr1[0], tr2[0], trZ[0], trP[0]
     else:
@@ -342,6 +346,10 @@ def get_event(eventpath, tstart=None, tend=None,evlist=None,seismic_pre_filt=[0.
             tr2=load_sac(Path(str(eventpath / ev)+'*2.SAC'))
             trZ=load_sac(Path(str(eventpath / ev)+'*Z.SAC'))
             trP=load_sac(Path(str(eventpath / ev)+'*H.SAC'))
+            if len(tr1)>1:tr1=tr1[0]
+            if len(tr2)>1:tr2=tr2[0]
+            if len(trZ)>1:trZ=trZ[0]
+            if len(trP)>1:trP=trP[0]
             tr1, tr2, trZ, trP = check_fs(tr1,tr2,trZ,trP)
             yield tr1[0], tr2[0], trZ[0], trP[0]
 

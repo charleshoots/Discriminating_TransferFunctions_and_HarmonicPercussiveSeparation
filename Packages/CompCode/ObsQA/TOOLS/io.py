@@ -10,6 +10,7 @@ import pandas as pd
 import pickle as pkl
 import obspy
 from obspy import *
+from obspy.core import AttribDict
 from obspy.core import UTCDateTime as UTCDateTime
 from obspy.clients.fdsn import Client as _Client
 import os
@@ -94,6 +95,7 @@ def get_arrivals(sta_llaz,ev_llaz,model = 'iasp91',phases=('ttall',)):
         Simple function pulls arrival times and phase names for a given event observed at a given station
         sta_llaz = List object containing [Lat,Lon] of the station
         ev_llaz = List object containing [Lat,Lon] of the event
+        z must be in kilometers.
         phases = Tuple object containing a list of all desired phases. 'ttall'
         (default) will give every single phase available.
         -Charles Hoots,2022
@@ -216,30 +218,37 @@ def getstalist():
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def dir_libraries(CompFolder):
-        ATaCR_ML_DataFolder = dict()
-        ATaCR_ML_DataFolder['ML_ATaCR_Parent'] = CompFolder + '/ATaCR'
-        ATaCR_ML_DataFolder['ML_DataParentFolder'] = CompFolder + '/ATaCR/DATA'
-        ATaCR_ML_DataFolder['ML_RawDayData'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/datacache_day'
-        ATaCR_ML_DataFolder['ML_PreProcDayData'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/datacache_day_preproc'
-        ATaCR_ML_DataFolder['ML_RawEventData'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/datacache_event'
-        ATaCR_ML_DataFolder['ML_PreProcEventData'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/datacache_event_preproc'
-        ATaCR_ML_DataFolder['ML_StaSpecAvg'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/noisetc/AVG_STA'
-        ATaCR_ML_DataFolder['ML_CorrectedTraces'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/noisetc/CORRSEIS'
-        ATaCR_ML_DataFolder['ML_b1b2_StaSpectra'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/noisetc/SPECTRA'
-        ATaCR_ML_DataFolder['ML_TransferFunctions'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/noisetc/TRANSFUN'
+        # ATaCR_ML_DataFolder = dict()
+        # ATaCR_ML_DataFolder['ML_ATaCR_Parent'] = CompFolder + '/ATaCR'
+        # ATaCR_ML_DataFolder['ML_DataParentFolder'] = CompFolder + '/ATaCR/DATA'
+        # ATaCR_ML_DataFolder['ML_RawDayData'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/datacache_day'
+        # ATaCR_ML_DataFolder['ML_PreProcDayData'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/datacache_day_preproc'
+        # ATaCR_ML_DataFolder['ML_RawEventData'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/datacache_event'
+        # ATaCR_ML_DataFolder['ML_PreProcEventData'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/datacache_event_preproc'
+        # ATaCR_ML_DataFolder['ML_StaSpecAvg'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/noisetc/AVG_STA'
+        # ATaCR_ML_DataFolder['ML_CorrectedTraces'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/noisetc/CORRSEIS'
+        # ATaCR_ML_DataFolder['ML_b1b2_StaSpectra'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/noisetc/SPECTRA'
+        # ATaCR_ML_DataFolder['ML_TransferFunctions'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/noisetc/TRANSFUN'
 
         ATaCR_Py_DataFolder = dict()
         ATaCR_Py_DataFolder['Py_DataParentFolder'] = CompFolder + '/ATaCR_Python'
         ATaCR_Py_DataFolder['Py_RawDayData'] = ATaCR_Py_DataFolder['Py_DataParentFolder'] + '/Data'
-        # ATaCR_Py_DataFolder['Py_PreProcDayData']
-        # ATaCR_Py_DataFolder['Py_RawEventData']
-        # ATaCR_Py_DataFolder['Py_PreProcEventData']
         ATaCR_Py_DataFolder['Py_StaSpecAvg'] = ATaCR_Py_DataFolder['Py_DataParentFolder'] + '/AVG_STA'
         ATaCR_Py_DataFolder['Py_CorrectedTraces'] = ATaCR_Py_DataFolder['Py_DataParentFolder'] + '/EVENTS'
         ATaCR_Py_DataFolder['Py_b1b2_StaSpectra'] = ATaCR_Py_DataFolder['Py_DataParentFolder'] + '/SPECTRA'
         ATaCR_Py_DataFolder['Py_TransferFunctions'] = ATaCR_Py_DataFolder['Py_DataParentFolder'] + '/TF_STA'
         ATaCR_Py_DataFolder['Py_Logs'] = ATaCR_Py_DataFolder['Py_DataParentFolder'] + '/Logs'
-        return ATaCR_ML_DataFolder,ATaCR_Py_DataFolder
+        d = AttribDict()
+        d.ATaCR = Path(ATaCR_Py_DataFolder['Py_DataParentFolder'])
+        d.Catalogs = d.ATaCR / 'Catalogs'
+        d.Events = Path(ATaCR_Py_DataFolder['Py_CorrectedTraces'])
+        d.Spectra = Path(ATaCR_Py_DataFolder['Py_b1b2_StaSpectra'])
+        d.SpectraAvg = Path(ATaCR_Py_DataFolder['Py_StaSpecAvg'])
+        d.TransferFunctions = Path(ATaCR_Py_DataFolder['Py_TransferFunctions'])
+        d.Noise = Path(ATaCR_Py_DataFolder['Py_RawDayData'])
+        d.Logs = Path(ATaCR_Py_DataFolder['Py_Logs'])
+        ATaCR_Py_DataFolder = d
+        return ATaCR_Py_DataFolder
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1125,14 +1134,14 @@ def TransferFunctions(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = 
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def CorrectEvents(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--figRaw --figClean --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H',fork=True,max_workers=1):
         datafolder = './Data/'
-        staquery_output = str(staquery_output)
+        # staquery_output = str(staquery_output)
         if logoutput_subfolder is not None:
                 logoutput = logoutput_subfolder + '/' + log_prefix + '_Step_7_7_CorrectEvents_logfile.log'
                 log_fout = logoutput
         else:
                 logoutput = '_Step_7_7_CorrectEvents_logfile.log'
                 log_fout = datafolder + logoutput
-        args = [staquery_output]
+        args = [str(staquery_output)]
         [args.append(flg) for flg in extra_flags.split()]
         # with open(log_fout, 'w') as sys.stdout:
         if netsta_names is not None:
@@ -1310,22 +1319,24 @@ def get_data(datapath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0],
                     trN2.resample(trNP[0].stats.sampling_rate, no_filter=False)
     return trN1, trN2, trNZ, trNP
 
-def load_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
+def load_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0],rmresp=True,inv=None, pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
     # Define empty streams
-    inv = read_inventory(Path(str(file)).parent / '*_inventory.xml')
+    if rmresp:inv = read_inventory(Path(str(file)).parent / '*_inventory.xml')
+#     if rmresp:inv = read_inventory(Path(str(file)).parent / '*_inventory.xml')
+#     else:inv = []
     try:
         if fnmatch.fnmatch(str(file),'*1.SAC'):
                 tr = read(str(file))
-                tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+                if rmresp:tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level,hide_sensitivity_mismatch_warning=True)
         elif fnmatch.fnmatch(str(file),'*2.SAC'):
                 tr = read(str(file))
-                tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+                if rmresp:tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level,hide_sensitivity_mismatch_warning=True)
         elif fnmatch.fnmatch(str(file),'*Z.SAC'):
                 tr = read(str(file))
-                tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+                if rmresp:tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level,hide_sensitivity_mismatch_warning=True)
         elif fnmatch.fnmatch(str(file),'*H.SAC'):
                 tr = read(str(file))
-                tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
+                if rmresp:tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level,hide_sensitivity_mismatch_warning=True)
         return tr,inv
     except:
            Stream(),inv
