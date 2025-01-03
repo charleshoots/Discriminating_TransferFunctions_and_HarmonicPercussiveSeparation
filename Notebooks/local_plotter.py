@@ -214,6 +214,8 @@ def station_event_page_averages(st_hold,sta,evmeta,method,type='stream',raw_refe
             ax.axvline(1/fn,alpha=0.4,linewidth=1,color='k',linestyle='-.')
             ax.text(1/fn,1,str(int(fn))+'s',verticalalignment='top',horizontalalignment='right')
     return fig
+
+
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # ----------------------------------------------------------------------------------------------------------------
 # =XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX=
@@ -374,3 +376,207 @@ def station_event_single(st_hold,sta,evmeta,type='stream',**args):
                     ax.axvline(1/fn,alpha=0.4,linewidth=1,color='k',linestyle='-.')
 
     return fig
+
+def dataset_averaged_coherence_plot(cat,dirs,
+    title='Station Averaged Noise',
+    meter='Coherence',
+    chans='ZP',
+    figsize=[10,4],fontsize=12):
+    font = {'weight':'bold','size':fontsize};matplotlib.rc('font', **font)
+    f = avg_meter(get_noise(dirs,cat.StaName[0]),meter,chans)[0]
+    coh = np.array([avg_meter(get_noise(dirs,stanm),meter,chans)[1] 
+    for stanm in cat.StaName[np.argsort(cat.StaDepth)]])
+    x = np.round(np.sort(cat.StaDepth))
+    # ---------------------------------------------------------------
+    # More spatially accurate approach but matrix is sparse.
+    # xx = np.arange(int(x.min()),int(x.max())+1,int(np.diff(x).min()))
+    # zz = np.empty((len(xx),len(f)));zz[:] = 0
+    # for ii,xi in enumerate(x):zz[np.where(xi==xx)[0][0],:] = coh_plottable[ii,:]
+    # ---------------------------------------------------------------
+    fig,ax=plt.subplots(figsize=figsize);x = np.round(np.sort(cat.StaDepth))
+    # coh_plottable = np.array([smooth(d,k=3) for d in coh]);coh_plottable = gaussian_filter(coh,.5)
+    coh_plottable = coh
+    ax.contourf(f,x,coh_plottable,linewidth=2,levels=10,extend='max',vmin=coh.min(),vmax=coh.max())
+    fn = [fnotch(fq) for fq in x]
+    ax.plot(fn,x,linestyle='dashed',color='w',linewidth=0.4*fontsize)
+    ax.set_xlim(1/500,1);ax.set_xscale('log')
+    fticks = np.array([1/500,1/300,1/100,1/50,1/10,1])
+    ax.set_xticks(fticks)
+    ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+    ax.set_xticklabels(np.array(1/fticks,dtype=int))
+    ax.set_ylabel('Station depth (m)',fontweight='bold')
+    ax.set_xlabel('Period (s)',fontweight='bold')
+    ax.set_title(f'{coh.shape[0]} {title}')
+    plt.tight_layout()
+    return fig
+def catalog_map_plot(sta_inv,ev_cat,
+    mode='Depth',
+    water_fill_color='lightblue',
+    continent_fill_color='lightgrey',
+    projection = 'ortho',
+    figsize = (15,8),
+    cmap=None):
+    # projection = ['ortho','global']
+    inv = sta_inv.copy()
+    evm_plottable = ev_cat.copy()
+    if cmap==None:cmap={'mag':'bwr','depth':'tab20c'}[mode.lower()]
+    if mode.lower()=='mag':
+        for e in evm_plottable:e.origins[0].depth = e.magnitudes[0].mag*1000
+    clear_output(wait=False)
+    nev = len(evm_plottable)
+    nsta = len(np.unique(list(itertools.chain.from_iterable([e.Stations for e in evm_plottable]))))
+    fig = evm_plottable.plot(resolution='f',
+    water_fill_color=water_fill_color,continent_fill_color=continent_fill_color,
+    projection=projection,
+    color='depth',label=None)
+    settings = AttribDict();settings.map_ortho = AttribDict();settings.map_global=AttribDict()
+    settings.map_ortho.shrink=0.4;settings.map_global.shrink=0.7
+    title=' | '.join([str(nev)+' Events',str(nsta)+ ' Stations'])
+    clear_output(wait=False)
+    events_plot = fig.get_axes()[0].get_children()[-14]
+    events_plot.set_cmap(cmap)
+    events_plot.set_edgecolor('k');events_plot.set_linewidth(0.3)
+    sizes = events_plot.get_sizes();events_plot.set_sizes(sizes/3)
+    fig.set_size_inches(figsize);fig.set_tight_layout('tight')
+    norm = fig.get_axes()[1]._colorbar.norm
+    if mode.lower()=='mag':norm._vmin=6.0;norm._vmax=8.0
+    fig.get_axes()[1].remove()
+    if len(np.unique([e.magnitudes[0].magnitude_type for e in evm_plottable]))>1:mtype='M'
+    else:mtype=np.unique([e.magnitudes[0].magnitude_type for e in evm_plottable])[0]
+    if mode.lower()=='mag':colorbarlabel = 'Magnitude ('+mtype+')'
+    else:colorbarlabel = 'Depth (km)'
+    fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap),
+    ax=fig.get_axes()[0], orientation='horizontal',
+    label=colorbarlabel,
+    shrink=settings['map_'+projection].shrink,aspect=75,pad=0.01)
+    plt.draw()
+    fig.suptitle(title,y=0.93)
+    # ------------
+    # -- Station plot
+    fig = inv.plot(size=50,label=False,fig=fig,color_per_network=True,marker='v')
+    stations_plot = fig.get_axes()[0].get_children()[-13]
+    stations_plot.set_edgecolor('k')
+    stations_plot.set_linewidth(0.5)
+    fig.show()
+    lg = fig.get_axes()[0].get_legend()
+    labels=lg.texts;handles=lg.legend_handles;lg.remove()
+    labels = [l._text for l in labels]
+    lg = fig.get_axes()[0].legend(handles, labels, ncols=11,loc='lower left',
+    labelspacing=0.0,columnspacing=0.1,
+    handletextpad=-.5,borderpad=0.2,edgecolor='k',fontsize=11)
+    lg.set_zorder(1000)
+    fig.show()
+    return fig
+
+
+def plot_spec_coh_adm_ph(Metrics):
+    pairs = ['ZP']
+    meters = ['psd','Coherence','Admittance','Phase']
+    fig, axes = plt.subplots(nrows=4, ncols=1,figsize=(8,10),layout='constrained',squeeze=False,sharey='row',sharex='all')
+    axes = axes.reshape(-1)
+    stam = Metrics['ATaCR'].traces[0].stats.network + '.' + Metrics['ATaCR'].traces[0].stats.station
+    label = Metrics['ATaCR'].traces.select(channel='*Z')[0].stats.location
+    Pre = Metrics['Raw']
+    Post = Metrics['ATaCR']
+    Noise = Metrics['Noise']
+    fn = fnotch(abs(Post.traces[0].stats.sac.stel*1000))
+    tstamp = Pre.traces[0].stats.starttime.strftime('%Y.%j.%H.%M')
+    for pi,(ax,m) in enumerate(zip(axes,meters)):
+        if m=='psd':
+            p = 'Z'
+        else:
+            p = pairs[0]
+        evf,prey = Pre.__getattribute__(m)(p)
+        evf,posty = Post.__getattribute__(m)(p)
+        if m=='psd':
+            noisef,noisey = Noise.f,Noise.StaNoise.power.__dict__['cZZ']
+        else:
+            noisef,noisey = Noise.__getattribute__(m)(p)
+        noisey = noisey[noisef>0]
+        noisef = noisef[noisef>0]
+        if m=='psd':
+            noisey = 10*np.log10(noisey)
+            prey = 10*np.log10(prey)
+            posty = 10*np.log10(posty)
+        ax.scatter(noisef,noisey,s=0.5,c='gray',label='Noise')
+        if pi==0:
+            lbl = stam + ' | ' + label + ' ' + tstamp + ' | '
+        else:
+            lbl = ''
+        ax.set_xlabel('Frequency')
+        ax.set_ylabel(m.replace('psd','Power Density'))
+        ax.set_title(lbl + p + '-' + m.replace('psd','PSD'),fontweight='bold')
+        ax.scatter(evf,prey,c='k',label='PRE',marker='o',s=1)
+        ax.scatter(evf,posty,c='m',label='POST',marker='o',s=0.5)
+        ax.axvline(fn,linewidth=0.2,color='k')
+        if pi==0:
+            ax.text(fn*1.05,0.99*min(ax.get_ylim()),'Fn:' + str(round(1/fn*100)/100) + 's',alpha=0.4)
+            ax.set_xscale('log')
+            ax.set_xlim(evf[1],evf[-1])
+            ax.legend(markerscale=10,ncols=len(meters))
+    plt.tight_layout()
+    return fig
+def dataset_averaged_coherence_plot(f,z,coh,
+    title='Station Averaged Noise',
+    figsize=[15,6],fontsize=12,vlim=[0,1],levels=None,fig=None,ax=None):
+    font = {'weight':'bold','size':fontsize};matplotlib.rc('font', **font)
+    z = np.round(z)
+    i = np.argsort(z)
+    z,coh = z[i],coh[i,:]
+    if levels is None:levels=np.linspace(np.min(coh),np.max(coh),20)
+    # if vlim is None:vlim=[np.min(coh),np.max(coh)]
+    if ax is None:fig,ax=plt.subplots(figsize=figsize)
+    # coh_plottable = np.array([smooth(d,k=3) for d in coh]);coh_plottable = gaussian_filter(coh,.5)
+    coh_plottable = coh
+    cnt = ax.contourf(f,z,coh_plottable,vmin=vlim[0],vmax=vlim[1],extend="both",levels=levels)
+    fn = [fnotch(fqz) for fqz in z]
+    ax.plot(fn,z,linestyle='dashed',color='w',linewidth=0.4*fontsize)
+    ax.set_xlim(1/500,1);ax.set_xscale('log')
+    fticks = np.array([1/500,1/300,1/100,1/50,1/10,1])
+    ax.set_xticks(fticks)
+    ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+    ax.set_xticklabels(np.array(1/fticks,dtype=int))
+    ax.set_ylabel('Station depth (m)',fontweight='bold')
+    ax.set_xlabel('Period (s)',fontweight='bold')
+    # ax.set_title(f'{coh.shape[0]} {title}')
+    ax.set_facecolor('k')
+    if fig is not None:fig.suptitle(title)
+    # plt.colorbar(cnt)
+    plt.tight_layout()
+    if fig is not None:return fig
+    if ax is not None:return ax
+
+# # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# # ++++++++++++++++++++++++++ CONSTRUCTOR AREA ++++++++++++++++++++++++++++++
+# # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# methods = ['PostATACR']
+# atacrdatafolder = archive / 'ATaCR_Data' / 'ATaCR_Python'
+# for correction_method in methods:
+#     coh_comp = correction_method.replace('PostHPS','HPS').replace('PostATACR','ATaCR')
+#     if correction_method=='PostHPS':
+#       return_hps = True
+#     else:
+#       return_hps = False
+#     OutFolder = Path(plotfolder)
+#     SubFolders = Path('EventRecords') / correction_method / 'coherence'
+#     OutFolder = OutFolder / SubFolders
+#     OutFolder.mkdir(parents=True,exist_ok=True)
+#     for station in catalog.iloc:
+#       stations = [station.Station]
+#       networks = [station.Network]
+#       events = station.Events
+#       for i,(net,sta) in enumerate(zip(networks,stations)):
+#         Metrics = []
+#         for evi,event in enumerate(events):
+#           depth = round(station.Metadata[evi].origins[0].depth/1000)
+#           mag = station.Metadata[evi].magnitudes[0].mag
+#           File = '.'.join([net,sta]) + '.m' + str(mag) + '.z' + str(depth) + 'km' + '.' + event + '.' + correction_method.replace('Post','') + '_SPECCOHPHADM.png'
+#           title = File.replace('_',' | ').replace('z','z: ').replace('m','mag: m')
+#           print('[' + str(evi) + '/' + str(len(events)) + '] ' + File)
+#           post_record = Stream()
+#           pre_record = Stream()
+#           M,Comp = get_metrics_comp(net,sta,atacrdatafolder,event,return_hps=return_hps,events_folder='EVENTS')
+#           # M['Noise'] = get_Noise(atacrdatafolder,net,sta,'sta')['Noise']
+#           Metrics.append(M.copy())
+#           fig = plot_spec_coh_adm_ph(M)
+#           save_tight(str(plotfolder / 'MeetingFigs' / 'SPECCOHPHADM' / File),fig,dpi=600)

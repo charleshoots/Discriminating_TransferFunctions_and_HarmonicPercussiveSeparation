@@ -5,15 +5,15 @@ def preparetraces(self,stream,trim=(None,None),band=None,max_percentage=0.01,max
         stream = Stream(traces=stream)
         stream.detrend()
         for i in range(len(stream)):
-                stream[i].data = stream[i].data - _np.mean(stream[i].data)  
+                stream[i].data = stream[i].data - np.mean(stream[i].data)  
         stream.detrend()
         stream.taper(max_percentage=max_percentage, type=type, max_length=max_length)
         if band:
-                fmin,fmax = _np.sort(band)
+                fmin,fmax = np.sort(band)
                 [ev.filter('bandpass', freqmin=fmin, freqmax=fmax, corners=4, zerophase=True) for ev in stream]
         for i in range(len(stream)):
-                stream[i].data = stream[i].data - _np.mean(stream[i].data)
-        if _np.all(_np.array(trim)==None):  
+                stream[i].data = stream[i].data - np.mean(stream[i].data)
+        if np.all(np.array(trim)==None):  
                 trim = 7200 #Might be wise to trim first and last few seconds from trace before normalizing. 
                 # If a filter artifact is present at zero-time, for whatever reason, it will break the norm.
                 stream.trim(stream[0].stats.starttime,stream[0].stats.starttime + trim)
@@ -25,7 +25,7 @@ def preparetraces(self,stream,trim=(None,None),band=None,max_percentage=0.01,max
         stream.detrend()
         stream.taper(max_percentage=max_percentage, type=type, max_length=max_length)
         if norm:
-                div = _np.abs(_np.max(stream[0].data))   
+                div = np.abs(np.max(stream[0].data))   
                 stream[0].data = stream[0].data / div
         stream.detrend()
         return stream[0]

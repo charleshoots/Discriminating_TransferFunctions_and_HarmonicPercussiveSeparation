@@ -14,5 +14,8 @@
         "tab.activeBorder": "#2c6d89",
         "iLoveWorkSpaceColors": true,
         "iLoveWorkSpaceRandom": false
-    }
+    },
+    "python.analysis.extraPaths": [
+        "./Packages/CompCode"
+    ]
 }

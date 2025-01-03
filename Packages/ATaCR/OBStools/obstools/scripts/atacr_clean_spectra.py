@@ -35,6 +35,7 @@ from argparse import ArgumentParser
 from os.path import exists as exist
 from obspy import UTCDateTime
 from numpy import nan
+import matplotlib.pyplot as plt
 # import logging
 # logging.basicConfig(level=print)
 
@@ -199,17 +200,13 @@ def get_cleanspec_arguments(argv=None):
         default="png",
         help="Specify format of figure. Can be any one of the valid" +
         "matplotlib formats: 'png', 'jpg', 'eps', 'pdf'. [Default 'png']")
-
     args = parser.parse_args(argv)
-
     # Check inputs
     if not exist(args.indb):
         parser.error("Input file " + args.indb + " does not exist")
-
     # create station key list
     if len(args.stkeys) > 0:
         args.stkeys = args.stkeys.split(',')
-
     # construct start time
     if len(args.startT) > 0:
         try:
@@ -220,7 +217,6 @@ def get_cleanspec_arguments(argv=None):
                 args.startT)
     else:
         args.startT = None
-
     # construct end time
     if len(args.endT) > 0:
         try:
@@ -231,7 +227,6 @@ def get_cleanspec_arguments(argv=None):
                 args.endT)
     else:
         args.endT = None
-
     if args.pd is None:
         args.pd = [0.004, 2.0]
     else:
@@ -241,11 +236,12 @@ def get_cleanspec_arguments(argv=None):
             raise(Exception(
                 "Error: --freq-band should contain 2 " +
                 "comma-separated floats"))
-
     return args
 
 
 def main(args=None):
+    # if __name__ == '__main__':
+    #     freeze_support()
     if args is None:
         # Run Input Parser
         args = get_cleanspec_arguments()
@@ -372,6 +368,7 @@ def main(args=None):
                 print('CleanSpectra (A5) |',stanm,"*   -> file "+str(filespec)+" found - loading")
                 file = open(filespec, 'rb')
                 daynoise = pickle.load(file)
+                daynoise.file = file.name
                 file.close()
                 stanoise += daynoise
             else:
@@ -516,6 +513,7 @@ def main(args=None):
                 plot.savefig(
                     str(plotpath / (fname + '.' + args.form)),
                     dpi=300, bbox_inches='tight', format=args.form)
+                plt.close('all')
             else:
                 plot.show()
             fname = stkey + '.' + 'av_admittance'
@@ -526,6 +524,7 @@ def main(args=None):
                 plot.savefig(
                     str(plotpath / (fname + '.' + args.form)),
                     dpi=300, bbox_inches='tight', format=args.form)
+                plt.close('all')
             else:
                 plot.show()
             fname = stkey + '.' + 'av_phase'
@@ -536,6 +535,7 @@ def main(args=None):
                 plot.savefig(
                     str(plotpath / (fname + '.' + args.form)),
                     dpi=300, bbox_inches='tight', format=args.form)
+                plt.close('all')
             else:
                 plot.show()
         if args.fig_coh_ph and stanoise.direc is not None:
@@ -545,6 +545,7 @@ def main(args=None):
                 plot.savefig(
                     str(plotpath / (fname + '.' + args.form)),
                     dpi=300, bbox_inches='tight', format=args.form)
+                plt.close('all')
             else:
                 plot.show()
         # Save to file

@@ -1,10 +1,12 @@
-from obspy import read
-import numpy as np
-from scipy.signal import stft, detrend
-import warnings
-import fnmatch
-import obspy
-from obspy import read_inventory
+# from obspy import read
+# import numpy as np
+# from scipy.signal import stft, detrend
+# import warnings
+# import fnmatch
+# import obspy
+# from obspy import read_inventory
+from imports import *
+from modules import *
 # ----
 def get_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
     warnings.filterwarnings("ignore")
@@ -21,33 +23,57 @@ def get_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=
         tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
     return tr[0]
 
-def pull_cohphadm(stanm,EvFolder,CorrFolder,tf='ZP-21',gs=True):
-    correvpath = CorrFolder / stanm 
-    rawevpath = EvFolder / stanm
-    if len(tf)>0:
-        fclip = '.sta.' + tf
-        correvpath = correvpath / 'CORRECTED'
-    else:fclip = ''
-    correvs = [f.name for f in list(correvpath.glob('*' + fclip + '.HZ.SAC'))]
-    rawevs = [f.replace(fclip,'').replace(stanm + '.','') for f in correvs]
-#     events = [c.replace('.sta','').replace('.HZ.SAC','').split(stanm + '.')[-1].split('.' + tf)[0] for c in correvs]
-    events = [c.replace('.sta','').replace('.HZ.SAC','').replace(stanm+'.','').replace('.'+tf,'') for c in correvs]
-    cpa_list,ev_list = [],[]
-    for ev,r,c in zip(events,rawevs,correvs):
-        if gs:rawst = get_sac(rawevpath / r)
-        else:rawst = read(rawevpath / r)[0]
-        corrst = read(correvpath / c)[0]
-        tend = np.min([rawst.stats.endtime,corrst.stats.endtime])
-        rawst = rawst.copy().trim(tend-7200,tend)
-        corrst = corrst.copy().trim(tend-7200,tend)
-        if len(np.unique([len(rawst.data),len(corrst.data)]))>1:
-               raise Exception('Trace lenghts not equal')
-        cpa = cohphadm(rawst,corrst)
-        cpa_list.append(cpa)
-        ev_list.append(ev)
-    return ev_list,cpa_list
+def pull_cohphadm(stanm,EvFolder,CorrFolder,
+        tf='ZP-21',
+        gs=True,
+        corrected_comp='HZ',raw_comp='HDH'):
+        correvpath = CorrFolder
+        rawevpath = EvFolder
+        # raw_stanm_subfolder=None,corrected_stanm_subfolder=None,
+        #     correvpath = CorrFolder / stanm /'CORRECTED'
+        #     rawevpath = EvFolder / stanm
+        #     if raw_stanm_subfolder is not None:rawevpath=rawevpath/raw_stanm_subfolder
+        #     if corrected_stanm_subfolder is not None:correvpath=correvpath/corrected_stanm_subfolder
+        if len(tf)>0:fclip = '.sta.' + tf
+        else:fclip = ''
+        correvs = [f.name for f in list(correvpath.glob('*' + fclip + f'.{corrected_comp}.SAC'))]
+        rawevs = [f.name for f in list(rawevpath.glob('*' + f'.{raw_comp}.SAC'))]
+        evs=np.intersect1d([r.split(f'.{corrected_comp}.SAC')[0].replace(stanm+'.','').replace('.sta.'+tf,'') for r in correvs],[r.split(f'.{raw_comp}.SAC')[0] for r in rawevs])
+        c=evs.copy();correvs=[f'{stanm}.{i}.{corrected_comp}.SAC' for i in c]
+        c=evs.copy();rawevs=[f'{i}.{raw_comp}.SAC' for i in c]
+                #     events = [c.replace('.sta','').replace('.HZ.SAC','').split(stanm + '.')[-1].split('.' + tf)[0] for c in correvs]
+        events = [c.replace('.sta','').replace('.HZ.SAC','').replace(stanm+'.','') for c in correvs]
+        if len(tf)>0:
+                events=[c.replace('.'+tf,'') for c in events]
+                correvs=[c.replace('.HZ.','.sta.'+tf+'.HZ.') for c in correvs]
+        cpa_list,ev_list = [],[]
+        for ev,r,c in zip(events,rawevs,correvs):
+                # if r=='2011.070.06.15.H1.SAC':
+                #        if stanm=='2D.OBS15':
+                #                 k=1
+                rawst = load_sac(rawevpath/r,rmresp=False)[0]
+                if len(rawst)==0:print(f'{stanm}|{ev}| Data missing or corrupt');continue
+                rawst=rawst[0]
+                corrst = load_sac(correvpath/c,rmresp=False)[0]
+                if len(corrst)==0:print(f'{stanm}|{ev}| Data missing or corrupt');continue
+                corrst=corrst[0]
+                tend = np.min([rawst.stats.endtime,corrst.stats.endtime])
+                rawst = rawst.copy().trim(tend-7200,tend);corrst = corrst.copy().trim(tend-7200,tend)
+                trim_n = min([corrst.data.shape[0],rawst.data.shape[0]])
+                rawst.data=rawst.data[:trim_n];corrst.data=corrst.data[:trim_n]
+                # ((trim_n/rawst.stats.sampling_rate)/3600)<1.5
+                if len(np.unique([len(rawst.data),len(corrst.data)]))>1:raise Exception('Trace lenghts not equal')
+                cpa = cohphadm(rawst,corrst)
+                cpa.Event = ev
+                cpa_list.append(cpa)
+                ev_list.append(ev)
+        return ev_list,cpa_list
+
+class DataHold(object):
+    def __init__(self):self
 class cohphadm(object):
-        def __init__(self,A=None, B=None,overlap=0.3,csd=None,f=None,fs=None):
+        def __init__(self,A, B=None,overlap=0.3,csd=None,f=None,fs=None):
+                if B is None:A=B.copy()
                 self.overlap = overlap
                 self.A = A.copy()
                 self.B = B.copy()
@@ -65,15 +91,15 @@ class cohphadm(object):
         def COH(self):
                 f,ab,aa,bb = self._powercross(self.A.data,self.B.data)
                 coh = self._calc_coherence(ab,aa,bb)
-                return f,coh
+                return f[f>0],coh[f>0]
         def PH(self):
                 f,ab,aa,bb = self._powercross(self.A.data,self.B.data)
                 ph = self._calc_phase(ab)
-                return f,ph
+                return f[f>0],ph[f>0]
         def ADM(self):
                 f,ab,aa,bb = self._powercross(self.A.data,self.B.data)
                 adm = self._calc_admittance(ab,bb)
-                return f,adm
+                return f[f>0],adm[f>0]
         def _calc_coherence(self,ab,aa,bb):
                 coh = ((abs(ab)**2)/abs(aa*bb))
                 return coh

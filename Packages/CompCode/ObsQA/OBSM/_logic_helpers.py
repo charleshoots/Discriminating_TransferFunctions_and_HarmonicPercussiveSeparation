@@ -6,7 +6,7 @@ import numpy as _np
 import obspy
 import copy as cp
 from obspy import Stream
-
+from ObsQA.OBSM import classes #import NoiseWrapper
 def copy(self):
         return cp.deepcopy(self)
 def append(self,other):
@@ -26,10 +26,11 @@ def _add_traces(self,tr1=None,tr2=None,trZ=None,trP=None):
 def __truediv__(self, other):
         self = self.copy()
         if isinstance(other,OBS.OBSM.Metrics):
-                self.B = other.traces.copy()
+                self.B = other.traces.copy();self._updatespec()
         elif isinstance(other,Stream):
-                self.B = other
-        self._updatespec()
+                self.B = other;self._updatespec()
+        elif isinstance(other,classes.NoiseWrapper):
+                self.B = other.spectra;self._updatespec_noise()
         return self.copy()
 def _meta(self):
         self.dt = _np.unique([s.stats.delta for s in self.traces if isinstance(s,obspy.core.trace.Trace)])

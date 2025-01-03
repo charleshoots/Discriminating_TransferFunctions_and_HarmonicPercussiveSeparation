@@ -1,4 +1,4 @@
-def get_Noise(atacr_parent,net,sta,avg='Day',update=True):
+def get_noise_metrics(atacr_parent,net,sta,avg='Day',update=True):
         if avg.lower()=='sta':
                 specfold = 'AVG_STA'
                 filetag = 'avg_sta'
@@ -51,8 +51,8 @@ def get_Noise(atacr_parent,net,sta,avg='Day',update=True):
                                 noise['CSD'] = [spec]
                                 noise_trace = dict()
                                 gd = noise_out.gooddays[0]
-                                gw = ObsQA.io.get_Noise(atacr_parent,net,sta,avg='Day',update=True).goodwins[gd]
-                                ft = ObsQA.io.get_Noise(atacr_parent,net,sta,avg='Day',update=True).ft[gd]
+                                gw = ObsQA.io.get_noise_metrics(atacr_parent,net,sta,avg='Day',update=True).goodwins[gd]
+                                ft = ObsQA.io.get_noise_metrics(atacr_parent,net,sta,avg='Day',update=True).ft[gd]
                                 noise_trace['1'] = np.real(np.fft.ifft(np.mean(np.array([np.mean(spec['1'][g],axis=0) for spec,g in zip(ft.iloc,gw.iloc)]),axis=0)))
                                 noise_trace['2'] = np.real(np.fft.ifft(np.mean(np.array([np.mean(spec['2'][g],axis=0) for spec,g in zip(ft.iloc,gw.iloc)]),axis=0)))
                                 noise_trace['Z'] = np.real(np.fft.ifft(np.mean(np.array([np.mean(spec['Z'][g],axis=0) for spec,g in zip(ft.iloc,gw.iloc)]),axis=0)))

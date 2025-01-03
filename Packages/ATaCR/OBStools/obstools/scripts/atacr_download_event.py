@@ -140,7 +140,7 @@ def get_event_arguments(argv=None):
         action="store",
         type=float,
         dest="new_sampling_rate",
-        default=40.,
+        default=10.,
         help="Specify new sampling rate (float, in Hz). " +
         "[Default 5.]")
     FreqGroup.add_argument(
@@ -310,6 +310,7 @@ def main(args=None):
         args = get_event_arguments()
     # Load Database
     # stdb>0.1.3
+    # args.ovr=True
     try:
         db, stkeys = stdb.io.load_db(fname=args.indb, keys=args.stkeys)
     # stdb=0.1.3
@@ -332,12 +333,14 @@ def main(args=None):
     for stkey in stkeys:
         print(stkey)
     print('-X-'*10)
+    import pandas as pd
+    pd.Series({'Result':'Not Started'}).to_pickle('RunTest.pkl')
     for stkey in list(stkeys):
         # Extract station information from dictionary
         sta = db[stkey]
         stanm = '['+'.'.join([sta.network, sta.station])+']'
         # Define path to see if it exists
-        eventpath = Path('EVENTS') / Path(stkey)
+        eventpath = Path('EVENTS') / 'raw' / Path(stkey)
         if not eventpath.is_dir():
             print(stanm,'\nPath to '+str(eventpath)+' doesn`t exist - creating it')
             eventpath.mkdir(parents=True,exist_ok=True)
@@ -361,6 +364,7 @@ def main(args=None):
         print(stanm,'Event: ' + str(tstart) + ' -> ' + str(tend))
         if tstart > sta.enddate or tend < sta.startdate:
             print(stanm,'Event not in station window')
+            pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
             continue
         # Temporary print locations
         tlocs = sta.location
@@ -436,6 +440,7 @@ def main(args=None):
                 print(stanm,
                     "\n*   -> Event outside epicentral distance " +
                     "range - continuing")
+                pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                 continue
             t1 = time
             t2 = t1 + args.window
@@ -464,6 +469,7 @@ def main(args=None):
                                     print(stanm,"*")
                                     print(stanm,"*   "+str(fileZ))
                                     print(stanm,"*   -> File already exists - continuing")
+                                    pd.Series({'Result':'Already exists'}).to_pickle('RunTest.pkl')
                                     continue
             if "P" not in args.channels:
                 # Number of channels
@@ -483,6 +489,7 @@ def main(args=None):
                     print(stanm,
                         " Error: Unable to download ?H? components - " +
                         "continuing")
+                    pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                     continue
             elif "12" not in args.channels:
                 # Number of channels
@@ -502,6 +509,7 @@ def main(args=None):
                     print(stanm,
                         " Error: Unable to download ?H? components - " +
                         "continuing")
+                    pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                     continue
                 try:
                     print(stanm,"*   -> Downloading Pressure data...")
@@ -523,6 +531,7 @@ def main(args=None):
                             stp = Stream(traces=stp[1])
                 except Exception:
                     print(stanm," Error: Unable to download ?DH component - " + "continuing")
+                    pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                     continue
             else:
                 # Comma-separated list of channels for Client
@@ -538,6 +547,7 @@ def main(args=None):
                 except Exception:
                     print(stanm,
                         " Error: Unable to download ?H? components - " + "continuing")
+                    pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                     continue
                 try:
                     print(stanm,"*   -> Downloading Pressure data...")
@@ -546,6 +556,7 @@ def main(args=None):
                     print(stanm,"     ...done")
                     if not type(stp[0].stats.response)==obspy.core.inventory.response.Response:
                         print(stanm,'No response data returned. Skipping')
+                        pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                         continue
                     if len(stp) > 1:
                         print(stanm,"WARNING: There are more than one ?DH trace")
@@ -559,6 +570,7 @@ def main(args=None):
                 except Exception:
                     print(stanm," Error: Unable to download ?DH component - " +
                         "continuing")
+                    pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                     continue
 
     # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -582,9 +594,11 @@ def main(args=None):
             is_ok, st = utils.QC_streams(t1, t2, st)
             if not is_ok:
                 print(stanm,'QC_Streams says "not ok"...continuing')
+                pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                 continue
             if len(st)<len(''.join(args.channels)):
                 print(stanm,"Missing components. Skipping day.")
+                pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                 continue
             # Extract traces - P
             st_sac = Stream()
@@ -618,6 +632,7 @@ def main(args=None):
             # Writing response files to station inventory
             if not inventory_file.exists():
                 utils.save_inventory(str(inventory_file),st_sac)
+            pd.Series({'Result':'Success'}).to_pickle('RunTest.pkl')
 
 if __name__ == "__main__":
     # Run main program

@@ -5,7 +5,6 @@ import numpy as _np
 from scipy.signal import stft, detrend
 
 def _window(self,window=None,overlap=None):
-        
         if overlap is None:
                 overlap=self.overlap
         if window is None:
@@ -92,3 +91,31 @@ def _updatespec(self,window=None,overlap=None):
                         self.csd['B'][p].append(spec_AB)
         self.f = f
         self.updated=True
+def _updatespec_noise(self,window=None,overlap=None):
+        self.csd = dict()
+        self.csd['A'] = dict()
+        self.csd['B'] = dict()
+        self.csd['AB'] = dict()
+        for p in self.csd_pairs:
+                self.csd['A'][p] = []
+                self.csd['B'][p] = []
+                self.csd['AB'][p] = []
+        for i in range(len(self.traces.select(channel='*Z'))):
+                for p in self.csd_pairs:
+                        pp = p.replace('P','H')
+                        A = self.A.select(channel='*'+pp[0])[i].copy()
+                        a_ft = self._stft(A,window=window,overlap=overlap,return_onesided=False)[2]
+                        b_ft = self.B.select(channel='*'+pp[1])[i].copy().data
+                        cab = _np.mean(self._calc_csd(a_ft,b_ft),axis=0)
+                        self.csd['AB'][p].append(cab)
+                        A = self.A.select(channel='*'+pp[0])[i].copy()
+                        B = self.A.select(channel='*'+pp[1])[i].copy()
+                        f,spec_AB= self._csd_helper(A.data,B.data,window=window,overlap=overlap)
+                        self.csd['A'][p].append(spec_AB)
+                        a_ft = self.B.select(channel='*'+pp[0])[i].copy().data
+                        b_ft = self.B.select(channel='*'+pp[1])[i].copy().data
+                        cab = _np.mean(self._calc_csd(a_ft,b_ft),axis=0)
+                        self.csd['B'][p].append(cab)
+        self.f = f
+        self.updated=True
+

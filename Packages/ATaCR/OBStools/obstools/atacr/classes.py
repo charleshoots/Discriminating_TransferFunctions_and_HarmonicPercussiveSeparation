@@ -28,7 +28,7 @@ from scipy.linalg import norm
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
-from obspy.core import Stream, Trace, read
+from obspy.core import Stream,Trace,AttribDict,read
 from obstools.atacr import utils, plotting
 from pkg_resources import resource_filename
 from pathlib import Path
@@ -341,7 +341,8 @@ class DayNoise(object):
         wind = np.ones(ws)
         wind[0:ss] = hanning[0:ss]
         wind[-ss:ws] = hanning[ss:ws]
-
+        self.stft_args=AttribDict();self.stft_args.wind=wind
+        self.stft_args.ws=ws;self.stft_args.ss=ss
         # Get windowed Fourier transforms
         ft1 = self.ft1 = None
         ft2 = self.ft2 = None
@@ -967,8 +968,7 @@ class StaNoise(object):
         if isinstance(daylist, DayNoise):
             daylist = [daylist]
         elif daylist == 'demo' or daylist == 'Demo':
-            print("Uploading demo data - March 01 to 04, 2012, station " +
-                  "7D.M08A")
+            print("Uploading demo data - March 01 to 04, 2012, station "+"7D.M08A")
             self.daylist = [_load_dn('061'), _load_dn(
                 '062'), _load_dn('063'), _load_dn('064')]
         if not daylist == 'demo' and daylist:
@@ -1113,6 +1113,8 @@ class StaNoise(object):
         self.cHH = np.array([dn.rotation.cHH for dn in self.daylist]).T
         self.cHZ = np.array([dn.rotation.cHZ for dn in self.daylist]).T
         self.cHP = np.array([dn.rotation.cHP for dn in self.daylist]).T
+        self.day_files = np.array([Path(d.file).name for d in self.daylist])
+        self.day_goodwins = np.array([d.goodwins for d in self.daylist])
         self.direc = self.daylist[0].rotation.direc
         self.tilt = self.daylist[0].rotation.tilt
         self.f = self.daylist[0].f
@@ -2145,6 +2147,9 @@ class EventStream(object):
             f,ft1=self.stft_adapter(tr1,overlap=0.3,window=tfnoise.f.shape[0]/tr1.stats.sampling_rate)
             f,ft2=self.stft_adapter(tr2,overlap=0.3,window=tfnoise.f.shape[0]/tr2.stats.sampling_rate)
             f,ftP=self.stft_adapter(trP,overlap=0.3,window=tfnoise.f.shape[0]/trP.stats.sampling_rate)
+            self.tr1.data=np.real(np.fft.ifft(ft1));self.tr2.data=np.real(np.fft.ifft(ft2))
+            self.trZ.data=np.real(np.fft.ifft(ftZ));self.trP.data=np.real(np.fft.ifft(ftP))
+
             print('[WARNING] Event trace and tranfser functions have different lengths.'
             '\nUsing STFT to adapt event spectra.')
             if not np.allclose(f, tfnoise.f):

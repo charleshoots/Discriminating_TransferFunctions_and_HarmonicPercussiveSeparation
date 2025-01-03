@@ -277,23 +277,6 @@ def get_data(datapath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0],
                     trN2.resample(trNP[0].stats.sampling_rate, no_filter=False)
     return trN1, trN2, trNZ, trNP
 
-def load_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
-    # Define empty streams
-    inv = read_inventory(Path(str(file)).parent / '*_inventory.xml')
-    if fnmatch.fnmatch(str(file),'*1.SAC'):
-        tr = read(str(file))
-        tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
-    elif fnmatch.fnmatch(str(file),'*2.SAC'):
-        tr = read(str(file))
-        tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
-    elif fnmatch.fnmatch(str(file),'*Z.SAC'):
-        tr = read(str(file))
-        tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
-    elif fnmatch.fnmatch(str(file),'*H.SAC'):
-        tr = read(str(file))
-        tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
-    return tr,*inv
-
 def get_event(eventpath, tstart=None, tend=None,evlist=None,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
     """
     Function to grab all available earthquake data given a path and data time

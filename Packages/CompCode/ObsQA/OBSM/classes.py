@@ -18,6 +18,10 @@ from . import _plot_helpers
 from . import _plotters
 from . import _signal_helpers
 
+class NoiseWrapper(object):
+    def __init__(self, st):
+        self.spectra = st
+
 class OBSMetrics(object):
 
         def __init__(self,tr1=None, tr2=None, trZ=None, trP=None,overlap=0.3,csd=None,f=None):
@@ -104,3 +108,4 @@ class OBSMetrics(object):
         _stft = _signal_helpers._stft
         librosa_stft = _signal_helpers.librosa_stft
         _updatespec = _signal_helpers._updatespec
+        _updatespec_noise = _signal_helpers._updatespec_noise

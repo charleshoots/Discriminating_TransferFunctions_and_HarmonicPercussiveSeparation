@@ -1,5 +1,6 @@
 import numpy as np
 from imports import *
+from modules import *
 def save_tight(filename,fig=None,dpi=200,format=None):
         # Saves figure to PDF with no margins. Do not modify
         # plt.gca().set_axis_off()
@@ -9,9 +10,10 @@ def save_tight(filename,fig=None,dpi=200,format=None):
         # plt.gca().yaxis.set_major_locator(plt.NullLocator())
         if fig is None:
                 plt.savefig(filename, bbox_inches = 'tight',pad_inches = 0.05,dpi=dpi,format=format)
+                print('Complete')
         else:
                 fig.savefig(filename, bbox_inches = 'tight',pad_inches = 0.05,dpi=dpi,format=format)
-        return 'Complete'
+                print('Complete')
 def fnotch(d):
         '''The frequency knotch root function described in Crawford et al., 1998.
         depth (d) is in meters. Returned (f) is in Hz.'''

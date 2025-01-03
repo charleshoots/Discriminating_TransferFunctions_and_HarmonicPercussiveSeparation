@@ -13,6 +13,7 @@ instrument_colors = {'B2':[227,26,28], 'KE':[178,223,138], 'AB':[166,206,227], '
 _ = [instrument_colors.update({k:list(np.array(instrument_colors[k])/255)}) for k in list(instrument_colors.keys())]
 seismometer_marker = {'Guralp CMG3T 120':'o','Trillium 240':'x','Trillium Compact':'^'}
 
+
 def write_pickle(file,var):
     import pickle
     with open(str(file), 'wb') as handle:
@@ -59,6 +60,7 @@ from local_plotter import *
 cat = catalog.iloc[np.where(catalog.StaName=='ZN.D')[0][0]:].copy()
 plotfolder = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp/_FigureArchive/_GEN6')
 hpsfold = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp/_DataArchive/HPS_Data/Data')
+
 atacrfold = dirs.Events
 averages = True
 columns =['Coherence']

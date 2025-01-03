@@ -56,7 +56,7 @@ def OBS_Generator(catalog,parent,events_folder = 'EVENTS',avg='STA',tf='ZP-21',e
                 evind = [i for i in range(len(evts))]
                 nevents = len(evts)
                 try:
-                    Metrics = OBS.TOOLS.io.get_Noise(parent,Station.Network,Station.Station,avg='STA',update=True)
+                    Metrics = OBS.TOOLS.io.get_noise_metrics(parent,Station.Network,Station.Station,avg='STA',update=True)
                 except:
                     Metrics = dict()
                     print(StaName + ' || Missing Noise Data')
@@ -163,7 +163,7 @@ def get_metrics_comp(net,sta,methodfolder,event,return_atacr=True,return_hps=Tru
                     Metrics['ATaCR_HPS'] = Metrics['ATaCR_HPS'] / Metrics['Raw'].copy()
                 Metrics['ATaCR w/ HPS'] = Metrics['ATaCR'].copy() / Metrics['HPS'].copy()
         if return_noise:
-            Metrics['Noise'] = OBS.TOOLS.io.get_Noise(noise_data_folder,net,sta,avg=avg,update=True)['Noise']
+            Metrics['Noise'] = OBS.TOOLS.io.get_noise_metrics(noise_data_folder,net,sta,avg=avg,update=True)['Noise']
             for k in list(Metrics.keys()):
                  Metrics[k].Noise = Metrics['Noise']
         return Metrics,Comps

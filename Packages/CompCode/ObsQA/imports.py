@@ -40,10 +40,10 @@ import sys
 
 import obspy
 
-import geemap
-import ee
+# import geemap
+# import ee
 import matplotlib
-import distinctipy
+# import distinctipy
 from branca.element import Template, MacroElement
 
 import scipy.io as spio
