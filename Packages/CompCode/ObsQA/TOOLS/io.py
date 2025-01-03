@@ -1508,7 +1508,7 @@ def meta_hist_plot(catalog):
     fig,axes=plt.subplots(ncols=3,nrows=int(np.ceil(n_ax/3)),figsize=(20,8),layout='constrained',squeeze=True)
     axes=axes.reshape(-1)
     bins={'Event_depths_km':[0,100,200,300,400,500,600,700],
-    'Stations_per_Event':None,
+    'Stations_per_Event':np.arange(1,40,2),
     'Event_Magnitude_M':[6,6.5,7.0,7.5,7.9],
     'Event_Distances':np.arange(0,180,30),
     #  'Deployment_Depths':np.arange(0,6000,1000),
