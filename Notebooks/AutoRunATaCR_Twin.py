@@ -1,24 +1,3 @@
-# # ------------------------------------------------------------------------------------------------------------------------
-# from pathlib import Path
-# project_path = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp')
-# import shutil
-# import numpy as np
-# import pandas as pd
-# import sys
-# from obspy import UTCDateTime
-# sys.path.append(str(project_path / 'Packages'))
-# sys.path.insert(0, str(project_path / 'Packages' / 'ATaCR'))
-# sys.path.insert(0, str(project_path / 'Packages' / 'CompCode'))
-# sys.path.insert(0, str(project_path / 'Packages' / 'ATaCR'/ 'OBStools'))
-# import ObsQA
-# from comp_tools import *
-# # ---------------------------------------------------------------------------------------------------
-# # ============================================ FOLDERS ==============================================
-# # ---------------------------------------------------------------------------------------------------
-# ATaCR_DataFolder = str(project_path / '_DataArchive' / 'ATaCR_Data')
-# dirs = OBS.TOOLS.io.dir_libraries(ATaCR_DataFolder)
-# catalog_full = pd.read_excel(str(project_path / '_DataArchive' / 'utilities' / 'Janiszewski_etal_2023_StationList.xlsx'))
-# catalog = pd.read_pickle(dirs.Catalogs / 'sta_catalog_101524.pkl')
 from imports import *
 hps_staquery_output = Path(os.getcwd())/'_DataArchive/HPS_Data/sta_query.pkl'
 
@@ -42,9 +21,11 @@ hps_staquery_output = Path(os.getcwd())/'_DataArchive/HPS_Data/sta_query.pkl'
 # catalog = catalog.iloc[np.where(catalog.StaName=='YO.X01')[0][0]:]
 # -----------------------------------------------------------------------------------
 ## =============================================================================== ##
-STEPS = [4,5]
+STEPS = [3]
 fork = False;event_mode = False
-cat = catalog.copy()
+# cat = catalog.copy()
+cat = pd.read_pickle(dirs.Catalogs / 'Catalog_test.pkl')
+
 Minmag,Maxmag=6.0,8.0
 cleanspectra_flags = '--figQC --figAverage --figCoh --figCross --save-fig'
 dailyspectra_flags='--figQC --figAverage --figCoh --save-fig'
@@ -59,8 +40,10 @@ if 1 in STEPS:
 
 # event_window = 7200
 event_window = 3600*4
-channels = 'P,12'
+channels = 'Z,P,12'
 ATaCR_Parent = dirs.ATaCR
+days=11
+
 for STEP in STEPS:
     for ii,Station in enumerate(cat.iloc):
         ## StaFolder = Path(dirs['Py_RawDayData']) / Station.StaName
@@ -83,7 +66,8 @@ for STEP in STEPS:
         event_window=event_window,
         channels=channels,
         cleanspectra_flags=cleanspectra_flags,
-        dailyspectra_flags=dailyspectra_flags)
+        dailyspectra_flags=dailyspectra_flags,
+        days=days)
 
 ## =============================================================================== ## =============================================================================== ##
 ## =============================================================================== ## =============================================================================== ##

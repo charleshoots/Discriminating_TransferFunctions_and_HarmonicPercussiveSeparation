@@ -143,11 +143,11 @@ def noisecut(
     l1 = math.floor((0.1 * win_length_samples) / trace.stats.sampling_rate)
     l2 = math.ceil((1 * win_length_samples) / trace.stats.sampling_rate)
 
-    # We consider the frequency range out of the [0.1-1] Hz for the first step
+    # We consider the frequency range of [0.1-1] Hz for the second step
     S_full2 = np.zeros((S_full.shape[0], S_full.shape[1]))
     S_full2[l1:l2, :] = S_full[l1:l2, :]
 
-    # We consider the frequency range of [0.1-1] Hz for the second step
+    # We consider the frequency range out of the [0.1-1] Hz for the first step
     S_full1 = np.zeros((S_full.shape[0], S_full.shape[1]))
     S_full1[:l1, :] = S_full[:l1, :]
     S_full1[l2:, :] = S_full[l2:, :]

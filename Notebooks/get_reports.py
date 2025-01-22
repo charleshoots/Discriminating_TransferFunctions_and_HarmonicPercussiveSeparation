@@ -20,7 +20,11 @@ def unravel_report(file,AVG=False):
             d[stanm].f = d.f
             if AVG:d[stanm].coh=d[stanm].coh.mean(axis=0)
     return d
-
+def load_pickle(file):
+    import pickle
+    with open(file, 'rb') as handle:
+        b = pickle.load(handle)
+    return b
 def get_reports(comp,catalog,Archive,AVG=True):
     Report=AttribDict();Mirror=AttribDict()
     AnalysisFolder = Archive/'Analysis'/'NetworkCoherences'

@@ -519,7 +519,7 @@ class DayNoise(object):
 
         # Remove mean of the log PSDs
 
-        dsl_psdZ = sl_psdZ[ff, :] - np.mean(sl_psdZ[ff, :], axis=0)
+        dsl_psdZ = sl_psdZ - np.mean(sl_psdZ[ff, :], axis=0)
         if self.ncomp == 2:
             dsl_psdP = sl_psdP[ff, :] - np.mean(sl_psdP[ff, :], axis=0)
             dsls = [dsl_psdZ, dsl_psdP]

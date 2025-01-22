@@ -313,7 +313,7 @@ def main(args=None):
         sta = db[stkey]
         stanm = '['+'.'.join([sta.network, sta.station])+']'
         # Define path to see if it exists
-        datapath = Path('DATA') / Path(stkey)
+        datapath = 'raw' / Path(stkey)
         if not datapath.is_dir():
             print(stanm,'\nPath to '+str(datapath)+' doesn`t exist - creating it')
             datapath.mkdir(parents=True)
@@ -402,6 +402,7 @@ def main(args=None):
                     sth = client.get_waveforms(network=sta.network, station=sta.station,location=sta.location[0],
                     channel=seismic_channels,
                     starttime=t1, endtime=t2,
+                    minimumlength=(24*60*60)-1,
                     attach_response=True) #minimumlength=24*3600-1 <---Add to client.get_waveforms
                     print(stanm,"*      ...done")
                 except Exception:
@@ -416,6 +417,7 @@ def main(args=None):
                     stp = client.get_waveforms(network=sta.network, station=sta.station,location=sta.location[0],
                     channel=pressure_channels,
                     starttime=t1, endtime=t2,
+                    minimumlength=(24*60*60)-1,
                     attach_response=True) #minimumlength=24*3600-1 <---Add to client.get_waveforms
                     print(stanm,"*      ...done")
                 except Exception:
@@ -442,7 +444,7 @@ def main(args=None):
             all_channels_received = len(st)==len(''.join(args.channels))
             # Check streams
             is_ok, st = utils.QC_streams(t1, t2, st)
-            if not is_ok:print(stanm,'QC_Streams says "not ok"...continuing');continue
+            if not is_ok:print(stanm,'QC_Streams says "not ok"...continuing');t1 += dt;t2 += dt;continue
             if not all_channels_received:t1 += dt;t2 += dt;print(stanm,"Missing components. Skipping day.");continue
             # Extract traces - P
             st_sac = Stream()

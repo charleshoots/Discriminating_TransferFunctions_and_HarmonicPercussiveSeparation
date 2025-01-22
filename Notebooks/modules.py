@@ -48,6 +48,8 @@ from obspy.geodetics import locations2degrees
 from obspy.geodetics import degrees2kilometers
 from obspy.core.inventory.inventory import read_inventory
 from obspy import read
+
+
 # ____________________________________________________________________________________
 # ||||||||||||||||||||||| BRANCHED COMMUNITY GITs/PACKAGES |||||||||||||||||||||||||||
 from OrientPy import * #DLOPy
@@ -63,10 +65,9 @@ from ObsQA.OBSM.classes import OBSMetrics as OBSM
 from ObsQA.OBSM.classes import NoiseWrapper
 from ObsQA.TOOLS.io import *
 from ObsQA import *;from comp_tools import *
-from helper_functions import *
-from local_plotter import *
-from local_tools import *
+import local_tools as lt
 from quick_class import *
 from get_reports import *
+from helper_functions import *
 # ____________________________________________________________________________________
 # ||||||||||||||||||||||||||||| USEFUL FOLDERS TO KNOW |||||||||||||||||||||||||||||||

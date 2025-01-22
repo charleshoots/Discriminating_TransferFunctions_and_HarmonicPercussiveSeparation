@@ -339,7 +339,7 @@ def main(args=None):
         sta = db[stkey]
         stanm = '['+'.'.join([sta.network, sta.station])+']'
         # Path where data are located
-        datapath = Path('DATA') / stkey
+        datapath = Path('DATA') / 'raw' /stkey
         if not datapath.is_dir():
             print('DailySpectra (A4) |',stanm,"\nPath to "+str(datapath)+" doesn`t exist - continuing")
             continue
@@ -418,14 +418,11 @@ def main(args=None):
         # # -----------------------------------------------------------------
         # [0.001, 0.005, 45., 50.]
         # # -----------------------------------------------------------------<<<<<TEST-ONE>>>>>
+
+        if not args.ovr:skipfiles=[datapath/f'{t}..HZ.SAC' for t in ['.'.join(f.name.split('.')[:2]) for f in list((Path('SPECTRA')/stkey).glob('*.pkl'))]]
+        else:skipfiles=None
         trace_generator = utils.get_data_generator(datapath, 
-                            UTCDateTime(tstart), UTCDateTime(tend),
-                            seismic_units="DISP",
-                            seismic_pre_filt=[0.001, 0.002, 45.0, 50.0],
-                            seismic_water_level=None,
-                            pressure_units="DEF",
-                            pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],
-                            pressure_water_level=None)
+                            UTCDateTime(tstart), UTCDateTime(tend),skipfiles=skipfiles)
         # Window size
         window = args.window
         overlap = args.overlap
@@ -435,8 +432,6 @@ def main(args=None):
 
         # Cycle through available data
         for tr1, tr2, trZ, trP in trace_generator:
-            tr1, tr2, trZ, trP = tr1[0],tr2[0],trZ[0],trP[0] #Unwrap the Stream objects
-
             tr1.detrend('demean')
             tr2.detrend('demean')
             trZ.detrend('demean')

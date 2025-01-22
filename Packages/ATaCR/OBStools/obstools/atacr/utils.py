@@ -34,7 +34,10 @@ from matplotlib import pyplot as plt
 from obspy.core import read, Stream, Trace, AttribDict, UTCDateTime
 from obspy.core.inventory.inventory import read_inventory
 from pathlib import Path
-import warnings
+import warnings,itertools,re
+warnings.filterwarnings('ignore')
+
+def unravel(lst):return list(itertools.chain.from_iterable(lst))
 
 def traceshift(trace, tt):
     """
@@ -150,6 +153,9 @@ def QC_streams(start, end, st):
         print("**************************************************")
 
         return False, None
+    elif np.any([np.any(np.isnan(tr.data)) for tr in st]):
+        print("* Dead traces(NaNs reported): -> Skipping")
+        return False, None
 
     else:
         return True, st
@@ -191,93 +197,7 @@ def update_stats(tr, stla, stlo, stel, cha, evla=None, evlo=None):
         tr.stats.sac.evlo = evlo
     return tr
 
-def get_data(datapath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
-    """
-    Function to grab all available noise data given a path and data time range
-
-    Parameters
-    ----------
-    datapath : str
-        Path to noise data folder
-    tstart : :class:`~obspy.class.UTCDateTime`
-        Start time for query
-    tend : :class:`~obspy.class.UTCDateTime`
-        End time for query
-
-    Returns
-    -------
-    tr1, tr2, trZ, trP : :class:`~obspy.core.Trace` object
-        Corresponding trace objects for components H1, H2, HZ and HP. Returns
-        empty traces for missing components.
-
-    """
-
-    # Define empty streams
-    trN1 = Stream()
-    trN2 = Stream()
-    trNZ = Stream()
-    trNP = Stream()
-
-    # Time iterator
-    t1 = tstart
-    
-    # Cycle through each day within time range
-    while t1 < tend:
-
-        # Time stamp used in file name
-        tstamp = str(t1.year).zfill(4)+'.'+str(t1.julday).zfill(3)+'.'
-
-        # Cycle through directory and load files
-        p = datapath.glob('*.*')
-        files = [x for x in p if x.is_file()]
-        for file in files:
-            inv = read_inventory(Path(str(file)).parent / '*_inventory.xml')
-            if fnmatch.fnmatch(str(file), '*' + tstamp + '*1.SAC'):
-                tr = read(str(file))
-                tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
-                trN1.append(tr[0])
-            elif fnmatch.fnmatch(str(file), '*' + tstamp + '*2.SAC'):
-                tr = read(str(file))
-                tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
-                trN2.append(tr[0])
-            elif fnmatch.fnmatch(str(file), '*' + tstamp + '*Z.SAC'):
-                tr = read(str(file))
-                tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
-                trNZ.append(tr[0])
-            elif fnmatch.fnmatch(str(file), '*' + tstamp + '*H.SAC'):
-                tr = read(str(file))
-                tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
-                trNP.append(tr[0])
-
-        # Increase increment
-        t1 += 3600.*24.
-
-    # Fill with empty traces if components are not found
-    ntr = len(trNZ)
-    if not trN1 and not trN2:
-        for i in range(ntr):
-            trN1.append(Trace())
-            trN2.append(Trace())
-    if not trNP:
-        for i in range(ntr):
-            trNP.append(Trace())
-
-    if ntr > 0:
-        # Check that all sampling rates are equal - otherwise resample
-        if trNZ[0].stats.sampling_rate != trNP[0].stats.sampling_rate:
-
-            # These checks assume that all seismic data have the same sampling
-            if trNZ[0].stats.sampling_rate < trNP[0].stats.sampling_rate:
-                trNP.resample(trNZ[0].stats.sampling_rate, no_filter=False)
-            else:
-                trNZ.resample(trNP[0].stats.sampling_rate, no_filter=False)
-                if trN1:
-                    trN1.resample(trNP[0].stats.sampling_rate, no_filter=False)
-                if trN2:
-                    trN2.resample(trNP[0].stats.sampling_rate, no_filter=False)
-    return trN1, trN2, trNZ, trNP
-
-def get_event(eventpath, tstart=None, tend=None,evlist=None,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
+def get_event(eventpath,ovr=None):
     """
     Function to grab all available earthquake data given a path and data time
     range
@@ -298,55 +218,33 @@ def get_event(eventpath, tstart=None, tend=None,evlist=None,seismic_pre_filt=[0.
     # Define empty streams
     tr1,tr2,trP,trZ = Stream(),Stream(),Stream(),Stream()
     # Cycle over all available files in time range
-    if evlist is None:
-        # Find out how many events from Z.SAC files
-        eventfiles = list(eventpath.glob('*Z.SAC'))
-        if not eventfiles:
-            raise(Exception("No event found in folder "+str(eventpath)))
-        # Extract events from time stamps
-        prefix = [file.name.split('.') for file in eventfiles]
-        evstamp = [p[0]+'.'+p[1]+'.'+p[2]+'.'+p[3]+'.' for p in prefix]
-        evDateTime = [UTCDateTime(p[0]+'-'+p[1]+'T'+p[2]+":"+p[3]) for p in prefix]
-        for event, tstamp in zip(evDateTime, evstamp):
-            if event >= tstart and event <= tend:
-                warnings.filterwarnings("ignore")
-                p = list(eventpath.glob('*Z.SAC'))
-                files = [x for x in p if x.is_file()]
-                for file in files:
-                    tr1=load_sac(Path(str(file).replace('Z.SAC','*1.SAC')))
-                    tr2=load_sac(Path(str(file).replace('Z.SAC','*2.SAC')))
-                    trZ=load_sac(Path(str(file).replace('Z.SAC','*Z.SAC')))
-                    trP=load_sac(Path(str(file).replace('Z.SAC','*H.SAC')))
-                    if len(tr1)>1:tr1=tr1[0]
-                    if len(tr2)>1:tr2=tr2[0]
-                    if len(trZ)>1:trZ=trZ[0]
-                    if len(trP)>1:trP=trP[0]
-                    tr1, tr2, trZ, trP = check_fs(tr1,tr2,trZ,trP)
-                    yield tr1[0], tr2[0], trZ[0], trP[0]
-    else:
-        for ev in evlist:
-            tr1=load_sac(Path(str(eventpath / ev)+'*1.SAC'))
-            tr2=load_sac(Path(str(eventpath / ev)+'*2.SAC'))
-            trZ=load_sac(Path(str(eventpath / ev)+'*Z.SAC'))
-            trP=load_sac(Path(str(eventpath / ev)+'*H.SAC'))
-            if len(tr1)>1:tr1=tr1[0]
-            if len(tr2)>1:tr2=tr2[0]
-            if len(trZ)>1:trZ=trZ[0]
-            if len(trP)>1:trP=trP[0]
-            tr1, tr2, trZ, trP = check_fs(tr1,tr2,trZ,trP)
-            yield tr1[0], tr2[0], trZ[0], trP[0]
+    corrpath=Path('EVENTS')/'corrected'/eventpath.name
+    # if np.isin('rmresp',[e.name for e in list(eventpath.parents)]):rmresp=False
+    # else:rmresp=True
+    # if evlist is None:
+    # Find out how many events from Z.SAC files
+    # Extract events from time stamps
+    stanm=eventpath.name
+    files = [x for x in list(eventpath.glob('*Z.SAC')) if x.is_file()]
+    if not files:raise(Exception("No event found in folder "+str(eventpath)))
+    for evi,file in enumerate(files):
+        event='.'.join(file.name.split('.')[:-2])
+        print(f'CorrectEvent (A7) |{stanm}{'='*20} EVENT [ {str(evi)}/{str(len(files))}: {event}{'='*20}')
+        if not ovr:
+            if np.any(len(list(corrpath.glob(f'*{'.*'.join(file.name.split('.'))}')))>0):
+                print(f'-- Output exists already. Skipping event.')
+                continue
+        trfiles = [Path(str(file).replace('Z.SAC',f'*{c}.SAC')) for c in ['1','2','Z','H']]
+        tr1,tr2,trZ,trP = load_data(trfiles)
+        yield tr1,tr2,trZ,trP
 
-def check_fs(tr1,tr2,trZ,trP):
-    if trZ[0].stats.sampling_rate != trP[0].stats.sampling_rate:
-        if trZ[0].stats.sampling_rate < trP[0].stats.sampling_rate:
-            trP.resample(trZ[0].stats.sampling_rate, no_filter=False)
-    else:
-        trZ.resample(trP[0].stats.sampling_rate, no_filter=False)
-        if tr1:
-            tr1.resample(trP[0].stats.sampling_rate, no_filter=False)
-        if tr2:
-            tr2.resample(trP[0].stats.sampling_rate, no_filter=False)
-    return tr1,tr2,trZ,trP
+def check_fs(st):
+    rates=[tr.stats.sampling_rate for tr in st]
+    inequal_rates=len(np.unique([tr.stats.sampling_rate for tr in st]))>1
+    if inequal_rates:
+        new_fs=min(rates) #choose the lowest sample rate from all given traces
+        [tr.resample(new_fs, no_filter=False) for tr in st]
+    return st
 
 def calculate_tilt(ft1, ft2, ftZ, ftP, f, goodwins, tiltfreq=[0.005, 0.035]):
     """
@@ -583,7 +481,6 @@ def phase(Gxy):
     else:
         return None
 
-
 def rotate_dir(tr1, tr2, direc):
 
     d = -direc*np.pi/180.+np.pi/2.
@@ -596,7 +493,6 @@ def rotate_dir(tr1, tr2, direc):
     tr_1 = vxy[1, :]
 
     return tr_1
-
 
 def ftest(res1, pars1, res2, pars2):
 
@@ -617,102 +513,89 @@ def ftest(res1, pars1, res2, pars2):
 
     return P
 
+def date_from_filestr(file,stanm=None):
+    warnings.filterwarnings('ignore')
+    file=file.replace('.SAC','')#Remove format
+    if stanm:file=file.replace(stanm,'') #Remove station names
+    file=[file.replace(r,'') for r in ['.HZ','.HDH','.H1','.H2'] if file.find(r)>-1][0] #Remove channel names
+    file=re.sub(".[^0-9+.]\D+", '',file) #Parse out the date
+    return file
 
-def get_files(datapath, tstart, tend):
+def search_files(datapath, tstart, tend):
     """
+    Works on unique DAY-LONG files.
     Returns a list of 4-length tuples (1 for each comp) containing the files that fit within tstart,tend
     -CHoots, 2023
     """
     # Define empty streams
-    trN1_files = []
-    trN2_files = []
-    trNZ_files = []
-    trNP_files = []
-    # Time iterator
-    t1 = tstart
-    # Cycle through each day within time range
-    while t1 < tend:
+    trN1_files = [];trN2_files = [];trNZ_files = [];trNP_files = []
+    t1 = tstart # Time iterator
+    files = [x for x in list(datapath.glob('*.*')) if x.is_file()] #Get a general list of all files
+    while t1 < tend: # Cycle through each day within time range
         # Time stamp used in file name
-        tstamp = str(t1.year).zfill(4)+'.'+str(t1.julday).zfill(3)+'.'
+        tstamp=t1.strftime('%Y.%j.')
         # Cycle through directory and load files
-        p = datapath.glob('*.*')
-        files = [x for x in p if x.is_file()]
-        for file in files:
-            if fnmatch.fnmatch(str(file), '*' + tstamp + '*1.SAC'):
-                trN1_files.append(file)
-            elif fnmatch.fnmatch(str(file), '*' + tstamp + '*2.SAC'):
-                trN2_files.append(file)
-            elif fnmatch.fnmatch(str(file), '*' + tstamp + '*Z.SAC'):
-                trNZ_files.append(file)
-            elif fnmatch.fnmatch(str(file), '*' + tstamp + '*H.SAC'):
-                trNP_files.append(file)
+        f=[i for i in [f for f in files if ((str(f).find('1.SAC')>=0) & (str(f).find(tstamp)>=0))]]
+        if len(f)==1:trN1_files.append(f)
+        f=[i for i in [f for f in files if ((str(f).find('2.SAC')>=0) & (str(f).find(tstamp)>=0))]]
+        if len(f)==1:trN2_files.append(f)
+        f=[i for i in [f for f in files if ((str(f).find('Z.SAC')>=0) & (str(f).find(tstamp)>=0))]]
+        if len(f)==1:trNZ_files.append(f)
+        f=[i for i in [f for f in files if ((str(f).find('HDH.SAC')>=0) & (str(f).find(tstamp)>=0))]]
+        if len(f)==1:trNP_files.append(f)
         # Increase increment
         t1 += 3600.*24.
-    return [(a,b,c,d) for a,b,c,d in zip(trN1_files,trN2_files,trNZ_files,trNP_files)]
+    if not np.all([len([date_from_filestr(str(f),datapath.name) for f in c]) for c in [trN1_files,trN2_files,trNZ_files,trNP_files]]):raise Exception('File mismatch')
+    files = [[tr1[0],tr2[0],trZ[0],trP[0]] for tr1,tr2,trZ,trP in zip(trN1_files,trN2_files,trNZ_files,trNP_files)]
+    return files
 
-def load_data(files,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
+def run_rmresp(tr,inv):
+    #Runs OBSPY's rmresp function following the deignated defaults below for either pressure or seismic data.
+    #input: OBSPY Trace (tr) and Inventory (inv) objects.
+    #output: Trace object.
+    RespConfig=AttribDict();RespConfig.Seismic=AttribDict();RespConfig.Pressure=AttribDict()
+    RespConfig.Seismic.pre_filt=[0.001, 0.002, 45.0, 50.0]
+    RespConfig.Seismic.units="DISP"
+    RespConfig.Seismic.water_level=60
+    RespConfig.Seismic.zero_mean=True   
+    RespConfig.Pressure.pre_filt=[0.001, 0.002, 45.0, 50.0]
+    RespConfig.Pressure.units="DEF"
+    RespConfig.Pressure.water_level=None
+    RespConfig.Pressure.zero_mean=False
+    if tr.stats.channel=='HDH':Config=RespConfig.Pressure
+    else:Config=RespConfig.Seismic
+    tr.remove_response(inventory=inv,pre_filt=Config.pre_filt,output=Config.units,water_level=Config.water_level,zero_mean=Config.zero_mean)
+    return tr
+
+def load_data(files):
+    if not isinstance(files,list):files=[files]
     """
     Loads four files defined by the tuple, files.
     -CHoots, 2023
     """
-    inv = read_inventory(Path(str(files[0])).parent / '*_inventory.xml')
-    # Define empty streams
-    trN1 = Stream()
-    trN2 = Stream()
-    trNZ = Stream()
-    trNP = Stream()
-    tr = read(str(files[0]))[0]
-    tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units, water_level=seismic_water_level)
-    trN1.append(tr)
-    tr = read(str(files[1]))[0]
-    tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units, water_level=seismic_water_level)
-    trN2.append(tr)
-    tr = read(str(files[2]))[0]
-    tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units, water_level=seismic_water_level)
-    trNZ.append(tr)
-    tr = read(str(files[3]))[0]
-    tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level,zero_mean=False)
-    trNP.append(tr)
+    # Implicitly define (was already done if a parent folder is named 'rmresp') whether remove response is needed.
+    if np.any(np.isin('rmresp',unravel([[e.name for e in list(f.parents)] for f in files]))):
+        rmresp=False
+    else:rmresp=True;inv=read_inventory(Path(str(files[0])).parent / '*_inventory.xml')
+    #Load data
+    st = [read(str(f))[0] for f in files]
+    #Remove response
+    if rmresp:st = [run_rmresp(tr,inv) for tr in st]
+    #Confirm equal sample rates.
+    st=check_fs(st)
+    return st
 
-    # Fill with empty traces if components are not found
-    ntr = len(trNZ)
-    if not trN1 and not trN2:
-        for i in range(ntr):
-            trN1.append(Trace())
-            trN2.append(Trace())
-    if not trNP:
-        for i in range(ntr):
-            trNP.append(Trace())
-
-    if ntr > 0:
-        # Check that all sampling rates are equal - otherwise resample
-        if trNZ[0].stats.sampling_rate != trNP[0].stats.sampling_rate:
-            # These checks assume that all seismic data have the same sampling
-            if trNZ[0].stats.sampling_rate < trNP[0].stats.sampling_rate:
-                trNP.resample(trNZ[0].stats.sampling_rate, no_filter=False)
-            else:
-                trNZ.resample(trNP[0].stats.sampling_rate, no_filter=False)
-                if trN1:
-                    trN1.resample(trNP[0].stats.sampling_rate, no_filter=False)
-                if trN2:
-                    trN2.resample(trNP[0].stats.sampling_rate, no_filter=False)
-        # inv = read_inventory(Path(str(files[0])).parent / '*_inventory.xml')
-        # trN1.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output='VEL', water_level=seismic_water_level)
-        # trN2.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output='VEL', water_level=seismic_water_level)
-        # trNZ.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output='VEL', water_level=seismic_water_level)
-        # trNP.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
-        return trN1, trN2, trNZ, trNP
-
-def get_data_generator(datapath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=60,seismic_water_level=None):
+def get_data_generator(datapath, tstart, tend,skipfiles=None):
     """
     The same as get_data but now factored as a generator object such that the data is never loaded until its index is called.
     Generators can only be iterated, and activated by use in a for loop
     Significantly more memory efficient.
     -CHoots, 2023
     """
-    file_list = get_files(datapath, tstart, tend)
+    file_list = search_files(datapath, tstart, tend)
     for files in file_list:
-        yield load_data(files,seismic_pre_filt=seismic_pre_filt,seismic_units=seismic_units,pressure_units=pressure_units,pressure_pre_filt=pressure_pre_filt,pressure_water_level=pressure_water_level,seismic_water_level=seismic_water_level)
+        if (skipfiles is not None) & np.any(np.isin(files,skipfiles)):continue
+        yield load_data(files)
 
 def make_inventory(stats,response):
     from obspy.core.inventory import Inventory, Network, Station, Channel, Site
@@ -771,3 +654,129 @@ def save_inventory(filename,st):
         inventory+= make_inventory(tr.copy().stats,tr.copy().stats.response)
     print('...saving station inventory')
     inventory.write(filename,format="STATIONXML")
+
+
+
+
+
+
+# depreciated codes
+
+# def load_sac(file,rmresp=False,inv=[],
+#         pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],
+#         seismic_pre_filt=[0.001, 0.002, 45.0, 50.0],
+#         seismic_units="DISP",pressure_units="DEF",
+#         pressure_water_level=None,seismic_water_level=60):
+#         # ----------------------
+#     if rmresp:inv=read_inventory(Path(str(file)).parent / '*_inventory.xml')
+#     try:
+#         if fnmatch.fnmatch(str(file),'*1.SAC'):
+#                 tr = read(str(file))
+#                 if rmresp:
+#                        for t in tr:t.stats.location=''
+#                        tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level,hide_sensitivity_mismatch_warning=True)
+#         elif fnmatch.fnmatch(str(file),'*2.SAC'):
+#                 tr = read(str(file))
+#                 if rmresp:
+#                        for t in tr:t.stats.location=''
+#                        tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level,hide_sensitivity_mismatch_warning=True)
+#         elif fnmatch.fnmatch(str(file),'*Z.SAC'):
+#                 tr = read(str(file))
+#                 if rmresp:
+#                        for t in tr:t.stats.location=''
+#                        tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level,hide_sensitivity_mismatch_warning=True)
+#         elif fnmatch.fnmatch(str(file),'*H.SAC'):
+#                 tr = read(str(file))
+#                 if rmresp:
+#                        for t in tr:t.stats.location=''
+#                        tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level,hide_sensitivity_mismatch_warning=True)
+#         return tr,inv
+#     except:
+#         print('WARNING:Load Error')
+#         return Stream(),inv
+
+# def get_data(datapath, tstart, tend,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
+#     """
+#     Function to grab all available noise data given a path and data time range
+
+#     Parameters
+#     ----------
+#     datapath : str
+#         Path to noise data folder
+#     tstart : :class:`~obspy.class.UTCDateTime`
+#         Start time for query
+#     tend : :class:`~obspy.class.UTCDateTime`
+#         End time for query
+
+#     Returns
+#     -------
+#     tr1, tr2, trZ, trP : :class:`~obspy.core.Trace` object
+#         Corresponding trace objects for components H1, H2, HZ and HP. Returns
+#         empty traces for missing components.
+
+#     """
+
+#     # Define empty streams
+#     trN1 = Stream()
+#     trN2 = Stream()
+#     trNZ = Stream()
+#     trNP = Stream()
+
+#     # Time iterator
+#     t1 = tstart
+    
+#     # Cycle through each day within time range
+#     while t1 < tend:
+
+#         # Time stamp used in file name
+#         tstamp = str(t1.year).zfill(4)+'.'+str(t1.julday).zfill(3)+'.'
+
+#         # Cycle through directory and load files
+#         p = datapath.glob('*.*')
+#         files = [x for x in p if x.is_file()]
+#         for file in files:
+#             inv = read_inventory(Path(str(file)).parent / '*_inventory.xml')
+#             if fnmatch.fnmatch(str(file), '*' + tstamp + '*1.SAC'):
+#                 tr = read(str(file))
+#                 tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+#                 trN1.append(tr[0])
+#             elif fnmatch.fnmatch(str(file), '*' + tstamp + '*2.SAC'):
+#                 tr = read(str(file))
+#                 tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+#                 trN2.append(tr[0])
+#             elif fnmatch.fnmatch(str(file), '*' + tstamp + '*Z.SAC'):
+#                 tr = read(str(file))
+#                 tr.remove_response(inventory=inv,pre_filt=seismic_pre_filt, output=seismic_units,water_level=seismic_water_level)
+#                 trNZ.append(tr[0])
+#             elif fnmatch.fnmatch(str(file), '*' + tstamp + '*H.SAC'):
+#                 tr = read(str(file))
+#                 tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
+#                 trNP.append(tr[0])
+
+#         # Increase increment
+#         t1 += 3600.*24.
+
+#     # Fill with empty traces if components are not found
+#     ntr = len(trNZ)
+#     if not trN1 and not trN2:
+#         for i in range(ntr):
+#             trN1.append(Trace())
+#             trN2.append(Trace())
+#     if not trNP:
+#         for i in range(ntr):
+#             trNP.append(Trace())
+
+#     if ntr > 0:
+#         # Check that all sampling rates are equal - otherwise resample
+#         if trNZ[0].stats.sampling_rate != trNP[0].stats.sampling_rate:
+
+#             # These checks assume that all seismic data have the same sampling
+#             if trNZ[0].stats.sampling_rate < trNP[0].stats.sampling_rate:
+#                 trNP.resample(trNZ[0].stats.sampling_rate, no_filter=False)
+#             else:
+#                 trNZ.resample(trNP[0].stats.sampling_rate, no_filter=False)
+#                 if trN1:
+#                     trN1.resample(trNP[0].stats.sampling_rate, no_filter=False)
+#                 if trN2:
+#                     trN2.resample(trNP[0].stats.sampling_rate, no_filter=False)
+#     return trN1, trN2, trNZ, trNP

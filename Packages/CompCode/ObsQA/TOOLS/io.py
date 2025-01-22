@@ -134,36 +134,6 @@ def obspyfft(d):
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-def AuditEventFolder(cat,eventsfolder,parseby='*Z.SAC',Minmag=6.0,Maxmag=8.0):
-    from obspy.clients.fdsn import Client
-    client = Client()
-    for ista,Station in enumerate(cat.iloc):
-        stanm=Station.StaName
-        stafolder = Path(eventsfolder) / stanm
-        files = list(stafolder.glob(parseby))
-        evna = [f.name for f in files]
-        evna = [f.split(f'{stanm}.')[-1] for f in evna]
-        evna = ['.'.join(f.split('.')[:4]) for f in evna]
-        assert len(evna)==len(np.unique(evna))
-        print(f'{ista+1}/{len(cat)} | {stanm} | {len(evna)} events found. Collecting metadata from IRIS..')
-        events=[]
-        for ev in evna:
-            timedelta = 60
-            start = UTCDateTime.strptime(str(ev),'%Y.%j.%H.%M')
-            end = start + timedelta
-            event = client.get_events(starttime=start, endtime=end,minmagnitude=Minmag, maxmagnitude=Maxmag,orderby='magnitude')[0]
-            event.Name = ev
-            events.append(event)
-        events = Catalog(events)
-        Station.Events = None
-        Station.Events = events
-    all_evnames=[[e.Name for e in Station.Events] for Station in cat.iloc]
-    for ista,Station in enumerate(cat.iloc):
-        evna = [e.Name for e in Station.Events]
-        for Event in Station.Events:
-            Event.Stations = list(np.array(cat.StaName[[i for i,sev in enumerate(all_evnames) if np.isin(Event.Name,sev)]]))
-    return cat
-
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -783,7 +753,7 @@ def randomdays(TStart,TEnd,seed='MESSI_22FIFA_WORLD_CUP',days=10,dateformat = '%
         else:
                 seed = int(str(seed).replace('.',''))
         rng = np.random.default_rng(seed=seed)
-        idx = rng.choice([i for i in range(len(Starts))], size=days, replace=True)
+        idx = rng.choice([i for i in range(len(Starts))], size=days, replace=False)
         Starts = np.array(Starts)[idx].tolist()
         Ends = np.array(Ends)[idx].tolist()
         Starts = [str(UTCDateTime.strptime(str(a),dateformat)) for a in Starts]
@@ -873,8 +843,7 @@ def DownloadEvents(catalog,ATaCR_Parent=None,netsta_names=None,Minmag=6.3,Maxmag
 def DayNoiseWhileLoop(catalog,NoiseFolder,ATaCR_Parent,days=10,attempts=50,seed='MESSI_22FIFA_WORLD_CUP!'):
       NoiseFolder = Path(NoiseFolder)
       cat = catalog.copy()
-      stafolders = [f for f in NoiseFolder.glob('*/') if f.is_dir()]
-      stafolders = [stafolders[np.where(c==np.array([g.name for g in stafolders]))[0][0]] for c in cat.StaName.iloc]
+      stafolders = [NoiseFolder / s for s in cat.StaName]
 
       if isinstance(seed,str):
             seed = int(''.join([str(ord(a)) for a in seed]))
@@ -883,6 +852,7 @@ def DayNoiseWhileLoop(catalog,NoiseFolder,ATaCR_Parent,days=10,attempts=50,seed=
       for ista,cstaf in enumerate(stafolders):
             print('--<>--'*20)
             nfiles = len([f for f in cstaf.glob('*Z.SAC')])
+        #     klj = hjkh
             nstart = nfiles
             print('Folder: [' + cstaf.name + '] (' + str(ista) + '/' + str(len(stafolders)) + ')'  + '  ||  Current day count: ' + str(nfiles))
             queries = 0
@@ -895,6 +865,7 @@ def DayNoiseWhileLoop(catalog,NoiseFolder,ATaCR_Parent,days=10,attempts=50,seed=
                         print('Attempt: ' + str(queries) + ', Days needed: ' + str(query_day_len))
                         ObsQA.TOOLS.io.DownloadDayNoise(icatalog, randomloop=False, ATaCR_Parent = NoiseFolder.parent,log_prefix=icatalog.StaName.iloc[0],days=query_day_len,seed=seed)
                         nfiles = len([f for f in cstaf.glob('*Z.SAC')])
+                        # jk = jkgf
                         if nfiles<days:
                                 print(' || Day requirements not satisfied. Attempting new seed. ||')
                         else:
@@ -918,7 +889,7 @@ def DownloadDayNoise(catalog,days=[],message=None,randomloop=True,end_delta=24,e
         dateformat = '%Y.%j.%H.%M'
         if ATaCR_Parent is not None:
                 os.chdir(ATaCR_Parent)
-        datafolder = Path('./Data/')
+        datafolder = Path('Data')
         if logoutput_subfolder is not None:
                 logfolder = Path(logoutput_subfolder)
                 logfolder.mkdir(exist_ok=True,parents=True)
@@ -944,8 +915,9 @@ def DownloadDayNoise(catalog,days=[],message=None,randomloop=True,end_delta=24,e
                         Ends = [datetime.datetime(year=s.year,month=s.month,day=s.day) + datetime.timedelta(hours=end_delta) for s in Starts]
                 # Log file stdout
                 staname = Station.StaName
-                sta_folder = Path(datafolder / staname)
-                sta_folder.mkdir(exist_ok=True,parents=True)
+                sta_folder = Path('Data') /'raw' / staname
+                
+                # sta_folder.mkdir(exist_ok=True,parents=True)
                 if logoutput_subfolder is not None:
                         log_fout = logfolder / logfilename
                 else:
@@ -955,7 +927,7 @@ def DownloadDayNoise(catalog,days=[],message=None,randomloop=True,end_delta=24,e
 
                 ObsQA.TOOLS.io.build_staquery(d=Station.to_frame().T,staquery_output = staquery_output,chan=chan,ATaCR_Parent = ATaCR_Parent)
                 if randomloop & isinstance(days,int) & (not event_mode):
-                        NoiseFolder = Path(ATaCR_Parent) / 'Data'
+                        NoiseFolder = Path(ATaCR_Parent) / 'Data' / 'raw'
                         ObsQA.TOOLS.io.DayNoiseWhileLoop(Station.to_frame().T,NoiseFolder,ATaCR_Parent,days=days,attempts=100)
                 else:
                         for j,(NoiseStart,NoiseEnd) in enumerate(zip(Starts,Ends)):
@@ -1208,6 +1180,8 @@ def Run_ATaCR(catalog, message=None,ATaCR_Parent = None, STEPS=[1,2,3,4,5,6,7], 
         # Step-7: Correct events. Step b4 in ML-ATaCR.
         # dirs = ObsQA.TOOLS.io.dir_libraries('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/METHODS/ATaCR')
         dirs = ObsQA.TOOLS.io.dir_libraries(os.getcwd())
+        # jkl = jklj
+        # a = q
         if 1 in STEPS:
                 print('Step 1/7 - BEGIN: Station Metadata')
                 # C='?H?' #channels
@@ -1373,7 +1347,6 @@ def load_sac(file,rmresp=False,inv=[],
                 if rmresp:
                        for t in tr:t.stats.location=''
                        tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level,hide_sensitivity_mismatch_warning=True)
-        # clear_output(wait=False);os.system('cls' if os.name == 'nt' else 'clear')
         return tr,inv
     except:
         print('WARNING:Load Error')
@@ -1519,7 +1492,7 @@ def meta_hist_plot(catalog):
     'Regions':10,
     'Distance_from_Land_km':None,
     'Distance_to_Plate_Boundary_km':None,
-    'Sediment_Thickness_m':np.arange(0,5000,500),
+    'Sediment_Thickness_m':None,
     'Surface_Current_ms':None,
     'Crustal_Age_Myr':np.arange(0,160,30),
     'Deployment_Length_days':None,

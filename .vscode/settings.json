@@ -17,5 +17,10 @@
     },
     "python.analysis.extraPaths": [
         "./Packages/CompCode"
-    ]
+    ],
+    "launch": {
+        
+        "configurations": [],
+        "compounds": []
+    }
 }
