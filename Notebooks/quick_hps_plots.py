@@ -38,11 +38,11 @@ for si,stanm in enumerate(catalog.StaName):
     _=gc.collect()
     stafold=dirs.Events_HPS/stanm
     events=hps_corrected_list(stanm,catalog)
-    events_corrected_st=[[load_sac(stafold/'CORRECTED'/f'{stanm}.{e.Name}.{c}.SAC',rmresp=False)[0] for c in channels if np.sum([(stafold/'rmresp'/f'{e.Name}.{c}.SAC').exists() for c in channels])==4] for e in events]
+    events_corrected_st=[[load_sac(stafold/'CORRECTED'/f'{stanm}.{e.Name}.{c}.SAC',rmresp=False) for c in channels if np.sum([(stafold/'rmresp'/f'{e.Name}.{c}.SAC').exists() for c in channels])==4] for e in events]
     tmp = [Stream([tr[0] for tr in st]) for st in events_corrected_st if sum([len(tr) for tr in st])==4];del events_corrected_st
     events_corrected_st=tmp;del tmp
     times = [e[0].stats.starttime for e in events_corrected_st]
-    events_raw_st=[[load_sac(stafold/'rmresp'/f'{e.Name}.{c}.SAC',rmresp=False)[0] for c in channels if np.sum([(stafold/'rmresp'/f'{e.Name}.{c}.SAC').exists() for c in channels])==4] for e in events]
+    events_raw_st=[[load_sac(stafold/'rmresp'/f'{e.Name}.{c}.SAC',rmresp=False) for c in channels if np.sum([(stafold/'rmresp'/f'{e.Name}.{c}.SAC').exists() for c in channels])==4] for e in events]
     tmp = [Stream([tr[0] for tr in st]) for st in events_raw_st if sum([len(tr) for tr in st])==4];del events_raw_st
     events_raw_st=tmp;del tmp
     [e.trim(t,t+7200) for e,t in zip(events_raw_st,times)]

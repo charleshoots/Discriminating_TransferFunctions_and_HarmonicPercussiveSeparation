@@ -79,7 +79,7 @@ def write_pickle(file,var):
     import pickle
     with open(str(file), 'wb') as handle:
         pickle.dump(var, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    print('Saved to :' + str(file))
+    # print('Saved to :' + str(file))
 def load_pickle(file):
     import pickle
     with open(file, 'rb') as handle:
@@ -173,7 +173,7 @@ def get_station_events(stanm,evdir,type='stream',tf = 'sta.ZP-21.HZ.SAC',mirror_
     # sta,evdir,type='stream',tf = 'sta.ZP-21.HZ.SAC',mirror_fold=None
     stafold = evdir
     # --------------------------------------------- Event list
-    if not evmeta:evmeta = get_event_list(sta=stanm,evdir=evdir,tf=tf,mirror_fold=mirror_fold)
+    if evmeta is None:evmeta = get_event_list(stanm=stanm,evdir=evdir,tf=tf,mirror_fold=mirror_fold)
     # --------------------------------------------- Load and store data
     label=tf.replace('sta.','').replace('.SAC','')
     # For streams
@@ -194,11 +194,11 @@ def get_station_events(stanm,evdir,type='stream',tf = 'sta.ZP-21.HZ.SAC',mirror_
         st_hold = Stream()
         Noise = load_pickle(list((evdir.parent/'AVG_STA'/stanm).glob('*sta.pkl'))[0])
         for evi,ev in enumerate(evmeta):
-            raw = Stream([load_sac(stafold /'rmresp'/stanm/(ev.Name + '.'+c+'.SAC'),rmresp=False)[0][0] for c in ['H1','H2','HDH','HZ']])
+            raw = Stream([load_sac(stafold /'rmresp'/stanm/(ev.Name + '.'+c+'.SAC'),rmresp=False) for c in ['H1','H2','HDH','HZ']])
             clear_output(wait=False)
             for i in range(len(raw)):raw[i].stats.location = 'Raw'
             corrected = Stream([raw.select(channel=c)[0].copy() for c in ['*1','*2','*H']]).copy()
-            corrected+=load_sac(stafold /'corrected'/stanm/ '.'.join([stanm,ev.Name,tf]),rmresp=False)[0][0]
+            corrected+=load_sac(stafold /'corrected'/stanm/ '.'.join([stanm,ev.Name,tf]),rmresp=False)
             for i in range(len(corrected)):corrected[i].stats.location = 'Corrected.'+label
             clear_output(wait=False)
             if not (len(corrected)==4) or not (len(raw)==4):print('Data missing');continue

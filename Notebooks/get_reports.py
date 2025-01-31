@@ -35,6 +35,12 @@ def get_reports(comp,catalog,Archive,AVG=True):
     method='hps';file = AnalysisFolder /f'{method.lower()}'/f'complete_{method}.{comp}_coh.report.pkl'
     Report.Noisecut=load_pickle(file)
     for stanm in catalog.StaName:
+        net='n'+stanm.split('.')[0]
+        sta=stanm.split('.')[1]
+        state=f'{stanm} not mirrored in update'
+        if not np.isin(net,np.intersect1d(list(Report.ATaCR.keys()),list(Report.Noisecut.keys()))):print(state);continue
+        elif not np.isin(sta,np.intersect1d(list(Report.ATaCR[net].keys()),list(Report.Noisecut[net].keys()))):print(state);continue
+
         c,iatcr,inc=np.intersect1d(
         Report.ATaCR['n'+stanm.split('.')[0]][stanm.split('.')[1]].events,
         Report.Noisecut['n'+stanm.split('.')[0]][stanm.split('.')[1]].events,
@@ -55,6 +61,9 @@ def get_reports(comp,catalog,Archive,AVG=True):
     Coherences.Uncorrected=AttribDict();Coherences.ATaCR=AttribDict();Coherences.Noisecut=AttribDict()
     for stanm in catalog.StaName:
         n,s = stanm.split('.')
+        state=f'{stanm} not mirrored in update'
+        if not np.isin('n'+n,np.intersect1d(list(Report.ATaCR.keys()),list(Report.Noisecut.keys()))):print(state);continue
+        elif not np.isin(s,np.intersect1d(list(Report.ATaCR['n'+n].keys()),list(Report.Noisecut['n'+n].keys()))):print(state);continue
         fn=fnotch(catalog[catalog.StaName==stanm].iloc[0].StaDepth);fni=f>fn
         Coherences.Uncorrected[stanm]=AttribDict();Coherences.ATaCR[stanm]=AttribDict();Coherences.Noisecut[stanm]=AttribDict()
         Coherences.Uncorrected[stanm].coh=Report.Uncorrected[f'n{n}'][s].coh

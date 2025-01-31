@@ -105,18 +105,20 @@ def fig_QC(f, power, gooddays, ncomp, key='',diff2accel=True,mode='DayNoise'):
         ax.set_xlim(1/150,5)
         if i==0:
             ax.set_ylim(top=150)
-            ax.set_ylim(bottom=-100)
+            ax.set_ylim(bottom=-150)
             tick_increment = 50
+            ax.set_ylim(-max(np.abs([sl.min(),sl.max()])),max(np.abs([sl.min(),sl.max()])))
         else:
             ax.set_ylim(top=-40)
             ax.set_ylim(bottom=-200)
+            ax.set_ylim(-max(np.abs([sl.min(),sl.max()])),max(np.abs([sl.min(),sl.max()])))
             tick_increment = 20
         if np.sum(~gooddays) > 0:
-            plt.semilogx(f,sl[:, ~gooddays], 'r', lw=0.5)
+            ax.semilogx(f,sl[:, ~gooddays], 'r', lw=0.5)
         ax.set_title(title[i], fontdict={'fontsize': 8})
         if i == len(sls)-1:
-            plt.xlabel('Frequency (Hz)', fontdict={'fontsize': 8})
-        ax.set_yticks(np.arange(ax.get_ylim()[0],ax.get_ylim()[1],tick_increment))
+            ax.set_xlabel('Frequency (Hz)', fontdict={'fontsize': 8})
+        # ax.set_yticks(np.arange(ax.get_ylim()[0],ax.get_ylim()[1],tick_increment))
     plt.tight_layout()
     fig.set_size_inches([4,10])
     plt.tight_layout()
@@ -226,7 +228,7 @@ def fig_average(f, power, bad, gooddays, ncomp, key='',diff2accel=True):
 
 
 def fig_av_cross(f, field, gooddays, ftype, ncomp, key='',
-                 save=False, fname='', form='png', **kwargs):
+                save=False, fname='', form='png', **kwargs):
     """
     Function to plot the averaged cross-spectra (those qualified as 'good' in
     the QC step). This function is used in the `atacr_daily_spectra` script.

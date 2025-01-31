@@ -21,11 +21,11 @@ hps_staquery_output = Path(os.getcwd())/'_DataArchive/HPS_Data/sta_query.pkl'
 # catalog = catalog.iloc[np.where(catalog.StaName=='YO.X01')[0][0]:]
 # -----------------------------------------------------------------------------------
 ## =============================================================================== ##
-STEPS = [3]
+STEPS = [5,6,7]
 fork = False;event_mode = False
 # cat = catalog.copy()
 cat = pd.read_pickle(dirs.Catalogs / 'Catalog_test.pkl')
-
+cat=cat[cat.StaName.isin(['2D.OBS03','2D.OBS06','7D.G17B','7D.G25B','YL.B09W','YO.X10','Z6.16'])]
 Minmag,Maxmag=6.0,8.0
 cleanspectra_flags = '--figQC --figAverage --figCoh --figCross --save-fig'
 dailyspectra_flags='--figQC --figAverage --figCoh --save-fig'
@@ -43,7 +43,7 @@ event_window = 3600*4
 channels = 'Z,P,12'
 ATaCR_Parent = dirs.ATaCR
 days=11
-
+ovr=True
 for STEP in STEPS:
     for ii,Station in enumerate(cat.iloc):
         ## StaFolder = Path(dirs['Py_RawDayData']) / Station.StaName
@@ -67,7 +67,8 @@ for STEP in STEPS:
         channels=channels,
         cleanspectra_flags=cleanspectra_flags,
         dailyspectra_flags=dailyspectra_flags,
-        days=days)
+        days=days,
+        ovr=ovr)
 
 ## =============================================================================== ## =============================================================================== ##
 ## =============================================================================== ## =============================================================================== ##

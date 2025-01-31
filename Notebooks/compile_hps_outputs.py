@@ -14,23 +14,29 @@ cat = catalog.copy()
 def unravel(lst):return list(itertools.chain.from_iterable(lst))
 # cat = cat.iloc[np.min(np.where(catalog.Network=='XE')):]
 for stai,Station in enumerate(cat.iloc):
+    _=os.system('cls' if os.name == 'nt' else 'clear')
     for evi,Event in enumerate(Station.Events):
-        _=os.system('cls' if os.name == 'nt' else 'clear')
         stanm = Station.StaName
-        print('||'*30)
-        print('||'*5)
+        # print('||'*30)
+        # print('||'*5)
         print('S ' + str(stai+1) + '/' + str(len(cat)) + ' | E ' + str(evi+1) + '/' + str(len(Station.Events)) + ' | ' + stanm)
-        print('||'*5)
-        print('||'*30)
-        sacoutfold = HPSDataFolder / stanm / 'CORRECTED'
+        # print('||'*5)
+        # print('||'*30)
+        sacoutfold = HPSDataFolder  / 'corrected' / stanm
         sacoutfold.mkdir(exist_ok=True,parents=True)
         (sacoutfold / 'Plots').mkdir(exist_ok=True,parents=True)
         sacfile = '.'.join([stanm,Event.Name,'.SAC'])
-        all_exist = np.sum([(sacoutfold/sacfile.replace('.SAC',c+'.SAC')).exists() for c in ['H1','H2','HDH','HZ']])==4
+        all_exist = np.all([(sacoutfold/sacfile.replace('.SAC',c+'.SAC')).exists() for c in ['HZ']])
         if (not ovr) & all_exist:
-            print(stanm + '| OVR Disabled. Output already exists. Skipping')
+            # print(stanm + '| OVR Disabled. Output already exists. Skipping')
             continue
-        out = get_noisecut_event(HPSDataFolder,stanm,Event.Name)
+        
+        fin = HPSDataFolder/'rmresp'/stanm/f'{Event.Name}.HZ.SAC'
+        if not fin.exists():print(f'FILE: {fin} | Does not exist. Continuing');continue
+        try:
+            out = (get_noisecut_event(HPSDataFolder/'rmresp',stanm,Event.Name))[0]
+        except:
+            continue
         if len(out)==0:
             print(stanm+' | '+Event.Name+' | File cut incorrectly. Skipping')
             continue
@@ -40,7 +46,7 @@ for stai,Station in enumerate(cat.iloc):
             continue
         # if st[0].
         raw = out.Raw[0].copy()
-        print(stanm,'| Saving output:',sacfile)
+        print(stanm,' ------ | Saving output:',sacfile)
         _=[tr.write(str(sacoutfold/sacfile.replace('.SAC',tr.stats.channel+'.SAC')),format='SAC') for tr in st]
         fig,ax = plt.subplots(nrows=2,ncols=1,figsize=(13,7),sharex='all',sharey='all',squeeze=True)
         ax[0].plot(raw[0].times(),raw[0].data,c='k',linewidth=0.3)

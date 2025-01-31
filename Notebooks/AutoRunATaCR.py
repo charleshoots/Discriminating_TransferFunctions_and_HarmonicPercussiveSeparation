@@ -21,18 +21,28 @@ hps_staquery_output = Path(os.getcwd())/'_DataArchive/HPS_Data/sta_query.pkl'
 # catalog = catalog.iloc[np.where(catalog.StaName=='YO.X01')[0][0]:]
 # -----------------------------------------------------------------------------------
 ## =============================================================================== ##
+# ----------------------------------------------------
+# ---SETUP:DOWNLOAD NOISECUT 24HR EVENT TRACES---
+STEPS = [3] #Processing steps
+fork = False;event_mode = True
+Minmag,Maxmag=6.0,8.0
+
+
+# ---SETUP:DEFAULT---
 # STEPS = [1,2,3] #Download steps
-STEPS = [3,4,5,6,7] #Processing steps
-fork = False;event_mode = False
+# STEPS = [3,4,5,6,7] #Processing steps
+# fork = False;event_mode = False
+# Minmag,Maxmag=6.0,8.0
+
+
+
+
 # cat = catalog.copy()
 # cat = pd.read_pickle(dirs.Catalogs / 'Catalog_test.pkl')
 cat = pd.read_pickle(dirs.Catalogs / 'Catalog_Test_DensityIncreased.ShalllowIncreased.pkl')
 
-# cat = cat[cat.Experiment.isin(['AACSE','ENAM'])]
 
-# cat = cat[cat.Experiment=='ENAM']
 
-Minmag,Maxmag=6.0,8.0
 cleanspectra_flags = '--figQC --figAverage --figCoh --figCross --save-fig'
 dailyspectra_flags='--figQC --figAverage --figCoh --save-fig'
 ## =============================================================================== ##
@@ -46,7 +56,8 @@ if 1 in STEPS:
 
 # event_window = 7200
 event_window = 3600*4
-channels = 'Z,P,12'
+# channels = 'Z,P,12'
+channels = 'Z'
 ATaCR_Parent = dirs.ATaCR
 days=11
 
@@ -66,13 +77,13 @@ for STEP in STEPS:
         ObsQA.TOOLS.io.Run_ATaCR(icatalog,
         fork=fork,
         message=message,
+        channels=channels,
         staquery_output=staquery_output,
         event_mode=event_mode,
         ATaCR_Parent = ATaCR_Parent,
         STEPS=[STEP],log_prefix=Station.StaName,
         Minmag=Minmag,Maxmag=Maxmag,
         event_window=event_window,
-        channels=channels,
         cleanspectra_flags=cleanspectra_flags,
         dailyspectra_flags=dailyspectra_flags,
         days=days)

@@ -313,7 +313,7 @@ def main(args=None):
         sta = db[stkey]
         stanm = '['+'.'.join([sta.network, sta.station])+']'
         # Define path to see if it exists
-        datapath = 'raw' / Path(stkey)
+        datapath = Path('Data')/'raw'/stkey
         if not datapath.is_dir():
             print(stanm,'\nPath to '+str(datapath)+' doesn`t exist - creating it')
             datapath.mkdir(parents=True)
@@ -378,12 +378,12 @@ def main(args=None):
             print(stanm,"*")
             print(stanm,"* Channels selected: "+str(args.channels)+' and vertical')
             # Define file names (to check if files already exist)
-            fileZ,file1,file2,fileP=[datapath / (tstamp+'.'+sta.channel+fmt) 
-            for fmt in ['Z.SAC','1.SAC','2.SAC','DH.SAC']]
+            files={};_=[files.update({c:datapath / (tstamp+'.'+sta.channel+c.replace('P','DH')+'.SAC')}) for c in args.channels]
             if args.evn:
-                fileZ,file1,file2,fileP=[datapath / ((t2-2*3600).strftime('%Y.%j.%H.%M')+'.'+sta.channel+fmt) 
-                for fmt in ['Z.SAC','1.SAC','2.SAC','DH.SAC']]
-            all_exist = np.sum([file1.exists(),file2.exists(),fileZ.exists(),fileP.exists()],dtype=int)==4
+                files={};_=[files.update({c:datapath / ((t2-2*3600).strftime('%Y.%j.%H.%M')+'.'+sta.channel+c.replace('P','DH')+'.SAC')}) for c in args.channels]
+            else:
+                files={};_=[files.update({c:datapath / (tstamp+'.'+sta.channel+c.replace('P','DH'))}) for c in args.channels]
+            all_exist = np.all([files[k].exists() for k in files.keys()])
             chan_fstr = lambda chan,comp: f'E{chan.upper()}{comp.upper()},H{chan.upper()}{comp.upper()},B{chan.upper()}{comp.upper()}'
             channels=','.join([chan_fstr(sta.channel,c.replace('P','H')) for c in [c for c in ''.join(args.channels)]])
             channels=channels.replace('P','H').replace('HHH','HDH').replace('BHH','BDH').replace('EHH','EDH')
@@ -449,12 +449,14 @@ def main(args=None):
             # Extract traces - P
             st_sac = Stream()
             if len(st.select(component='H')):
+                fileP=files['P']
                 trP = st.select(component='H')[0]
                 trP = utils.update_stats(trP, sta.latitude, sta.longitude, sta.elevation,sta.channel[0]+'DH')
                 print(stanm,'Saving: ' + str(fileP))
                 trP.write(str(fileP), format='SAC')
                 st_sac+=trP
             if len(st.select(component='Z')):
+                fileZ=files['Z']
                 # Extract traces - Z
                 trZ = st.select(component='Z')[0]
                 trZ = utils.update_stats(trZ, sta.latitude, sta.longitude, sta.elevation,sta.channel+'Z')
@@ -463,12 +465,14 @@ def main(args=None):
                 st_sac+=trZ
             # Extract traces - H
             if len(st.select(component='1')):
+                file1=files['1']
                 tr1 = st.select(component='1')[0]
                 tr1 = utils.update_stats(tr1, sta.latitude, sta.longitude, sta.elevation,sta.channel+'1')
                 print(stanm,'Saving: ' + str(file1))
                 tr1.write(str(file1), format='SAC')
                 st_sac+=tr1
             if len(st.select(component='2')):    
+                file2=files['2']
                 tr2 = st.select(component='2')[0]
                 tr2 = utils.update_stats(tr2, sta.latitude, sta.longitude, sta.elevation,sta.channel+'2')
                 print(stanm,'Saving: ' + str(file2))

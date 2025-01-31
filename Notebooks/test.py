@@ -1,4 +1,6 @@
 from imports import *
+from modules import *
+from local_tools.io import *
 from quick_class import *
 import warnings
 import fnmatch
@@ -8,8 +10,10 @@ from obspy import read
 from obspy.geodetics import locations2degrees
 from IPython.display import clear_output
 from matplotlib.gridspec import GridSpec
-def run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,dirs):
-    stations=np.array([stanm for stanm in event.Stations if mirror(dirs.Events,dirs.Events_HPS,stanm,event.Name)])
+def run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,dirs,ovr=False):
+    # stations=np.array([stanm for stanm in event.Stations if mirror(dirs.Events,dirs.Events_HPS,stanm,event.Name)])
+    stations=np.unique([f'{s.stats.network}.{s.stats.station}' for s in st_hold])
+    stations=np.array(stations)[np.argsort([distance(cat[cat.StaName==s].iloc[0],event) for s in stations])]
     defargs = AttribDict();defargs.bands=[(1,10),(10,30),(30,100)];defargs.vertical_scale=1.2
     defargs.figwidth=20;defargs.figaspect=[1,1]
     defargs.linewidth=[.4,.5];defargs.linecolor=['red','black'];defargs.alpha=[1.0,1.0];defargs.nev=None
@@ -31,6 +35,7 @@ def run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,dirs):
     st_raw = st_hold.select(location='*Raw*')
     if isinstance(mode,str):
         if mode.lower()=='traces':columns=bands
+        else:columns
         args.figwidth=18
     else:
         columns=mode;mode='Metrics'
@@ -47,46 +52,44 @@ def run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,dirs):
     ncols = len(columns)
     figsize=(args.figwidth*args.figaspect[0],args.height_per_sta*nsta*args.figaspect[1])
     fig, axes = plt.subplots(nrows=nsta, ncols=ncols,figsize=figsize,layout='constrained',squeeze=False)
-    evstr = '|'.join([method.replace('HPS','Noisecut') +' ',event.Name,str(event.magnitudes[0].mag) + event.magnitudes[0].magnitude_type,str(int(event.origins[0].depth/1000))+'km'])
+    evstr='.'.join([event.Name,str(event.magnitudes[0].mag) + str(event.magnitudes[0].magnitude_type).replace('None','M'),str(int(event.origins[0].depth/1000))+'km'])
     # .__getattribute__(b)(p[0])[1][ind]
     note=''
     notches=np.array([fnotch(d) for d in [cat.loc[sta].StaDepth for sta in [f'{s.stats.network}.{s.stats.station}' for s in st_hold]]])
     notches=np.round(notches,4)
+    file = evstr+'_'+mode.lower()+'.png'
+    if mode=='Metrics':file = file.replace('.png','_cohph.'+''.join([c[0][:2]+c[1] for c in columns])+'.png')
+    file = file.replace('.png','__'+method.replace('HPS','Noisecut').upper()+'.png')
+    file=fold/file
+    evstr = '|'.join(([method.replace('HPS','Noisecut') +' ',event.Name,str(event.magnitudes[0].mag) + str(event.magnitudes[0].magnitude_type).replace('None','M'),str(int(event.origins[0].depth/1000))+'km']))
+    # if file.exists()&(not ovr):return
     if mode.lower()=='traces':
         for stai in range(nsta):
-            arrivals = [event_stream_arrivals(tr,event) for tr in Stream(st_hold.select(location='*Raw*')[stai])][0]
+            net,sta=stations[stai].split('.')
             sta=cat[cat.StaName==stations[stai]].iloc[0]
-            statr=st_hold.select(location='*Raw*')[stai]
-            stastr = '|'.join([sta.StaName+' ('+sta.Experiment+')',
-            'Depth: '+str(int(1000*abs(statr.stats.sac.stel)))+'m',
-            'F-Notch: '+str(int(1/fnotch(1000*abs(statr.stats.sac.stel))))+'s',
-            note])
+            arrivals = [event_stream_arrivals(tr,event) for tr in st_hold.select(network=sta.Network,station=sta.Station,location='*Raw*')][0]
+            statr=st_hold.select(network=sta.Network,station=sta.Station,location='*Raw*')[0]
 
             for bi in range(len(columns)):
                 notch_filt=['Left','Right'][bi]
-                # _______________________________________________________________
-                # Trace Plots
-                # ===============================================================
-                cur_band = bands[bi]
                 # -------- Filter and rel. amplitudes
-
-                sta_tr_filt=Stream(st_hold.select(location='*Raw*')[stai].copy())+Stream(st_hold.select(location='*Correct*')[stai].copy())
-                sta_tr_filt.taper(.05)
+                sta_tr_filt=st_hold.select(network=sta.Network,station=sta.Station,location='*Raw*').copy()+st_hold.select(network=sta.Network,station=sta.Station,location='*Correct*').copy()
+                sta_tr_filt.taper(.02)
                 # if notch_filt=='Left':sta_tr_filt.filter('lowpass',freq=notches[stai],zerophase=True,corners=4)
                 # if notch_filt=='Right':sta_tr_filt.filter('highpass',freq=notches[stai],zerophase=True,corners=4)
 
-                if notch_filt=='Left':sta_tr_filt.filter('bandpass',freqmin=1/100,freqmax=notches[stai],zerophase=True,corners=4)
-                if notch_filt=='Right':sta_tr_filt.filter('bandpass',freqmin=notches[stai],freqmax=1,zerophase=True,corners=4)
+                if notch_filt=='Left':sta_tr_filt.filter('bandpass',freqmin=1/100,freqmax=fnotch(sta.StaDepth),zerophase=True,corners=9)
+                if notch_filt=='Right':sta_tr_filt.filter('bandpass',freqmin=fnotch(sta.StaDepth),freqmax=1,zerophase=True,corners=9)
                 # sta_tr_filt.taper(.001)
-                st_raw = sta_tr_filt.select(location='*Raw*').copy()
-                st_corrected = sta_tr_filt.select(location='*Corrected*').copy()
+                st_raw = sta_tr_filt.select(network=sta.Network,station=sta.Station,location='*Raw*').copy()
+                st_corrected = sta_tr_filt.select(network=sta.Network,station=sta.Station,location='*Corrected*').copy()
                 # st_raw=detect_outscale(st_raw,st_corrected,vertical_scale=vertical_scale,suppress=True)
                 del sta_tr_filt;sta_tr_filt=st_raw+st_corrected
                 # -------- Plotting
                 ax = axes[stai,bi]
                 tr = sta_tr_filt
-                x=tr.select(location='*Raw*')[0].times()
-                ylim = vertical_scale*abs(tr.select(location='*Raw*')[0].data).max()
+                x=tr.select(network=sta.Network,station=sta.Station,location='*Raw*')[0].times()
+                ylim = vertical_scale*abs(tr.select(network=sta.Network,station=sta.Station,location='*Raw*')[0].data).max()
                 [ax.plot(x,tr.select(location='*'+m+'*')[0].data,
                 color=args.linecolor[si],
                 alpha=args.alpha[si],
@@ -98,7 +101,7 @@ def run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,dirs):
                     ax.set_xticklabels('')
                 else:ax.set_xlabel('Time (s)')
                 # if stai==0:ax.set_title(''.join([str(cur_band[0]),'-',str(cur_band[1]),'s']),fontweight='bold',pad=15)
-                if stai==0:ax.set_title(f'{notch_filt.replace('Left','Longer').replace('Right','Shorter')} period than noise notch',fontweight='bold',pad=15,fontsize=16)
+                if stai==0:ax.set_title(f'{notch_filt} of infragravity limit',fontweight='bold',pad=15,fontsize=16)
                 # ===============================================================
                 if bi==0:
                     colors = args.phasecolors
@@ -107,19 +110,24 @@ def run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,dirs):
                     tr[0].stats.sac.gcarc = locations2degrees(stallaz[0],stallaz[1],evllaz[0],evllaz[1])
                     if tr[0].stats.sac.gcarc<=100:phases=args.phases
                     else:phases=args.shadow_phases;[colors.update({p:'k'}) for p in phases]
-                    arrivals=[event_stream_arrivals(tr,event) for tr in Stream(st_hold.select(location='*Raw*')[stai])][0]
+                    arrivals=[event_stream_arrivals(tr,event) for tr in st_hold.select(network=sta.Network,station=sta.Station,location='*Raw*')][0]
                     arrivals=[[n,t] for n,t in zip(list(arrivals.keys()),list(arrivals.values()))]
                 [ax.axvline(a[1],
                 linewidth=0.1,color=colors[a[0]]) for a in arrivals]
                 [ax.text(a[1],ylim,a[0],
                 fontsize=6,color='k',verticalalignment='bottom',horizontalalignment='center') for a in arrivals]
                 if bi==0:
+                    stastr = ' | '.join([sta.StaName+' ('+sta.Experiment+')',
+                    f'{int(tr[0].stats.sac.gcarc)}°,{str(int(1000*abs(statr.stats.sac.stel)))}m',
+                    'Notch:'+str(int(1/fnotch(1000*abs(statr.stats.sac.stel))))+'s',
+                    note])
                     ax.text(np.max(ax.get_xlim())*0.995,np.max(ax.get_ylim()),stastr,bbox=dict(boxstyle="square,pad=0.1",facecolor='white', alpha=1),horizontalalignment='right',verticalalignment='top',fontsize=9)
     else:
         for stai in range(nsta):
-            tr = Stream(st_hold.select(location='*Raw*')[stai].copy())+Stream(st_hold.select(location='*Correct*')[stai].copy())
+            net,sta=stations[stai].split('.')
+            tr = st_hold.select(network=net,station=sta,location='*Raw*').copy()+st_hold.select(network=net,station=sta,location='*Correct*').copy()
             sta=cat[cat.StaName==stations[stai]].iloc[0]
-            statr=st_hold.select(location='*Raw*')[stai]
+            statr=st_hold.select(network=net,station=sta,location='*Raw*')[0]
             stastr = '|'.join([sta.StaName+' ('+sta.Experiment+')',
             'Depth: '+str(int(1000*abs(statr.stats.sac.stel)))+'m',
             'F-Notch: '+str(int(1/fnotch(1000*abs(statr.stats.sac.stel))))+'s',
@@ -164,13 +172,9 @@ def run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,dirs):
     plt.tight_layout(h_pad=0.00001)
     plt.subplots_adjust(hspace=0)
     fig.suptitle(evstr,fontweight='bold',y=1.01,fontsize=13)
-    evstr = '|'.join([event.Name,str(event.magnitudes[0].mag) + event.magnitudes[0].magnitude_type,
+    evstr = '|'.join([event.Name,str(event.magnitudes[0].mag) + str(event.magnitudes[0].magnitude_type).replace('None','M'),
     str(int(event.origins[0].depth/1000))+'km'])
-    file = (evstr.replace(' ','').replace('|','.')+'_'+mode.lower()+'.png')
-    if mode=='Metrics':
-        file = file.replace('.png','_cohph.'+''.join([c[0][:2]+c[1] for c in columns])+'.png')
-    file = file.replace('.png','__'+method.replace('HPS','Noisecut').upper()+'.png')
-    save_tight(dirs.Plots/'_Plots'/'RecordSections'/file,fig,dpi=800)
+    save_tight(file,fig,dpi=800)
     plt.close('all')
 
 def distance(sta,ev,unit='deg'):
@@ -180,33 +184,32 @@ def distance(sta,ev,unit='deg'):
     if unit.lower()=='km':dist=degrees2kilometers(dist)
     return dist
 def mirror(Afold,Bfold,stanm,evname):
-    Afold=dirs.Events/'corrected';Bfold=dirs.Events_HPS/'corrected'
+    if Afold is None:Afold=dirs.Events/'corrected'
+    if Bfold is None:Bfold=dirs.Events_HPS/'corrected'
     return np.all([len(list((f/stanm).glob(f'*{evname}*')))>0 for f in [Afold,Bfold]])
 
 
 cat = catalog.copy()
-evcat=Catalog(unravel([e.copy() for e in cat.Events]))
-evcat=Catalog([evcat[i].copy() for i in np.unique([e.Name for e in evcat],return_index=True)[1]])
-evcat=Catalog([evcat[i].copy() for i in [15]])
-# evcat=Catalog(evcat[47].copy()).copy()
-# evcat[0].Stations
+evcat=lt.cat.unravel_cat(cat)
 evs=evcat
-# evs=Catalog([e for e in evcat if (len(e.Stations)<=24) & (len(e.Stations)>=20)])
-
-# stations=np.array([stanm for stanm in ev.Stations if mirror(dirs.Events,dirs.Events_HPS,stanm,ev.Name)])
-
-min_sta=20
-Events = [c.Events for c in cat.iloc]
-EvHold = Events[0]
-for e in Events:EvHold+=e
-Events = [e for e in EvHold if len(e.Stations)>=min_sta]
-Events = [Events[i] for i in np.unique([e.Name for e in Events],return_index=True)[1]]
-# evs=Events
-# method = 'HPS'
-methods = ['HPS','ATaCR']
+min_sta=10
+# methods = ['HPS','ATaCR']
+methods = ['ATaCR']
 modes = ['Traces']
+fold=dirs.Plots/'_Plots'/'RecordSections';fold.mkdir(exist_ok=True,parents=True)
+ovr=False
 for evi,event in enumerate(evs):
+    clear_output()
+    print(f'{evi+1}/{len(evs)} | {event.Name} | Stations:{len(event.Stations)}')
+    if len(event.Stations)<min_sta:continue #This should never happen since the minimum density is now set to atleast 10 stations per event
     for mthdi,method in enumerate(methods):
+        mode=modes[0]
+        evstr='.'.join([event.Name,str(event.magnitudes[0].mag) + str(event.magnitudes[0].magnitude_type).replace('None','M'),str(int(event.origins[0].depth/1000))+'km'])
+        file = evstr+'_'+mode.lower()+'.png'
+        if mode=='Metrics':file = file.replace('.png','_cohph.'+''.join([c[0][:2]+c[1] for c in columns])+'.png')
+        file = file.replace('.png','__'+method.replace('HPS','Noisecut').upper()+'.png')
+        file=fold/file
+        if file.exists()&(not ovr):continue
         # ___________________________________________________________________________________________________________________
         # ___________________________________________________________________________________________________________________
         # ------------------------------------------------------------
@@ -215,24 +218,28 @@ for evi,event in enumerate(evs):
         else:
             evdir=dirs.Events
         st_hold = Stream()
-        stations=np.array([stanm for stanm in event.Stations if mirror(dirs.Events,dirs.Events_HPS,stanm,event.Name)])
+        stations=np.array([stanm for stanm in event.Stations if mirror(dirs.Events/'corrected',dirs.Events_HPS/'raw',stanm,event.Name)])
         for si,s in enumerate(stations):
             try:
                 if method.lower()=='hps':
                     st_hold+=get_station_events_hps(s,evdir,evmeta=Catalog([event]),type='metrics',tf='HZ.SAC')[0]
                 else:
-                    st_hold+=get_station_events(s,evdir,evmeta=Catalog([event]),type='metrics')[0]
+                    e=Catalog([event])
+                    # st_hold+=get_station_events(s,evdir,evmeta=e,type='metrics')[0]
             except:
-                stations.pop(si)
+                # stations.pop(si)
                 continue
+            st_hold+=get_station_events(s,evdir,evmeta=e,type='metrics')[0]
         # ------------------------------------------------------------
-        stasort = np.argsort([abs(s.stats.sac.stel*1000) for s in st_hold.select(location='*Raw*')])
+        # stasort = np.argsort([abs(s.stats.sac.stel*1000) for s in st_hold.select(location='*Raw*')])
         # stasort = np.argsort([distance(catalog.loc[f'{st.stats.network}.{st.stats.station}'],event) for st in st_hold])
         stasort = np.argsort([distance(catalog.loc[s],event) for s in stations])
         stations=list(np.array(stations)[stasort])
-        st_hold = Stream([st_hold.select(location='*Raw*')[i] for i in stasort])+Stream([st_hold.select(location='*Corrected*')[i] for i in stasort])
-        # ___________________________________________________________________________________________________________________
-        # ___________________________________________________________________________________________________________________
+        raw=Stream([st_hold.select(location='*Raw*')[i] for i in stasort])
+        corrected=Stream([st_hold.select(location='*Corrected*')[i] for i in stasort])
+        if len(corrected)<min_sta:continue
+        if len(raw)<min_sta:continue
+        st_hold=raw+corrected
         for mdi,mode in enumerate(modes):
             # xxxxxxx
             run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,dirs)

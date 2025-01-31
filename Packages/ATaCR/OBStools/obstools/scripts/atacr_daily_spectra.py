@@ -253,7 +253,7 @@ def get_dailyspec_arguments(argv=None):
         help="Specify format of figure. Can be any one of the valid" +
         "matplotlib formats: 'png', 'jpg', 'eps', 'pdf'. [Default 'png']")
 
-    args = parser.parse_args(argv)
+    args =parser.parse_args(argv) 
 
     # Check inputs
     if not exist(args.indb):

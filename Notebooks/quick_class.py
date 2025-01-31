@@ -51,12 +51,12 @@ def pull_cohphadm(stanm,EvFolder,CorrFolder,
                 # if r=='2011.070.06.15.H1.SAC':
                 #        if stanm=='2D.OBS15':
                 #                 k=1
-                rawst = load_sac(rawevpath/r,rmresp=False)[0]
+                rawst = load_sac(rawevpath/r,rmresp=False)
                 if len(rawst)==0:print(f'{stanm}|{ev}| Data missing or corrupt');continue
-                rawst=rawst[0]
-                corrst = load_sac(correvpath/c,rmresp=False)[0]
+                ###### rawst=rawst[0]
+                corrst = load_sac(correvpath/c,rmresp=False)
                 if len(corrst)==0:print(f'{stanm}|{ev}| Data missing or corrupt');continue
-                corrst=corrst[0]
+                ###### corrst=corrst[0]
                 tend = np.min([rawst.stats.endtime,corrst.stats.endtime])
                 rawst = rawst.copy().trim(tend-7200,tend);corrst = corrst.copy().trim(tend-7200,tend)
                 trim_n = min([corrst.data.shape[0],rawst.data.shape[0]])

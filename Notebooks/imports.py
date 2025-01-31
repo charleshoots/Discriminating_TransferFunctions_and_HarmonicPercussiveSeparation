@@ -73,6 +73,7 @@ dirs = io.dir_libraries(str(project_path))
 
 archive =  project_path / '_DataArchive'
 plotfolder = project_path / '_FigureArchive' / '_GEN6'
+IRIS_EVENT_LINK = lambda s: f'https://ds.iris.edu/ds/nodes/dmc/tools/event/{s.resource_id.id.split('=')[-1]}'
 
 
 dirs.Plots = plotfolder;dirs.Archive=archive
@@ -87,8 +88,8 @@ HJan23['Good_Channels']=HJan23.T[-4:].sum().T==4
 
 
 # catalog = pd.read_pickle(dirs.Catalogs / 'sta_catalog_111524c.pkl')
-catalog = pd.read_pickle(dirs.Catalogs /'Catalog_010325.pkl')
-
+# catalog = pd.read_pickle(dirs.Catalogs /'Catalog_010325.pkl')
+catalog = pd.read_pickle(dirs.Catalogs / 'Catalog_Test_DensityIncreased.ShalllowIncreased.pkl')
 # catalog_inventory=Inventory()
 # for c in catalog.Inventory:catalog_inventory+=c
 # disp=display

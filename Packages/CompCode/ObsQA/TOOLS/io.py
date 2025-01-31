@@ -509,7 +509,7 @@ def get_noisecut_event(parentfolder,staname,event,channel=['*1','*2','*Z','*H'],
         folder = Path(str(parentfolder)) / staname
         files = list(folder.glob(file_day.strftime(dateformat) + '*.SAC'))
         if len(files)==0:print('||--24hr event data not found');return []
-        raw = Stream([load_sac(f)[0][0] for f in files])
+        raw = Stream([load_sac(f) for f in files])
         if (event+2*3600-100)>raw[0].stats.endtime:
                 print(staname+'| Data Gap')
                 return []
@@ -791,7 +791,7 @@ def build_staquery(d,chan='H',ATaCR_Parent=None,staquery_output='./sta_query.pkl
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def DownloadEvents(catalog,ATaCR_Parent=None,netsta_names=None,Minmag=6.3,Maxmag=6.7,limit=1000,pre_event_min_aperture=1,logoutput_subfolder='',log_prefix = '',staquery_output = './sta_query.pkl',chan='H',event_window=7200,channels='Z,P,12'):
+def DownloadEvents(catalog,ATaCR_Parent=None,netsta_names=None,Minmag=6.3,Maxmag=6.7,limit=1000,pre_event_min_aperture=1,logoutput_subfolder='',log_prefix = '',staquery_output = './sta_query.pkl',chan='H',event_window=7200,channels='Z,P,12',ovr=False):
         # sys.stdout.flush()
         logfilename = '_Step_2_7_EventDownload_logfile.log'
         if logoutput_subfolder is not None:
@@ -831,6 +831,7 @@ def DownloadEvents(catalog,ATaCR_Parent=None,netsta_names=None,Minmag=6.3,Maxmag
                                 os.chdir(ATaCR_Parent)
                         # args = [staquery_output,'--start={}'.format(EventStart), '--end={}'.format(EventEnd),'--min-mag={}'.format(Minmag),'--max-mag={}'.format(Maxmag),'--limit={}'.format(limit)]
                         args = [str(staquery_output),'--start={}'.format(EventStart), '--end={}'.format(EventEnd),'--min-mag={}'.format(Minmag),'--max-mag={}'.format(Maxmag),'--window={}'.format(event_window),'--channels={}'.format(channels)]
+                        if ovr:args.append('--overwrite')
                         # [print(ii) for ii in [staquery_output,'--start={}'.format(EventStart), '--end={}'.format(EventEnd),'--min-mag={}'.format(Minmag),'--max-mag={}'.format(Maxmag),'--limit={}'.format(limit)]]
                         # with open(log_fout, 'w') as sys.stdout:
                         atacr_download_event.main(atacr_download_event.get_event_arguments(args))
@@ -884,7 +885,7 @@ def DayNoiseWhileLoop(catalog,NoiseFolder,ATaCR_Parent,days=10,attempts=50,seed=
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def DownloadDayNoise(catalog,days=[],message=None,randomloop=True,end_delta=24,event_mode=False,seed='MESSI_22FIFA_WORLD_CUP!',ATaCR_Parent=None,netsta_names=None,logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H',channels='Z,P,12'):
+def DownloadDayNoise(catalog,days=[],message=None,randomloop=True,end_delta=24,event_mode=False,seed='MESSI_22FIFA_WORLD_CUP!',ATaCR_Parent=None,netsta_names=None,logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H',channels='Z,P,12',ovr=False):
         logfilename = log_prefix + '_Step_3_7_NoiseDownload_logfile.log'
         dateformat = '%Y.%j.%H.%M'
         if ATaCR_Parent is not None:
@@ -938,6 +939,7 @@ def DownloadDayNoise(catalog,days=[],message=None,randomloop=True,end_delta=24,e
                                         args = [str(staquery_output),'--start={}'.format(NoiseStart), '--end={}'.format(NoiseEnd),'--channels={}'.format(channels),'--evn']
                                 else:
                                         args = [str(staquery_output),'--start={}'.format(NoiseStart), '--end={}'.format(NoiseEnd),'--channels={}'.format(channels)]
+                                if ovr:args.append('--overwrite')
                                 status = f'|| [STATUS] | {Station.StaName} | Day:{j+1}/{len(Starts)} | '
                                 if message:status+=message
                                 print(status)
@@ -997,7 +999,7 @@ def DownloadEVNoise(catalog,ATaCR_Parent=None,netsta_names=None,pre_event_day_ap
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def DailySpectra(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--figQC --figAverage --figCoh --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H',fork=True,max_workers=1):
+def DailySpectra(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--figQC --figAverage --figCoh --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H',fork=True,max_workers=1,ovr=False):
         # sys.stdout.flush()
         datafolder = './Data/'
         if logoutput_subfolder is not None:
@@ -1011,6 +1013,7 @@ def DailySpectra(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--fi
         args = [staquery_output]
         [args.append(flg) for flg in extra_flags.split()]
         [args.append(flg) for flg in ['--start={}'.format(SpecStart),'--end={}'.format(SpecEnd)]]
+        if ovr:args.append('--overwrite')
         # with open(log_fout, 'w') as sys.stdout:
         # original = sys.stdout
         # sys.stdout = open(log_fout,'w+')
@@ -1043,7 +1046,7 @@ def DailySpectra(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--fi
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-def CleanSpectra(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--figQC --figAverage --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H',fork=True,max_workers=1):
+def CleanSpectra(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--figQC --figAverage --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H',fork=True,max_workers=1,ovr=False):
         # sys.stdout.flush()
         #  --figQC --figAverage --save-fig
         datafolder = './Data/'
@@ -1058,6 +1061,7 @@ def CleanSpectra(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--fi
         args = [str(staquery_output)]
         [args.append(flg) for flg in extra_flags.split()]
         [args.append(flg) for flg in ['--start={}'.format(SpecStart),'--end={}'.format(SpecEnd)]]
+        if ovr:args.append('--overwrite')
         # with open(log_fout, 'w') as sys.stdout:
         # original = sys.stdout
         log_fout = Path(log_fout)
@@ -1091,7 +1095,7 @@ def CleanSpectra(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--fi
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def TransferFunctions(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--figTF --save-fig'
                 #       ,taper_mode=1
-                      ,logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H',fork=True,max_workers=1):
+                      ,logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H',fork=True,max_workers=1,ovr=False):
         # sys.stdout.flush()
         datafolder = './Data/'
         if logoutput_subfolder is not None:
@@ -1103,6 +1107,7 @@ def TransferFunctions(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = 
         args = [staquery_output]
         extra_flags = extra_flags # + ' --taper ' + str(taper_mode)
         [args.append(flg) for flg in extra_flags.split()]
+        if ovr:args.append('--overwrite')
         # with open(log_fout, 'w') as sys.stdout:
         # original = sys.stdout
         # sys.stdout = open(log_fout,'w+')
@@ -1129,7 +1134,7 @@ def TransferFunctions(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = 
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def CorrectEvents(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--figRaw --figClean --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H',fork=True,max_workers=1):
+def CorrectEvents(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--figRaw --figClean --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output='./sta_query.pkl',chan='H',fork=True,max_workers=1,ovr=False):
         datafolder = './Data/'
         # staquery_output = str(staquery_output)
         if logoutput_subfolder is not None:
@@ -1140,6 +1145,7 @@ def CorrectEvents(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--f
                 log_fout = datafolder + logoutput
         args = [str(staquery_output)]
         [args.append(flg) for flg in extra_flags.split()]
+        if ovr:args.append('--overwrite')
         # with open(log_fout, 'w') as sys.stdout:
         if netsta_names is not None:
                 catalog = catalog[np.in1d((catalog.Network + '.' + catalog.Station),netsta_names)]
@@ -1165,7 +1171,7 @@ def CorrectEvents(catalog,ATaCR_Parent=None,netsta_names=None,extra_flags = '--f
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def Run_ATaCR(catalog, message=None,ATaCR_Parent = None, STEPS=[1,2,3,4,5,6,7], netsta_names=None, chan='H', Minmag=6.3, Maxmag=6.7, limit=1000, pre_event_min_aperture=1, pre_event_day_aperture=30, dailyspectra_flags='--figQC --figAverage --figCoh --save-fig', cleanspectra_flags='--figQC --figAverage --figCoh --figCross --save-fig', tf_flags='--figTF --save-fig', correctevents_flags='--figRaw --figClean --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output = './sta_query.pkl',fork=True,days=10,seed='MESSI_22FIFA_WORLD_CUP!',max_workers=1,event_mode=False,event_dt=None,event_window=7200,channels='Z,P,12'):
+def Run_ATaCR(catalog, message=None,ATaCR_Parent = None, STEPS=[1,2,3,4,5,6,7], netsta_names=None, chan='H', Minmag=6.3, Maxmag=6.7, limit=1000, pre_event_min_aperture=1, pre_event_day_aperture=30, dailyspectra_flags='--figQC --figAverage --figCoh --save-fig', cleanspectra_flags='--figQC --figAverage --figCoh --figCross --save-fig', tf_flags='--figTF --save-fig', correctevents_flags='--figRaw --figClean --save-fig',logoutput_subfolder=None,log_prefix = '',staquery_output = './sta_query.pkl',fork=True,days=10,seed='MESSI_22FIFA_WORLD_CUP!',max_workers=1,event_mode=False,event_dt=None,event_window=7200,channels='Z,P,12',ovr=False):
         # dailyspectra_flags='--figQC --figAverage --figCoh --save-fig'
         # STEPS = [1,2,3,4,5,6,7] #Absolutely every step - Downloading adds hour(s) or more to the process
         # STEPS = [2,3] #Everything but the download steps - About 4min for six stations.
@@ -1192,27 +1198,27 @@ def Run_ATaCR(catalog, message=None,ATaCR_Parent = None, STEPS=[1,2,3,4,5,6,7], 
                 print('Step 2/7 - BEGIN: Download Event Data')
                 if logoutput_subfolder is None:
                         logoutput_subfolder = str(dirs.Logs) + '/2_7'
-                ObsQA.TOOLS.io.DownloadEvents(catalog,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,Minmag=Minmag,Maxmag=Maxmag,limit=limit,pre_event_min_aperture=pre_event_min_aperture,logoutput_subfolder=logoutput_subfolder,staquery_output=staquery_output,chan=chan,log_prefix=log_prefix,event_window=event_window,channels=channels)
+                ObsQA.TOOLS.io.DownloadEvents(catalog,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,Minmag=Minmag,Maxmag=Maxmag,limit=limit,pre_event_min_aperture=pre_event_min_aperture,logoutput_subfolder=logoutput_subfolder,staquery_output=staquery_output,chan=chan,log_prefix=log_prefix,event_window=event_window,channels=channels,ovr=ovr)
                 print('Step 2/7 - COMPLETE: Download Event Data')
         if 3 in STEPS:
                 print('Step 3/7 - BEGIN: Download Day Data')
                 if logoutput_subfolder is None:
                         logoutput_subfolder = str(dirs.Logs) + '/3_7'
                 # ObsQA.TOOLS.io.DownloadNoise(catalog,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,pre_event_day_aperture=pre_event_day_aperture,logoutput_subfolder=logoutput_subfolder,staquery_output=staquery_output,chan=chan,log_prefix=log_prefix)
-                ObsQA.TOOLS.io.DownloadDayNoise(catalog,days=days,seed=seed,message=message,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,logoutput_subfolder=logoutput_subfolder,log_prefix = log_prefix,staquery_output=staquery_output,chan=chan,event_mode=event_mode,channels=channels)
+                ObsQA.TOOLS.io.DownloadDayNoise(catalog,days=days,seed=seed,message=message,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,logoutput_subfolder=logoutput_subfolder,log_prefix = log_prefix,staquery_output=staquery_output,chan=chan,event_mode=event_mode,channels=channels,ovr=ovr)
                 print('Step 3/7 - COMPLETE: Download Day Data')
         if 4 in STEPS:
                 print('Step 4/7 - BEGIN: Quality Control Noise Data')
                 if logoutput_subfolder is None:
                         logoutput_subfolder = str(dirs.Logs) + '/4_7'
-                ObsQA.TOOLS.io.DailySpectra(catalog,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,extra_flags=dailyspectra_flags,logoutput_subfolder=logoutput_subfolder,staquery_output=staquery_output,chan=chan,log_prefix=log_prefix,fork=fork,max_workers=max_workers)
+                ObsQA.TOOLS.io.DailySpectra(catalog,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,extra_flags=dailyspectra_flags,logoutput_subfolder=logoutput_subfolder,staquery_output=staquery_output,chan=chan,log_prefix=log_prefix,fork=fork,max_workers=max_workers,ovr=ovr)
                 print('Step 4/7 - COMPLETE: Quality Control Noise Data')
         if 5 in STEPS:
                 print('Step 5/7 - BEGIN: Spectral Average of Noise Data')
                 # !atacr_clean_spectra --figQC --figAverage --figCoh --figCross --save-fig --start='{SpecStart}' --end='{SpecEnd}' ./Data/sta_query.pkl> ./Data/Step_5_7_CleanSpectra_logfile.log
                 if logoutput_subfolder is None:
                         logoutput_subfolder = str(dirs.Logs) + '/5_7'
-                ObsQA.TOOLS.io.CleanSpectra(catalog,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,extra_flags=cleanspectra_flags,logoutput_subfolder=logoutput_subfolder,staquery_output=staquery_output,chan=chan,log_prefix=log_prefix,fork=fork,max_workers=max_workers)
+                ObsQA.TOOLS.io.CleanSpectra(catalog,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,extra_flags=cleanspectra_flags,logoutput_subfolder=logoutput_subfolder,staquery_output=staquery_output,chan=chan,log_prefix=log_prefix,fork=fork,max_workers=max_workers,ovr=ovr)
                 print('Step 5/7 - COMPLETE: Spectral Average of Noise Data')
         if 6 in STEPS:
                 print('Step 6/7 - BEGIN: Calculate Transfer Functions')
@@ -1221,14 +1227,14 @@ def Run_ATaCR(catalog, message=None,ATaCR_Parent = None, STEPS=[1,2,3,4,5,6,7], 
                         logoutput_subfolder = str(dirs.Logs) + '/6_7'
                 ObsQA.TOOLS.io.TransferFunctions(catalog,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names
                                                 #  ,taper_mode=taper_mode
-                                                 ,extra_flags=tf_flags,logoutput_subfolder=logoutput_subfolder,staquery_output=staquery_output,chan=chan,log_prefix=log_prefix,fork=fork,max_workers=max_workers)
+                                                 ,extra_flags=tf_flags,logoutput_subfolder=logoutput_subfolder,staquery_output=staquery_output,chan=chan,log_prefix=log_prefix,fork=fork,max_workers=max_workers,ovr=ovr)
                 print('Step 6/7 - COMPLETE: Calculate Transfer Functions')
         if 7 in STEPS:
                 print('Step 7/7 - BEGIN: Correct Event Data')
                 # !atacr_correct_event --figRaw --figClean --save-fig ./Data/sta_query.pkl> ./Data/Step_7_7_CorrectEvents_logfile.log
                 if logoutput_subfolder is None:
                         logoutput_subfolder = str(dirs.Logs) + '/7_7'
-                ObsQA.TOOLS.io.CorrectEvents(catalog,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,extra_flags=correctevents_flags,logoutput_subfolder=logoutput_subfolder,staquery_output=staquery_output,chan=chan,log_prefix=log_prefix,fork=fork,max_workers=max_workers)
+                ObsQA.TOOLS.io.CorrectEvents(catalog,ATaCR_Parent=ATaCR_Parent,netsta_names=netsta_names,extra_flags=correctevents_flags,logoutput_subfolder=logoutput_subfolder,staquery_output=staquery_output,chan=chan,log_prefix=log_prefix,fork=fork,max_workers=max_workers,ovr=ovr)
                 print('Step 7/7 - COMPLETE: Correct Event Data')
         plt.close('all')
 
@@ -1347,10 +1353,10 @@ def load_sac(file,rmresp=False,inv=[],
                 if rmresp:
                        for t in tr:t.stats.location=''
                        tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level,hide_sensitivity_mismatch_warning=True)
-        return tr,inv
+        return tr[0] #,inv
     except:
         print('WARNING:Load Error')
-        return Stream(),inv
+        return Trace() #,inv
 
 def get_event(eventpath, tstart=None, tend=None,evlist=None,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
     """

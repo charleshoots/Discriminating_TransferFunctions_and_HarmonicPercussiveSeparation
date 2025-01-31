@@ -83,7 +83,7 @@ def get_cleanspec_arguments(argv=None):
         "-O", "--overwrite",
         action="store_true",
         dest="ovr",
-        default=False,
+        default=True,
         help="Force the overwriting of pre-existing data. " +
         "[Default False]")
 
