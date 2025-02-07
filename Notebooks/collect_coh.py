@@ -22,7 +22,7 @@ coh_report = attr()
 
 
 coh_sets=[['HZ','HDH'],['HDH','HZ'],['HZ','HZ'],['H1','H1'],['H2','H2']]#[2];coh_sets=[coh_sets]
-
+# coh_sets=[['HZ','HZ']]
 for corrected_comp,raw_comp in coh_sets:
     if method.lower()=='atacr':
         if (corrected_comp=='H2') or (corrected_comp=='H1'):continue

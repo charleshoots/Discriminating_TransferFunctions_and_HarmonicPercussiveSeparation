@@ -38,19 +38,22 @@ def mirror_events(reports):
 # ========================================================================================================================================================
 # ========================================================================================================================================================
 # ========================================================================================================================================================
-reportfolder = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp/_DataArchive/Analysis/NetworkCoherences')
+# reportfolder = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp/_DataArchive/Analysis/NetworkCoherences')
+reportfolder = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/Research/_DataArchive/Analysis/NetworkCoherences')
 bands = ['1-10','10-30','30-100']
 cat = catalog.copy()
 nets = list(cat.Network.unique())
 method = 'HPS'
-file = str(reportfolder / method.lower() / ('complete_' + method.lower() + '_coh.report.pkl'))
+file = str(reportfolder / method.lower() / ('complete_' + method.lower() + '.ZZ_coh.report.pkl'))
 hps_report = load_pickle(file)
 method = 'ATaCR'
-file = str(reportfolder / method.lower() / ('complete_' + 'ATaCR'.lower() + '_coh.report.pkl'))
+file = str(reportfolder / method.lower() / ('complete_' + 'ATaCR'.lower() + '.ZZ_coh.report.pkl'))
 atacr_report = load_pickle(file)
-reports,methods = [atacr_report,hps_report],['ATaCR','HPS']
+# reports,methods = [atacr_report,hps_report],['ATaCR','HPS']
+reports,methods = [atacr_report,atacr_report],['ATaCR','ATaCR']
 mirror = mirror_events(reports)
 
+# complete_hps.ZZ_coh.report.pkl
 
 # for n in cat.Network:
 #      for s in list(hps_report['n'+n].keys()):
@@ -106,6 +109,7 @@ slice = {
 # -----
 
 for method_report,method in zip(reports,methods):
+    cat = catalog.copy()
     f = method_report['f']
     Instrument_Design = [d.Instrument_Design for d in cat.Deployment]
     Seismometer = np.array([d.Seismometer for d in cat.Deployment])
@@ -226,7 +230,7 @@ for method_report,method in zip(reports,methods):
         # handles2, labels2 = zip(*hl)
         axes[0].legend(handles, labels,ncols=len(inst_hold),loc='upper right', bbox_to_anchor=(1, 1.35))
         plt.tight_layout()
-        figfold = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp/RunningNotebooks/znb_images/method_reports_byinstrument')
+        figfold = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp/RunningNotebooks/znb_images/UpdatedData_1.31.25')
         figfold.mkdir(parents=True,exist_ok=True)
         figfile = figfold / (icat.iloc[0].Experiment.replace(' ','_') + '.' + n + '.' + method.lower() + '.png')
         save_tight(figfile,dpi = 600)

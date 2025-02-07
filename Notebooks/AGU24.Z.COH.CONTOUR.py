@@ -100,7 +100,7 @@ f = all_noise[0].f;depths=[a.depth for a in all_noise]
 M = 'Coherence';vlim = [0,1];levels=np.linspace(0,1,40)
 
 Comps = ['ZP','Z1','Z2']
-# Comps = ['ZP']
+Comps = ['ZZ']
 for Comp in Comps:
     R = Comp
     RawCoh,CorrectedCoh = slice_meter(all_noise,R=R)
@@ -113,5 +113,5 @@ for Comp in Comps:
     Z=CorrectedCoh;Z[Z<levels[1]]=0
     stage='Corrected';title = f'{stage} Station Averaged Noise {Comp} Coherence'
     fig=dataset_averaged_coherence_plot(f,depths,Z,vlim=vlim,title=title,levels=levels)
-    save_tight(dirs.Plots/'_Plots'/f'Contour.{Comp}.{stage}.NoiseAverge.png',fig)
+    save_tight(dirs.Plots/'_Plots'/f'13125UPDATE.Contour.{Comp}.{stage}.NoiseAverge.png',fig)
     print(f'{Comp} |--Second Finished--|')
