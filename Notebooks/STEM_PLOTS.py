@@ -44,13 +44,13 @@ bands = ['1-10','10-30','30-100']
 cat = catalog.copy()
 nets = list(cat.Network.unique())
 method = 'HPS'
-file = str(reportfolder / method.lower() / ('complete_' + method.lower() + '.ZZ_coh.report.pkl'))
+file = str(reportfolder / method.lower() / 'Complete' / ('complete_' + method.lower() + '.ZZ_coh.report.pkl'))
 hps_report = load_pickle(file)
 method = 'ATaCR'
-file = str(reportfolder / method.lower() / ('complete_' + 'ATaCR'.lower() + '.ZZ_coh.report.pkl'))
+file = str(reportfolder / method.lower() / 'Complete' /('complete_' + 'ATaCR'.lower() + '.ZZ_coh.report.pkl'))
 atacr_report = load_pickle(file)
-# reports,methods = [atacr_report,hps_report],['ATaCR','HPS']
-reports,methods = [atacr_report,atacr_report],['ATaCR','ATaCR']
+reports,methods = [atacr_report,hps_report],['ATaCR','HPS']
+# reports,methods = [atacr_report,atacr_report],['ATaCR','ATaCR']
 mirror = mirror_events(reports)
 
 # complete_hps.ZZ_coh.report.pkl
@@ -84,14 +84,14 @@ def report_parser(cat,report,sort='StaDepth',network=None,band=[],average=False,
         icat = icat[slice_filter]
     if network==None:
         events=[ireport['n'+sta.Network][sta.Station].events for sta in icat.iloc]
-        inds = [np.intersect1d(s.Events,events[si],return_indices=True)[2] for si,s in enumerate(icat.iloc)]
-        zzcoh = [ireport['n'+sta.Network][sta.Station].zzcoh[inds[si],:] for si,sta in enumerate(icat.iloc)]
+        inds = [np.intersect1d([e.Name for e in s.Events],events[si],return_indices=True)[2] for si,s in enumerate(icat.iloc)]
+        coh = [ireport['n'+sta.Network][sta.Station].coh[inds[si],:] for si,sta in enumerate(icat.iloc)]
     else:
         events=[ireport[sta.Station].events for sta in icat.iloc]
-        inds = [np.intersect1d(s.Events,events[si],return_indices=True)[2] for si,s in enumerate(icat.iloc)]
-        zzcoh = [ireport[sta.Station].zzcoh[inds[si],:] for si,sta in enumerate(icat.iloc)]
-    zzcoh_xf_ysta = np.array([np.mean(np.array(c)[:,f_ind],axis=1) for c in zzcoh],dtype=object)
-    zzcoh_xsta_yevent = [np.mean(np.array(c)[:,f_ind],axis=1) for c in zzcoh]
+        inds = [np.intersect1d([e.Name for e in s.Events],events[si],return_indices=True)[2] for si,s in enumerate(icat.iloc)]
+        coh = [ireport[sta.Station].coh[inds[si],:] for si,sta in enumerate(icat.iloc)]
+    zzcoh_xf_ysta = np.array([np.mean(np.array(c)[:,f_ind],axis=1) for c in coh],dtype=object)
+    zzcoh_xsta_yevent = [np.mean(np.array(c)[:,f_ind],axis=1) for c in coh]
     if sort=='Magnitude':
         x = []
         for si,(s,e) in enumerate(zip(icat.iloc,events)):
@@ -139,12 +139,13 @@ for method_report,method in zip(reports,methods):
         icat = cat[cat.Network==n].copy()
         icat = icat.sort_values(by='StaDepth',ascending=True)
         if len(icat)>11:fig,axes = plt.subplots(nrows=3,ncols=1,squeeze=True,figsize=(23,7),sharey='all')
-        else:fig,axes = plt.subplots(nrows=3,ncols=1,squeeze=True,figsize=(14,7),sharey='all')
+        else:fig,axes = plt.subplots(nrows=3,ncols=1,squeeze=True,figsize=(14,8.66),sharey='all')
         depth =[int(s.StaDepth) for s in icat.iloc]
         fn = [round(100/fnotch(s.StaDepth))/100 for s in icat.iloc]
         stanm = [s.StaName for s in icat.iloc]
         seismometer = [s.Deployment.Seismometer for s in icat.iloc]
-        fig.suptitle(icat.iloc[0].Experiment + ' (' + n + ')' + '| '+method.replace('HPS','Noisecut')+'' + '\n Checkers: Station bands not corrected in ATaCR'
+        note = f'(UPDATED 2.04.25) ZZ Coherences| '
+        fig.suptitle(note + icat.iloc[0].Experiment + ' (' + n + ')' + '| '+method.replace('HPS','Noisecut')+'' + '\n Checkers: Station bands not corrected in ATaCR'
         + '\n' + 'Seismometer average:  Guralp CMG3T 120=●, Trillium 240=X , Trillium Compact=▲'
         '\nInstrument average: Square  ,  Network average: Dashed line'
         ,y=0.98)
@@ -164,7 +165,7 @@ for method_report,method in zip(reports,methods):
                     Instrument_Design = sta.Deployment.Instrument_Design
                     sta_report = method_report['n'+sta.Network][sta.Station]
                     notch = round(100/fnotch(sta.StaDepth))/100
-                    coh = sta_report.zzcoh
+                    coh = sta_report.coh
                     events = sta_report.events;events = [e.replace('.','') for e in events]
                     evind = list(np.sort(np.intersect1d(events,mirror[sta.StaName],return_indices=True)[1]))
                     nev = len(evind)
@@ -178,7 +179,6 @@ for method_report,method in zip(reports,methods):
             if len(outside_band)<len(icat):
                 pass
                 k=1
-
             ax.set_title(b + 's')
             positions = np.arange(len(yy))+1
             if axi==2:
@@ -221,6 +221,9 @@ for method_report,method in zip(reports,methods):
             [ax.scatter(positions[ri]+0.25,instrumentaverage[r][axi],color=instrument_colors[r],marker='s',edgecolors='k',s=35) for ri,r in enumerate([d.Instrument_Design for d in icat.Deployment])]
             [ax.scatter(positions[ri]-0.25,seismometeraverage[r][axi],marker=seismometer_marker[r],color='k',s=35) for ri,r in enumerate([d.Seismometer for d in icat.Deployment])]
             axes[2].legend(ncols=len(inst_hold),loc='upper right', bbox_to_anchor=(1, 1.35))
+            if len(icat)>37:
+                ax.set_xticklabels(ax.get_xticklabels(),fontsize=6)
+                fig.set_figwidth(23)
             # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
         # handles = axes[2].get_legend_handles_labels()[0]
         handles,labels = axes[2].get_legend_handles_labels()
@@ -230,7 +233,7 @@ for method_report,method in zip(reports,methods):
         # handles2, labels2 = zip(*hl)
         axes[0].legend(handles, labels,ncols=len(inst_hold),loc='upper right', bbox_to_anchor=(1, 1.35))
         plt.tight_layout()
-        figfold = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp/RunningNotebooks/znb_images/UpdatedData_1.31.25')
+        figfold = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/Research/RunningNotebooks/znb_images/UpdatedData_1.31.25')
         figfold.mkdir(parents=True,exist_ok=True)
         figfile = figfold / (icat.iloc[0].Experiment.replace(' ','_') + '.' + n + '.' + method.lower() + '.png')
         save_tight(figfile,dpi = 600)
@@ -279,7 +282,7 @@ for method_report,method in zip(reports,methods):
 #             #         # Instrument_Design = sta.Deployment.Instrument_Design
 #             #         # sta_report = method_report['n'+sta.Network][sta.Station]
 #             #         notch = round(100/fnotch(sta.StaDepth))/100
-#             #         # coh = sta_report.zzcoh
+#             #         # coh = sta_report.coh
 #             #         # events = sta_report.events;events = [e.replace('.','') for e in events]
 #             #         # evind = list(np.sort(np.intersect1d(events,mirror[sta.StaName],return_indices=True)[1]))
 #             #         # nev = len(evind)

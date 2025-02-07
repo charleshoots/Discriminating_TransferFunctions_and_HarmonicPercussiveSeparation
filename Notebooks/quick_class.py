@@ -23,15 +23,15 @@ def get_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=
         tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
     return tr[0]
 
-def pull_cohphadm(stanm,EvFolder,CorrFolder,
+def pull_cohphadm(stanm,UncorrectedFold,CorrectedFold,
         tf='ZP-21',
         gs=True,
         corrected_comp='HZ',raw_comp='HDH'):
-        correvpath = CorrFolder
-        rawevpath = EvFolder
+        correvpath = CorrectedFold
+        rawevpath = UncorrectedFold
         # raw_stanm_subfolder=None,corrected_stanm_subfolder=None,
-        #     correvpath = CorrFolder / stanm /'CORRECTED'
-        #     rawevpath = EvFolder / stanm
+        #     correvpath = CorrectedFold / stanm /'CORRECTED'
+        #     rawevpath = UncorrectedFold / stanm
         #     if raw_stanm_subfolder is not None:rawevpath=rawevpath/raw_stanm_subfolder
         #     if corrected_stanm_subfolder is not None:correvpath=correvpath/corrected_stanm_subfolder
         if len(tf)>0:fclip = '.sta.' + tf

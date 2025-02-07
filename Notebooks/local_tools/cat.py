@@ -14,7 +14,22 @@ from modules import *
 # from obspy import Stream
 # from modules import *
 
-
+def shared_events(events,dirs,chan='HZ',tf='sta.ZP-21',minsta=10,stanm=None):
+    atacrfold = dirs.Events/'corrected'
+    hpsfold = dirs.Events_HPS/'corrected'
+    methods=['atacr','hps']
+    if not chan=='HZ':atacrfold=hpsfold;methods=['hps','hps']
+    good=[]
+    for evm in events.copy():
+        ev=evm.copy()
+        check_both = lambda ev,sta:np.all([(fold/sta/f'{sta}.{ev.Name}.{f'{tf}.' if method=='atacr' else ''}{chan}.SAC').exists() for method,fold in zip(methods,[atacrfold,hpsfold])])
+        ev.Stations = np.array(ev.Stations)[np.where([check_both(ev,sta) for sta in ev.Stations])[0]]
+        if stanm is not None:
+            if not np.isin(stanm,ev.Stations):continue
+        if len(ev.Stations)>=minsta:
+            good.append(ev)
+    ev_cat_shared = Catalog(good)
+    return ev_cat_shared
 # A nice little script for efficiently quarantining bad data.
 def quarantine_data(folder,reg_list):
     qfold=(folder/'_quarantine_');qfold.mkdir(exist_ok=True)

@@ -26,7 +26,7 @@ def get_event_record_stream(event,dirs,method='atacr',tlen=7200,step='Corrected'
         files = [''.join([event.Name,'.HZ.SAC']) for s in stas]
     if step.lower()=='raw':
         files = [f.replace('.sta.','').replace(tf,'').replace(s+'.','') for f,s in zip(files,stas)]
-    st=Stream([load_sac(datafolder/s/subfold/('*'+f),rmresp=rmresp)[0][0] for f,s in zip(files,stas)]);clear_output(wait=False)
+    st=Stream([load_sac(datafolder/s/subfold/('*'+f),rmresp=rmresp) for f,s in zip(files,stas)]);clear_output(wait=False)
     if P12_folder:
         st_P12=get_event_P12(stas,event.Name,P12_folder);st+=st_P12;clear_output(wait=False)
     st.taper(0.0001);st.trim(event.origins[0].time,event.origins[0].time+tlen,pad=True,fill_value=trim_gap)
@@ -88,11 +88,11 @@ def load_pickle(file):
 def get_noise(dirs,stanm):return load_pickle(list((dirs.SpectraAvg/stanm).glob('*sta.pkl'))[0])
 def get_event_traces(stanm,evdir,ev,tf='sta.ZP-21.HZ.SAC'):
     stafold = evdir / stanm;label=tf.replace('sta.','').replace('.SAC','')
-    raw = Stream([load_sac(stafold / (ev.Name + '.'+c+'.SAC'),rmresp=True)[0][0] for c in ['H1','H2','HDH','HZ']])
+    raw = Stream([load_sac(stafold / (ev.Name + '.'+c+'.SAC'),rmresp=True) for c in ['H1','H2','HDH','HZ']])
     clear_output(wait=False)
     for i in range(len(raw)):raw[i].stats.location = 'Raw'
     corrected = Stream([raw.select(channel=c)[0].copy() for c in ['*1','*2','*H']]).copy()
-    corrected+=load_sac(stafold /  'CORRECTED' / '.'.join([stanm,ev.Name,tf]),rmresp=False)[0][0]
+    corrected+=load_sac(stafold /  'CORRECTED' / '.'.join([stanm,ev.Name,tf]),rmresp=False)
     for i in range(len(corrected)):corrected[i].stats.location = 'Corrected.'+label
 # # ======================================================================================================================================================
 def hps_corrected_list(stanm,catalog):
@@ -118,20 +118,22 @@ def get_event_list(stanm,evdir,evmeta,tf = 'sta.ZP-21',mirror_fold=None):
     eind = [[np.intersect1d(events,[e.Name for e in evmeta],return_indices=True)[1]][0],[np.intersect1d(events,[e.Name for e in evmeta],return_indices=True)[2]][0]]
     evmeta = Catalog([evmeta[e] for e in eind[1]]);events = [events[e] for e in eind[0]]
     return evmeta
-def get_station_events_hps(stanm,evdir,type='stream',tf = 'sta.ZP-21.HZ.SAC',mirror_fold=None,evmeta=None):
+def get_station_events_hps(stanm,evdir,type='stream',tf = '',mirror_fold=None,evmeta=None,additional_chans=['H1','H2','HDH']):
     # sta,evdir,type='stream',tf = 'sta.ZP-21.HZ.SAC',mirror_fold=None
     # --------------------------------------------- Event list
-    if not evmeta:evmeta = get_event_list(sta=sta,evdir=evdir[0],tf=tf,mirror_fold=mirror_fold)
+    # if not evmeta:evmeta = get_event_list(sta=sta,evdir=evdir[0],tf=tf,mirror_fold=mirror_fold)
     # --------------------------------------------- Load and store data
     label=tf.replace('sta.','').replace('.SAC','')
     if type=='stream':
         # For streams
-        stafold = evdir[0] / stanm
+        stafold = evdir[0]
         st_hold = Stream()
         for evi,ev in enumerate(evmeta):
-            raw = load_sac(stafold / (ev.Name + '.HZ.SAC'),rmresp=True)[0]
+            if not (stafold / 'rmresp' / stanm / (ev.Name + '.HZ.SAC')).exists():
+                continue
+            raw = Stream(load_sac(stafold / 'rmresp' / stanm / (ev.Name + '.HZ.SAC'),rmresp=False))
             clear_output(wait=False)
-            corrected = load_sac(stafold /  'CORRECTED' / '.'.join([stanm,ev.Name,tf]),rmresp=False)[0]
+            corrected = Stream(load_sac(stafold / 'corrected' / stanm /  '.'.join([stanm,ev.Name,tf]),rmresp=False))
             clear_output(wait=False)
             raw[0].stats.location = 'Raw'
             corrected[0].stats.location = 'Corrected.'+label
@@ -144,16 +146,19 @@ def get_station_events_hps(stanm,evdir,type='stream',tf = 'sta.ZP-21.HZ.SAC',mir
         hpsev_fold = evdir[0];atacrevfold = evdir[1]
         # Noise = load_pickle(list((atacrevfold.parent.parent/'AVG_STA'/stanm).glob('*sta.pkl'))[0])
         for evi,ev in enumerate(evmeta):
-            raw = Stream([load_sac(hpsev_fold /'rmresp'/stanm/(ev.Name + '.'+c+'.SAC'),rmresp=False)[0][0] for c in ['HZ']])
-            clear_output(wait=False)
-            raw2 = Stream([load_sac(atacrevfold / 'rmresp'/stanm/(f'{ev.Name}.{c}.SAC'),rmresp=False)[0][0] for c in ['H1','H2','HDH']])
+            if not (hpsev_fold /'rmresp'/stanm/(ev.Name +'.HZ.SAC')).exists():
+                continue
+            raw = Stream([load_sac(hpsev_fold /'rmresp'/stanm/(ev.Name + '.'+c+'.SAC'),rmresp=False) for c in ['HZ']])
             clear_output(wait=False)
             raw.taper(.001)
-            raw.trim(raw2[0].stats.starttime,raw2[0].stats.endtime,pad=True,fill_value=0);raw+=raw2
-            tlen = raw[0].stats.endtime-raw[0].stats.starttime
+            if len(additional_chans)>0:
+                raw2 = Stream([load_sac(atacrevfold / 'rmresp'/stanm/(f'{ev.Name}.{c}.SAC'),rmresp=False) for c in additional_chans])
+                clear_output(wait=False)
+                raw.trim(raw2[0].stats.starttime,raw2[0].stats.endtime,pad=True,fill_value=0);raw+=raw2
+                tlen = raw[0].stats.endtime-raw[0].stats.starttime
             for i in range(len(raw)):raw[i].stats.location='Raw'
             corrected = Stream([raw.select(channel=c)[0].copy() for c in ['*1','*2','*H']]).copy()
-            corrected+=load_sac(hpsev_fold /  'corrected' / stanm/'.'.join([stanm,ev.Name,tf]),rmresp=False)[0][0]
+            corrected+=load_sac(hpsev_fold /  'corrected' / stanm/'.'.join([stanm,ev.Name,tf]),rmresp=False)
             clear_output(wait=False)
             corrected.taper(.001)
             corrected.trim(raw[0].stats.starttime,raw[0].stats.endtime,pad=True,fill_value=0)
@@ -165,7 +170,7 @@ def get_station_events_hps(stanm,evdir,type='stream',tf = 'sta.ZP-21.HZ.SAC',mir
             # CtrZ.Metrics = OBSM.Metrics(tr1=corrected.select(channel='*1')[0].copy(),tr2=corrected.select(channel='*2')[0].copy(),trP=corrected.select(channel='*H')[0].copy(),trZ=corrected.select(channel='*Z')[0].copy())
             # CtrZ.Metrics = CtrZ.Metrics / RtrZ.Metrics
             # RtrZ.Metrics = RtrZ.Metrics / CtrZ.Metrics
-            # CtrZ.Noise=Noise;RtrZ.Noise=Noise
+            CtrZ.Noise=Noise;RtrZ.Noise=Noise
             st_hold+=RtrZ;st_hold+=CtrZ
         # st_hold.Noise=Noise
     return st_hold,evmeta
@@ -180,9 +185,9 @@ def get_station_events(stanm,evdir,type='stream',tf = 'sta.ZP-21.HZ.SAC',mirror_
     if type=='stream':
         st_hold = Stream()
         for evi,ev in enumerate(evmeta):
-            raw = load_sac(stafold / (ev.Name + '.HZ.SAC'),rmresp=True)[0]
+            raw = Stream(load_sac(stafold / 'rmresp' / stanm/(ev.Name + '.HZ.SAC'),rmresp=False))
             clear_output(wait=False)
-            corrected = load_sac(stafold /'corrected'/stanm/ '.'.join([stanm,ev.Name,tf]),rmresp=False)[0]
+            corrected = Stream(load_sac(stafold /'corrected'/stanm/ '.'.join([stanm,ev.Name,tf]),rmresp=False))
             clear_output(wait=False)
             raw[0].stats.location = 'Raw'
             corrected[0].stats.location = 'Corrected.'+label

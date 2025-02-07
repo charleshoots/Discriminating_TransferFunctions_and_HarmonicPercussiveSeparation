@@ -1,5 +1,6 @@
 from modules import *
-
+from local_tools.math import avg_meter
+import local_tools as lt
 def get_gridplot():
     fig = plt.figure(figsize=(20,15),layout="constrained")
     height_ratios = [1,1,0.6,0.6,0.6,0.6]
@@ -95,7 +96,7 @@ def station_event_page(st_hold,sta,evmeta,method,type='stream',**args):
                     if s=='Corrected':
                         stallaz=[tr.stats.sac.stla,tr.stats.sac.stlo,tr.stats.sac.stel]
                         evllaz=[evmeta[tr_ind].origins[0].latitude,evmeta[tr_ind].origins[0].longitude,evmeta[tr_ind].origins[0].depth/1000]
-                        tr.stats.sac.gcarc = lt.math.distance(sta,evmeta)
+                        tr.stats.sac.gcarc = lt.math.distance(sta,evmeta[tr_ind])
                         evstr = '|'.join(['['+str(tr_ind+1)+'] ',evmeta[tr_ind].Name,'M'+str(evmeta[tr_ind].magnitudes[0].mag),str(np.round(tr.stats.sac.gcarc,2))+'°'])
                         ax.text(np.max(ax.get_xlim()),np.min(ax.get_ylim()),evstr,bbox=dict(boxstyle="square,pad=0.1",facecolor='white', alpha=1),horizontalalignment='right',verticalalignment='center',fontsize=10)
                         if type.lower()=='stream':
@@ -118,11 +119,15 @@ def station_event_page_averages(st_hold,sta,evmeta,method,type='stream',raw_refe
     defargs = AttribDict();defargs.bands=[(1,10),(10,30),(30,100)];defargs.vertical_scale=1.2;defargs.figwidth=20;defargs.figaspect=[1,4]
     defargs.linewidth=[.1,.2];defargs.linecolor=['red','black'];defargs.alpha=[1.0,1.0];defargs.nev=None
     defargs.phases=('P','S');defargs.shadow_phases=('PKIKP','SKS','SKIKSSKIKS');defargs.phasecolors = {'P':'r','S':'b'}
-    defargs.csd_pairs=[('ZP','blue'),('ZZ','gray')];defargs.Noise=True
+    defargs.csd_pairs=[('ZP','blue'),('ZZ','gray')]
+    defargs.Noise=True
     defargs.columns = ['Coherence']
     [defargs.update({k:args[k]}) for k in list(args.keys())]
     args = defargs
-    args.csd_pairs = [('ZP','#0c51a6'),('ZZ','#2a7e93'),('Z1','#7370cb'),('Z2','#4f86c5')]
+    if method.lower()=='atacr':
+        args.csd_pairs = [('ZP','#0c51a6'),('ZZ','#2a7e93'),('Z1','#7370cb'),('Z2','#4f86c5')]
+    else:
+        args.csd_pairs = [('ZZ','#2a7e93')]
     # ------------
     if type.lower()=='stream':note = 'Corrected ('+args.linecolor[1]+') | Raw ('+args.linecolor[0]+')'
     else:note = 'Noise (gray) | Raw (red) | Variance (shaded)'
@@ -154,7 +159,8 @@ def station_event_page_averages(st_hold,sta,evmeta,method,type='stream',raw_refe
             for si,s in enumerate(['Raw','Corrected']):
                 st = {'Raw':raw_hold,'Corrected':correct_hold}[s].copy()
                 for tri in range(len(correct_hold)):
-                    tr_ind = tri;tr = st[tr_ind].copy()
+                    tr_ind = tri
+                    tr = st[tr_ind].copy()
                     if tr_ind==0:
                         if type.lower()=='stream':ax.set_title(''.join([str(b[0]),'s-',str(b[1]),'s']))
                         else:ax.set_title(channels +' '+b)
@@ -186,9 +192,13 @@ def station_event_page_averages(st_hold,sta,evmeta,method,type='stream',raw_refe
                 if s=='Corrected':
                     stallaz=[tr.stats.sac.stla,tr.stats.sac.stlo,tr.stats.sac.stel]
                     evllaz=[evmeta[tr_ind].origins[0].latitude,evmeta[tr_ind].origins[0].longitude,evmeta[tr_ind].origins[0].depth/1000]
-                    tr.stats.sac.gcarc = lt.math.distance(sta,evmeta)
-                    evstr = '|'.join(['['+str(tr_ind+1)+'] ',evmeta[tr_ind].Name,'M'+str(evmeta[tr_ind].magnitudes[0].mag),str(np.round(tr.stats.sac.gcarc,2))+'°'])
-                    ax.text(np.max(ax.get_xlim()),np.min(ax.get_ylim()),evstr,bbox=dict(facecolor='white', alpha=1),horizontalalignment='right',verticalalignment='center',fontsize=10)
+                    tr.stats.sac.gcarc = lt.math.distance(sta,evmeta[tr_ind])
+                    # if type.lower()=='metrics':
+                        # evstr = '|'.join(['['+str(tr_ind+1)+'] ',evmeta[tr_ind].Name])
+                    # el:
+                    if not type.lower()=='metrics':
+                        evstr = '|'.join(['['+str(tr_ind+1)+'] ',evmeta[tr_ind].Name,'M'+str(evmeta[tr_ind].magnitudes[0].mag),str(np.round(tr.stats.sac.gcarc,2))+'°'])
+                        ax.text(np.max(ax.get_xlim()),np.min(ax.get_ylim()),evstr,bbox=dict(facecolor='white', alpha=1),horizontalalignment='right',verticalalignment='center',fontsize=10)
                     # ------
                     ax.scatter(x[ind],y_avg,label=':'.join([s,channels]),s=0.5,color=pair[1])
                     ax.plot(x[ind],y_avg,label=':'.join([s,channels]),linewidth=0.8,alpha=0.8,color=pair[1])

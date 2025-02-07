@@ -11,19 +11,18 @@ from obspy.core.util.attribdict import AttribDict as attr
 cat = catalog.copy()
 
 
-tf,method = '','hps';CorrFolder=dirs.Events_HPS/'corrected';EvFolder=dirs.Events_HPS/'rmresp'
-# tf,method = 'ZP-21','atacr';EvFolder = dirs.Events/'rmresp';CorrFolder = dirs.Events/'corrected'
+tf,method = '','hps';CorrectedFold=dirs.Events_HPS/'corrected';UncorrectedFold=dirs.Events_HPS/'rmresp'
+# tf,method = 'ZP-21','atacr';CorrectedFold = dirs.Events/'corrected';UncorrectedFold = dirs.Events/'rmresp'
 
 nets = cat.Network.unique()
 savefolder = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/Research/_DataArchive/Analysis/NetworkCoherences')
 ovr = True
-coh_report = attr()
 
+# coh_sets=[['HZ','HDH'],['HDH','HZ'],['HZ','HZ'],['H1','H1'],['H2','H2']]#Every auto-coherence, only useful for NoiseCut
+coh_sets=[['HZ','HZ'],['HZ','HDH'],['HZ','H1'],['HZ','H2']]#Defaults: ZZ,ZP,Z1,Z2
 
-
-coh_sets=[['HZ','HDH'],['HDH','HZ'],['HZ','HZ'],['H1','H1'],['H2','H2']]#[2];coh_sets=[coh_sets]
-# coh_sets=[['HZ','HZ']]
 for corrected_comp,raw_comp in coh_sets:
+    coh_report = attr()
     if method.lower()=='atacr':
         if (corrected_comp=='H2') or (corrected_comp=='H1'):continue
     os.system('clear')
@@ -46,14 +45,14 @@ for corrected_comp,raw_comp in coh_sets:
             coh_report[N][S] = attr()
             stanm = '.'.join([sta.Network,sta.Station])
             print(state())
-            corr_fold = CorrFolder/stanm
-            raw_fold = EvFolder/stanm
+            corrected_sta_fold = CorrectedFold/stanm
+            uncorrected_sta_fold = UncorrectedFold/stanm
             if method.lower()=='atacr':
-                if corrected_comp=='HZ':tf='ZP-21';corr_fold=CorrFolder/stanm
-                else:corr_fold=raw_fold;tf=''
+                if corrected_comp=='HZ':tf='ZP-21';corrected_sta_fold=CorrectedFold/stanm
+                else:corrected_sta_fold=uncorrected_sta_fold;tf=''
 
             events,cpa_list = pull_cohphadm(stanm,
-            EvFolder=raw_fold,CorrFolder=corr_fold,tf=tf,
+            UncorrectedFold=uncorrected_sta_fold,CorrectedFold=corrected_sta_fold,tf=tf,
             corrected_comp=corrected_comp,raw_comp=raw_comp)
 
             if len(cpa_list)==0:
@@ -65,11 +64,12 @@ for corrected_comp,raw_comp in coh_sets:
             coh_report[N][S].coh = np.array([c.COH()[-1] for c in cpa_list])
             # coh_report[N][S].cophadm = cpa_list
             coh_report[N][S].events = events
-            stafolder = savefolder / method / N[1:] / 'Stations' / s_comps ;stafolder.mkdir(parents=True,exist_ok=True)
             stafile = f'{N[1:]}.{S}.{s_comps}.pkl'
-            write_pickle(stafolder/stafile,cpa_list)
-        netfolder = stafolder.parent.parent
+        netfolder = netfolder = savefolder / method / 'Networks'
+        netfolder = netfolder / N[1:]
+        netfolder.mkdir(exist_ok=True,parents=True)
         write_pickle(netfolder / Path(file).name,coh_report[N].copy())
-methodfolder = netfolder.parent
-write_pickle(str(methodfolder /(f'complete_{method.lower()}.{s_comps}_coh.report.pkl')),coh_report)
+    completefold = savefolder / method / 'Complete'
+    completefold.mkdir(exist_ok=True,parents=True)
+    write_pickle(str(completefold /(f'complete_{method.lower()}.{s_comps}_coh.report.pkl')),coh_report)
 k=1
