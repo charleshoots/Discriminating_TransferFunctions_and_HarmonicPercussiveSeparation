@@ -69,7 +69,9 @@ for ci,Comp in enumerate(Comps):
             X[stanm].events=X[stanm].events[ia]
             Y[stanm].events=Y[stanm].events[ia]
             ev_catalogs[stanm]=Catalog([evm[k] for k in ib])
-
+        for stanm in catalog.StaName:
+            for e in ev_catalogs[stanm]:
+                 e.Distance=distance(catalog[catalog.StaName==stanm].iloc[0],e)
         magwin=[[6.0,6.5],[6.5,7.0],[7.0,7.5],[7.5,8.0]][ci]
         # magwin=[[0.0,9.0],[0.0,9.0],[0.0,9.0],[0.0,9.0]][ci]
         sc = [ax.scatter(
@@ -110,4 +112,5 @@ for ci,Comp in enumerate(Comps):
 c='.'.join(Comps)
 if AVG:c=c+'.AVG'
 save_tight(dirs.Plots/'_Plots'/f'Scatter.{xmethod}.{ymethod}.{c}.bymag.notch.bands.png',fig,dpi=600)
+print('Done')
 # save_tight(dirs.Plots/'_Plots'/f'Scatter.{xmethod}.{ymethod}.{c}.bymag.and.notch.png',fig,dpi=600)
