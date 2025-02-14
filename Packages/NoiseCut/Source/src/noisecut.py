@@ -144,14 +144,15 @@ def noisecut(
     l1 = math.floor((0.1 * win_length_samples) / trace.stats.sampling_rate)
     l2 = math.ceil((1 * win_length_samples) / trace.stats.sampling_rate)
 
-    # We consider the frequency range out of the [0.1-1] Hz for the first step
-    S_full2 = np.zeros((S_full.shape[0], S_full.shape[1]))
-    S_full2[l1:l2, :] = S_full[l1:l2, :]
 
-    # We consider the frequency range of [0.1-1] Hz for the second step
+    # We consider the frequency outside the range of [0.1-1] Hz for the first step (Median filter along time axis to isolate waveforms that are not event waveforms)
     S_full1 = np.zeros((S_full.shape[0], S_full.shape[1]))
     S_full1[:l1, :] = S_full[:l1, :]
     S_full1[l2:, :] = S_full[l2:, :]
+
+    # We consider the frequency range within the range of [0.1-1] Hz for the second step ()
+    S_full2 = np.zeros((S_full.shape[0], S_full.shape[1]))
+    S_full2[l1:l2, :] = S_full[l1:l2, :]
 
     # We'll compare frames using cosine similarity, and aggregate similar
     # frames by taking their (per-frequency) median value.

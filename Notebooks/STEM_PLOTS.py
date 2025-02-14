@@ -38,8 +38,8 @@ def mirror_events(reports):
 # ========================================================================================================================================================
 # ========================================================================================================================================================
 # ========================================================================================================================================================
-# reportfolder = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp/_DataArchive/Analysis/NetworkCoherences')
-reportfolder = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/Research/_DataArchive/Analysis/NetworkCoherences')
+# reportfolder = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp/_DataArchive/Analysis/Metrics')
+reportfolder = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/Research/_DataArchive/Analysis/Metrics')
 bands = ['1-10','10-30','30-100']
 cat = catalog.copy()
 nets = list(cat.Network.unique())
@@ -77,7 +77,11 @@ def report_parser(cat,report,sort='StaDepth',network=None,band=[],average=False,
     f = report['f'];f_ind = np.isfinite(f)
     ireport = report.copy()
     if network:ireport = ireport['n'+network];icat = icat[icat.Network==network]
-    if len(band)>0:f_ind = (f>=band[0]) & (f<=band[1])
+    if not isinstance(band,str):
+        if len(band)>0:f_ind = (f>=band[0]) & (f<=band[1])
+    else:
+        f_ind = f>-1
+    f_ind_notch = lambda f,z,lr: f<=fnotch(z) if lr=='left' else f>fnotch(z)
     if slice:
         slice_bools = np.array([[d[key]<slice[key] or d[key]==slice[key]for d in icat.Deployment.iloc]for key in list(slice.keys())])
         slice_filter = np.sum(slice_bools,axis=0)==slice_bools.shape[0]
@@ -90,8 +94,8 @@ def report_parser(cat,report,sort='StaDepth',network=None,band=[],average=False,
         events=[ireport[sta.Station].events for sta in icat.iloc]
         inds = [np.intersect1d([e.Name for e in s.Events],events[si],return_indices=True)[2] for si,s in enumerate(icat.iloc)]
         coh = [ireport[sta.Station].coh[inds[si],:] for si,sta in enumerate(icat.iloc)]
-    zzcoh_xf_ysta = np.array([np.mean(np.array(c)[:,f_ind],axis=1) for c in coh],dtype=object)
-    zzcoh_xsta_yevent = [np.mean(np.array(c)[:,f_ind],axis=1) for c in coh]
+    zzcoh_xf_ysta = np.array([np.mean(np.array(c)[:,f_ind if not isinstance(band,str) else f_ind_notch(f,z,band)],axis=1) for c,z in zip(coh,icat.StaDepth)],dtype=object)
+    zzcoh_xsta_yevent = [np.mean(np.array(c)[:,f_ind if not isinstance(band,str) else f_ind_notch(f,z,band)],axis=1) for c,z in zip(coh,icat.StaDepth)]
     if sort=='Magnitude':
         x = []
         for si,(s,e) in enumerate(zip(icat.iloc,events)):
@@ -120,22 +124,33 @@ for method_report,method in zip(reports,methods):
         for bi,b in enumerate(bands):
             band_hz = [1/int(a) for a in b.split('-')];ind = (f<band_hz[0]) & (f>=band_hz[1])
             x,y = report_parser(cat,method_report,sort='StaDepth',band=np.flip(band_hz),network=n)
-            networkaverage[n][bi] = np.sum([np.sum(k) for k in y]) / np.sum([len(k) for k in y])
+            y=[np.array([j for j in a]) for a in y]
+            y=[a[~np.isnan(a)] for a in y]
+            networkaverage[n][bi] = np.mean([np.mean(a) for a in y])
     for d in np.unique(Instrument_Design):
         di = np.array(Instrument_Design)==d
         for bi,b in enumerate(bands):
             band_hz = [1/int(a) for a in b.split('-')];ind = (f<band_hz[0]) & (f>=band_hz[1])
             x,y = report_parser(cat,method_report,sort='StaDepth',band=np.flip(band_hz))
-            instrumentaverage[d][bi] = np.sum([np.sum(k) for k in y[di]]) / np.sum([len(k) for k in y[di]])
+            y=[np.array([j for j in a]) for a in y]
+            y=[a[~np.isnan(a)] for a in y]
+            instrumentaverage[d][bi] = np.mean([np.mean(a) for i,a in zip(di,y) if i])
+            # np.sum([np.sum(k) for k in y[di]]) / np.sum([len(k) for k in y[di]])
     for d in np.unique(Seismometer):
         di = np.array(Seismometer)==d
         for bi,b in enumerate(bands):
             band_hz = [1/int(a) for a in b.split('-')];ind = (f<band_hz[0]) & (f>=band_hz[1])
             x,y = report_parser(cat,method_report,sort='StaDepth',band=np.flip(band_hz))
-            seismometeraverage[d][bi] = np.sum([np.sum(k) for k in y[di]]) / np.sum([len(k) for k in y[di]])
+            y=[np.array([j for j in a]) for a in y]
+            y=[a[~np.isnan(a)] for a in y]
+            seismometeraverage[d][bi] = np.mean([np.mean(a) for i,a in zip(di,y) if i])
+            # np.sum([np.sum(k) for k in y[di]]) / np.sum([len(k) for k in y[di]])
     # ======XXXXX===========XXXXX===========XXXXX===========XXXXX===========XXXXX=====
+
     # ======XXXXX===========XXXXX===========XXXXX===========XXXXX===========XXXXX=====
     for ni,n in enumerate(nets):
+        if (method=='HPS') & (n=='7D'):
+            k=1
         icat = cat[cat.Network==n].copy()
         icat = icat.sort_values(by='StaDepth',ascending=True)
         if len(icat)>11:fig,axes = plt.subplots(nrows=3,ncols=1,squeeze=True,figsize=(23,7),sharey='all')
@@ -144,7 +159,7 @@ for method_report,method in zip(reports,methods):
         fn = [round(100/fnotch(s.StaDepth))/100 for s in icat.iloc]
         stanm = [s.StaName for s in icat.iloc]
         seismometer = [s.Deployment.Seismometer for s in icat.iloc]
-        note = f'(UPDATED 2.04.25) ZZ Coherences| '
+        note = f'(UPDATED 2.14.25) ZZ Coherences| '
         fig.suptitle(note + icat.iloc[0].Experiment + ' (' + n + ')' + '| '+method.replace('HPS','Noisecut')+'' + '\n Checkers: Station bands not corrected in ATaCR'
         + '\n' + 'Seismometer average:  Guralp CMG3T 120=●, Trillium 240=X , Trillium Compact=▲'
         '\nInstrument average: Square  ,  Network average: Dashed line'
@@ -158,6 +173,7 @@ for method_report,method in zip(reports,methods):
         for axi,(ax,b )in enumerate(zip(axes,bands)):
             band_hz = [1/int(a) for a in b.split('-')];ind = (f<band_hz[0]) & (f>=band_hz[1])
             outside_band = [si for si,sta in enumerate(icat.iloc) if len(np.where(f[ind] < fnotch(sta.StaDepth))[0])==0]
+            band = np.flip(band_hz)
             x,y = report_parser(cat,method_report,sort='StaDepth',band=np.flip(band_hz),network=n)
             # x,y = report_parser(cat,method_report,sort='Magnitude',band=np.flip(band_hz),network=None)
             labels,outside_band,yy = [],[],[]
@@ -181,6 +197,9 @@ for method_report,method in zip(reports,methods):
                 k=1
             ax.set_title(b + 's')
             positions = np.arange(len(yy))+1
+
+            yy=[i[~np.isnan(i)] for i in yy]
+
             if axi==2:
                 bplot = ax.boxplot(yy,patch_artist=True,labels=labels,positions=positions)
             else:
@@ -235,7 +254,7 @@ for method_report,method in zip(reports,methods):
         plt.tight_layout()
         figfold = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/Research/RunningNotebooks/znb_images/UpdatedData_1.31.25')
         figfold.mkdir(parents=True,exist_ok=True)
-        figfile = figfold / (icat.iloc[0].Experiment.replace(' ','_') + '.' + n + '.' + method.lower() + '.png')
+        figfile = figfold / ('banded_'+icat.iloc[0].Experiment.replace(' ','_') + '.' + n + '.' + method.lower() + '.png')
         save_tight(figfile,dpi = 600)
         plt.close('all')
 

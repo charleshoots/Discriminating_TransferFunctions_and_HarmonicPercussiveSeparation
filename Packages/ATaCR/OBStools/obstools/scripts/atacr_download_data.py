@@ -376,8 +376,8 @@ def main(args=None):
             print(stanm,"\n"+"*"*60)
             print(stanm,"* Downloading day-long data for key "+stkey +" and day "+str(t1.year)+"."+str(t1.julday))
             print(stanm,"*")
-            print(stanm,"* Channels selected: "+str(args.channels)+' and vertical')
             # Define file names (to check if files already exist)
+            chans = [];[chans.extend(k) for k in [a for a in args.channels]];args.channels=chans
             files={};_=[files.update({c:datapath / (tstamp+'.'+sta.channel+c.replace('P','DH')+'.SAC')}) for c in args.channels]
             if args.evn:
                 files={};_=[files.update({c:datapath / ((t2-2*3600).strftime('%Y.%j.%H.%M')+'.'+sta.channel+c.replace('P','DH')+'.SAC')}) for c in args.channels]
@@ -389,6 +389,8 @@ def main(args=None):
             channels=channels.replace('P','H').replace('HHH','HDH').replace('BHH','BDH').replace('EHH','EDH')
             pressure_channels = ','.join([c for c in channels.split(',') if ('HDH' in c) or ('BDH' in c) or ('EDH' in c)])
             seismic_channels = ','.join([c for c in channels.split(',') if ('HDH' not in c) and ('BDH' not in c) and ('EDH' not in c)])
+            print(f'{stanm} Seismic channels: {seismic_channels}')
+            print(f'{stanm} Pressure channels: {pressure_channels}')
             stp=Stream();sth=Stream()
             if all_exist & (not args.ovr):
                 print(stanm,"*   "+tstamp + "*SAC                                 ")

@@ -75,7 +75,6 @@ archive =  project_path / '_DataArchive'
 plotfolder = project_path / '_FigureArchive' / '_GEN6'
 IRIS_EVENT_LINK = lambda s: f'https://ds.iris.edu/ds/nodes/dmc/tools/event/{s.resource_id.id.split('=')[-1]}'
 
-
 dirs.Plots = plotfolder;dirs.Archive=archive
 dirs.Events_HPS = dirs.Archive / 'HPS_Data' / 'Data'
 dirs.Analysis=dirs.Archive/'Analysis'

@@ -1,12 +1,18 @@
-from imports import *
+from imports import *;
+unpacker=locals().update;unpack=lambda Args,keys=None:[unpacker({k:Args[k]}) for k in [keys if keys is not None else list(Args.keys())][0]]
+
 hps_staquery_output = Path(os.getcwd())/'_DataArchive/HPS_Data/sta_query.pkl'
+Args=AttribDict()
+
+
+
 
 # ---------------------------------------------------------------------------------------------------
 # ============================================ LOAD DATA ===========================================
 # ---------------------------------------------------------------------------------------------------
 ### ===============================================================================
 ## -------------------------------------------------------
-## Step-1: Station Metadata. Step a0 in ML-ATaCR. Always run this.
+## Step-1: Station Metadata. Step a0 in ML-ATaCR. Always run this. Note: This step is implicit and will always run whether you ask for it or not.
 ## Step-2: Download event data. Step a3 in ML-ATaCR.
 ## Step-3: Download day data. Step a2 in ML-ATaCR.
 ## Step-4: Daily Spectra. Step b1 in ML-ATaCR.
@@ -21,72 +27,42 @@ hps_staquery_output = Path(os.getcwd())/'_DataArchive/HPS_Data/sta_query.pkl'
 # catalog = catalog.iloc[np.where(catalog.StaName=='YO.X01')[0][0]:]
 # -----------------------------------------------------------------------------------
 ## =============================================================================== ##
-# ----------------------------------------------------
-# ---SETUP:DOWNLOAD NOISECUT 24HR EVENT TRACES---
-STEPS = [3] #Processing steps
-fork = False;event_mode = True
-Minmag,Maxmag=6.0,8.0
-
-
-# ---SETUP:DEFAULT---
-# STEPS = [1,2,3] #Download steps
-# STEPS = [3,4,5,6,7] #Processing steps
-# fork = False;event_mode = False
-# Minmag,Maxmag=6.0,8.0
-
-
-
-
 # cat = catalog.copy()
-# cat = pd.read_pickle(dirs.Catalogs / 'Catalog_test.pkl')
 cat = pd.read_pickle(dirs.Catalogs / 'Catalog_Test_DensityIncreased.ShalllowIncreased.pkl')
-
-
-
-cleanspectra_flags = '--figQC --figAverage --figCoh --figCross --save-fig'
-dailyspectra_flags='--figQC --figAverage --figCoh --save-fig'
+# cat=cat[cat.StaName.isin(['2D.OBS03','2D.OBS06','7D.G17B','7D.G25B','YL.B09W','YO.X10','Z6.16'])]
+Args.Minmag,Args.Maxmag=6.0,8.0
+Args.cleanspectra_flags = '--figQC --figAverage --figCoh --figCross --save-fig'
+Args.dailyspectra_flags='--figQC --figAverage --figCoh --save-fig'
 ## =============================================================================== ##
 # -----------------------------------------------------------------------------------
-if event_mode:
-    staquery_output = hps_staquery_output
-else:
-    staquery_output = './sta_query.pkl'
-if 1 in STEPS:
-    STEPS.pop(np.where(np.array(STEPS)==1)[0][0])
 
-# event_window = 7200
-event_window = 3600*4
-# channels = 'Z,P,12'
-channels = 'Z'
-ATaCR_Parent = dirs.ATaCR
-days=11
+Args.STEPS = [4,5,6,7]
+Args.fork = False
+Args.event_mode = True
+Args.event_window = 3600*4 #7200
+# Args.channels = 'Z,P,12'
+# Args.channels = 'P,12'
+Args.channels = 'Z'
+Args.ATaCR_Parent = dirs.ATaCR
+Args.days=11
+Args.ovr=True
 
+cat = cat[cat.StaName.isin(['7D.G17B', '7D.G25B'])]
 
-
-for STEP in STEPS:
+# -----# -----# -----# -----# -----# -----# -----# -----# -----
+if Args.event_mode:Args.staquery_output = hps_staquery_output
+else:Args.staquery_output = './sta_query.pkl'
+if 1 in Args.STEPS:Args.STEPS.pop(np.where(np.array(Args.STEPS)==1)[0][0])
+for STEP in Args.STEPS:
+    Args.STEP = [STEP]
     for ii,Station in enumerate(cat.iloc):
-        ## StaFolder = Path(dirs['Py_RawDayData']) / Station.StaName
-        ## Files = list(StaFolder.glob('*.SAC'))
-        staname = Station.StaName
-        subfolder = staname + '/'
+        Args.log_prefix=Station.StaName
         print('[//////////////////////////]'*2)
-        print('----Station: ' + staname +  ' (' + str(ii+1) + ' of ' + str(len(cat)) + ')')
-        icatalog = Station.to_frame().T
+        print('----Station: ' + Station.StaName +  ' (' + str(ii+1) + ' of ' + str(len(cat)) + ')')
+        Args.catalog = Station.to_frame().T
         print('[//////////////////////////]'*2)
-        message = f'Station {ii+1}/{len(cat)}'
-        ObsQA.TOOLS.io.Run_ATaCR(icatalog,
-        fork=fork,
-        message=message,
-        channels=channels,
-        staquery_output=staquery_output,
-        event_mode=event_mode,
-        ATaCR_Parent = ATaCR_Parent,
-        STEPS=[STEP],log_prefix=Station.StaName,
-        Minmag=Minmag,Maxmag=Maxmag,
-        event_window=event_window,
-        cleanspectra_flags=cleanspectra_flags,
-        dailyspectra_flags=dailyspectra_flags,
-        days=days)
+        Args.message = f'Station {ii+1}/{len(cat)}'
+        ObsQA.TOOLS.io.Run_ATaCR(Args)
 
 ## =============================================================================== ## =============================================================================== ##
 ## =============================================================================== ## =============================================================================== ##

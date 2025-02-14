@@ -1,3 +1,5 @@
+import os,sys;os.chdir('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/Research/Notebooks')
+sys.path.append('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/Research/Notebooks')
 from imports import *
 from modules import *
 from quick_class import *
@@ -9,17 +11,22 @@ from obspy.core.util.attribdict import AttribDict as attr
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 cat = catalog.copy()
-
-
-tf,method = '','hps';CorrectedFold=dirs.Events_HPS/'corrected';UncorrectedFold=dirs.Events_HPS/'rmresp'
-# tf,method = 'ZP-21','atacr';CorrectedFold = dirs.Events/'corrected';UncorrectedFold = dirs.Events/'rmresp'
-
 nets = cat.Network.unique()
 savefolder = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/Research/_DataArchive/Analysis/NetworkCoherences')
+
+
+
 ovr = True
 
+# tf,method = '','hps';CorrectedFold=dirs.Events_HPS/'corrected';UncorrectedFold=dirs.Events_HPS/'rmresp'
+tf,method = 'ZP-21','atacr';CorrectedFold = dirs.Events/'corrected';UncorrectedFold = dirs.Events/'rmresp'
+# ------------------------------------------------------------------------------------------------
 # coh_sets=[['HZ','HDH'],['HDH','HZ'],['HZ','HZ'],['H1','H1'],['H2','H2']]#Every auto-coherence, only useful for NoiseCut
 coh_sets=[['HZ','HZ'],['HZ','HDH'],['HZ','H1'],['HZ','H2']]#Defaults: ZZ,ZP,Z1,Z2
+
+if method.lower()=='hps':coh_sets.extend([['HDH','HDH'],['H1','H1'],['H2','H2']])
+# ------------------------------------------------------------------------------------------------
+
 
 for corrected_comp,raw_comp in coh_sets:
     coh_report = attr()

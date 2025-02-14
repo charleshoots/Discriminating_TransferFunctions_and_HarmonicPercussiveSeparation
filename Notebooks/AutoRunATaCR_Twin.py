@@ -46,12 +46,8 @@ days=11
 ovr=True
 for STEP in STEPS:
     for ii,Station in enumerate(cat.iloc):
-        ## StaFolder = Path(dirs['Py_RawDayData']) / Station.StaName
-        ## Files = list(StaFolder.glob('*.SAC'))
-        staname = Station.StaName
-        subfolder = staname + '/'
         print('[//////////////////////////]'*2)
-        print('----Station: ' + staname +  ' (' + str(ii+1) + ' of ' + str(len(cat)) + ')')
+        print('----Station: ' + Station.StaName +  ' (' + str(ii+1) + ' of ' + str(len(cat)) + ')')
         icatalog = Station.to_frame().T
         print('[//////////////////////////]'*2)
         message = f'Station {ii+1}/{len(cat)}'
