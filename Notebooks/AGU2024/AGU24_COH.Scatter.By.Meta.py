@@ -12,7 +12,7 @@ Markers_Seismometers=np.unique([sta.Deployment.Seismometer for sta in catalog.il
 Comp='ZZ'
 Archive=dirs.Archive
 AVG=False
-xmethod = 'Noisecut'
+xmethod = 'NoiseCut'
 ymethod = 'ATaCR'
 
 magwin=[6.0,8.0]
@@ -28,13 +28,35 @@ fig,axes = plt.subplots(nrows=len(fbands),ncols=1,figsize=(11,13))#;axes=np.atle
 # ax=axes[0]
 bi=0
 
+get_reports(Comp,catalog,Archive,dirs,AVG=True,methods=['ATaCR','NoiseCut'])
+
 colors=np.array([instrument_colors[sta.Deployment.Instrument_Design] for sta in catalog.iloc])
 markers=np.array([seismometer_marker[sta.Deployment.Seismometer] for sta in catalog.iloc])
 # # -----
-# ylabel='Station depth';meta_title = 'by deployment depth';meta_i=0;ylim=[-5,6200];yunit='Station depth, m'
-ylabel='Event magnitude';meta_title = 'by event magnitude';meta_i=1;ylim=[5.8,8.1];yunit='Magnitude, M'
+ylabel='Station depth';meta_title = 'by deployment depth';meta_i=0;ylim=[-5,6200];yunit='Station depth, m'
+# ylabel='Event magnitude';meta_title = 'by event magnitude';meta_i=1;ylim=[5.8,8.1];yunit='Magnitude, M'
 # ylabel='Event distance';meta_title = 'by event distance';meta_i=2;ylim=[28,123];yunit='Event distance, degrees'
-Report = get_reports(Comp,catalog,Archive,AVG=AVG)
+Report = get_reports(Comp,catalog,Archive,dirs,AVG=True,methods=['ATaCR','NoiseCut'])
+
+f=Report.f
+# if ymethod=='ATaCR':
+    # if Comp=='ZP':
+    #     for stanm,stadepth in zip(catalog.StaName,catalog.StaDepth):
+    #         Y[stanm].coh[:,f>fnotch(stadepth)]=1.0
+R=AttribDict()
+for m in [i for i in list(Report.keys()) if not i=='f']:
+    R[m]=AttribDict()
+    for n in [i for i in list(Report[m].keys()) if not i=='f']:
+        for s in list(Report[m][n].keys()):
+            stanm=f'{n[1:]}.{s}'
+            R[m][stanm]=AttribDict()
+            # if AVG:R[m][stanm].coh=np.mean(Report[m][n][s].coh,axis=0)
+            # else:
+            R[m][stanm].coh=Report[m][n][s].coh
+            R[m][stanm].events=Report[m][n][s].events
+
+Report = R
+Report.f = f
 f=Report.f
 X=Report[xmethod]
 Y=Report[ymethod]
@@ -107,5 +129,5 @@ fig.suptitle(f'{ylabel}',fontweight='bold',fontsize=30,y=1.01)
 
 plt.tight_layout()
 metaname = ylabel.replace(' ','_').replace('(','').replace(')','').replace(',','_').replace('°','')
-save_tight(dirs.Plots/'UpdatedData_1.31.25'/f'__AGU__Meta.{metaname}.Scatter.{xmethod}.{ymethod}.{Comp}.NotchFilters.png',fig,dpi=700)
+save_tight(dirs.P01.S05/f'02.28.25.Meta.{metaname}.Scatter.{xmethod}.{ymethod}.{Comp}.NotchFilters.png',fig,dpi=700)
 # [e.magnitudes[0].mag for e in catalog.loc[stanm].Events]
