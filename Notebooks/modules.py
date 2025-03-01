@@ -17,9 +17,12 @@ sys.path.insert(0, str(project_path / 'Packages' / 'ATaCR'/ 'OBStools'))
 sys.path.insert(0, str(project_path / 'Notebooks'))
 # ____________________________________________________________________________________
 # ||||||||||||||||||||||||||||||||||| BASIC PLOT STUFF |||||||||||||||||||||||||||||||
+from obspy.core import AttribDict
 import matplotlib.pyplot as plt;import matplotlib.image as img
 import matplotlib.gridspec as gridspec;import matplotlib
 from cmcrameri import cm
+cm.Categorical=AttribDict({k:cm.__dict__['batlow'] for k in cm._cmap_names_categorical})
+cm.Sequential=AttribDict({k:cm.__dict__['batlow'] for k in cm._cmap_names_sequential})
 import matplotlib.colors as mcolors;import matplotlib.cm as cm2
 import matplotlib as mpl
 # from matplotlib.collections import PatchCollection

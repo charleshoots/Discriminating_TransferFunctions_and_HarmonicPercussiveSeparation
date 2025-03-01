@@ -27,6 +27,7 @@ import logging
 import matplotlib.pyplot as plt
 from NoiseCut.Source.src import *
 from IPython.display import clear_output
+from modules import *
 # from modules import modules
 import obstools
 from obstools.scripts import comply_calculate, atacr_clean_spectra, atacr_correct_event, atacr_daily_spectra, atacr_download_data, atacr_download_event, atacr_transfer_functions
@@ -855,20 +856,20 @@ def DownloadEvents(catalog=None,ATaCR_Parent=None,netsta_names=None,Minmag=6.3,M
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def DayNoiseWhileLoop(catalog=None,NoiseFolder=None,ATaCR_Parent=None,days=10,attempts=50,seed='MESSI_22FIFA_WORLD_CUP!'):
+def DayNoiseWhileLoop(catalog=None,NoiseFolder=None,ATaCR_Parent=None,days=10,attempts=50,seed='MESSI_22FIFA_WORLD_CUP!',staquery_output = './sta_query.pkl',ovr=False,channels='Z,P,12'):
         # [exec(f'{k}=args.{k}') for k in list(args.keys())]
+        ndays = lambda fold: min([len(list(fold.glob(f'*{c}.SAC'))) for c in ['Z','1','2','H']])
         NoiseFolder = Path(NoiseFolder)
         cat = catalog.copy()
+        from modules import load_pickle
         stafolders = [NoiseFolder / s for s in cat.StaName]
-
-        if isinstance(seed,str):
-                seed = int(''.join([str(ord(a)) for a in seed]))
-        else:
-                seed = int(str(seed).replace('.',''))
+        load_sta_atacrnoise = lambda stanm: load_pickle(list((ATaCR_Parent/'AVG_STA'/Station.StaName).glob('*.pkl'))[0])
+        # gooddays = load_sta_atacrnoise(stanm).gooddays
+        if isinstance(seed,str):seed = int(''.join([str(ord(a)) for a in seed]))
+        else:seed = int(str(seed).replace('.',''))
         for ista,cstaf in enumerate(stafolders):
                 print('--<>--'*20)
-                nfiles = len([f for f in cstaf.glob('*Z.SAC')])
-                #     klj = hjkh
+                nfiles = len(list(cstaf.glob('*Z.SAC')))
                 nstart = nfiles
                 print('Folder: [' + cstaf.name + '] (' + str(ista) + '/' + str(len(stafolders)) + ')'  + '  ||  Current day count: ' + str(nfiles))
                 queries = 0
@@ -877,26 +878,37 @@ def DayNoiseWhileLoop(catalog=None,NoiseFolder=None,ATaCR_Parent=None,days=10,at
                                 queries+=1
                                 seed*=2
                                 query_day_len = days - nfiles
-                                icatalog = cat[cat.Station==str(cstaf).split('/')[-1].split('.')[-1]]
-                                print('Attempt: ' + str(queries) + ', Days needed: ' + str(query_day_len))
-                                ObsQA.TOOLS.io.DownloadDayNoise(icatalog, randomloop=False, ATaCR_Parent = NoiseFolder.parent,log_prefix=icatalog.StaName.iloc[0],days=query_day_len,seed=seed)
-                                nfiles = len([f for f in cstaf.glob('*Z.SAC')])
-                                # jk = jkgf
-                                if nfiles<days:
-                                        print(' || Day requirements not satisfied. Attempting new seed. ||')
-                                else:
-                                        print('[' + str(ista) + '/' + str(len(stafolders)) + '][DAY REQUIREMENTS SATISFIED] | Days gained: ' + str(nfiles-nstart))
-                else:
-                        print('[' + str(ista) + '/' + str(len(stafolders)) + '][DAY REQUIREMENTS ALREADY SATISFIED] | Skipping.')
-                if (nfiles<days) & (queries>=attempts):
-                        print('Attempt ' + str(attempts) + '/' + str(attempts) + '. Maximum number of attempts exceeded. Skipping station.')
+                                icatalog = cat[cat.StaName==cstaf.name]
+                                Station=icatalog.iloc[0]
+                                print('__'*50)
+                                print(' ')
+                                print(f'Attempt:{str(queries)} , Days needed:{str(query_day_len)}')
+                                print(' ')
+                                print('__'*50)
+
+                                # Random days
+                                baddays = sum([not i for i in load_sta_atacrnoise(Station.StaName).gooddays])
+                                nfiles=ndays(cstaf)-baddays
+                                nget=days-nfiles
+                                if nfiles>0:
+                                        Starts,Ends = ObsQA.TOOLS.io.randomdays(Station.Start,Station.End,seed=seed,days=nget)
+                                        Addendum = [Station.Start + datetime.timedelta(days=90) + datetime.timedelta(days=int((Station.End - Station.Start + datetime.timedelta(days=90)).days/5))*i for i in range(4)]
+                                        Starts.extend([d.strftime('%Y-%m-%dT00:00:00.000000Z') for d in Addendum])
+                                        Starts = list(np.unique(Starts))
+                                        Ends = [(UTCDateTime(d) + 3600*24).strftime('%Y-%m-%dT00:00:00.000000Z') for d in Starts]
+                                        run_atacr_daynoise(Station,Starts,Ends,staquery_output=staquery_output,event_mode=False,ovr=False)
+                                        # ObsQA.TOOLS.io.DownloadDayNoise(icatalog, randomloop=False, ATaCR_Parent = NoiseFolder.parent,log_prefix=icatalog.StaName.iloc[0],days=query_day_len,seed=seed)
+                                nfiles=ndays(cstaf)-baddays
+                                if nfiles<days:print(' || Day requirements not satisfied. Attempting new seed. ||')
+                                else:print('[' + str(ista) + '/' + str(len(stafolders)) + '][DAY REQUIREMENTS SATISFIED] | Days gained: ' + str(nfiles-nstart))
+                else:print('[' + str(ista) + '/' + str(len(stafolders)) + '][DAY REQUIREMENTS ALREADY SATISFIED] | Skipping.')
+                if (nfiles<days) & (queries>=attempts):print('Attempt ' + str(attempts) + '/' + str(attempts) + '. Maximum number of attempts exceeded. Skipping station.')
         failedattempts = [(cstaf.parts[-1], len([f for f in cstaf.glob('*Z.SAC')])) for cstaf in stafolders if len([f for f in cstaf.glob('*Z.SAC')])<days]        
         print('Complete')
         if len(failedattempts)>0:
                 print('Stations that still do not meet requirements:')
                 print(failedattempts)
-        else:
-                print('All station folders now meet day requirements')
+        else:print('All station folders now meet day requirements')
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -945,26 +957,30 @@ def DownloadDayNoise(catalog=None,days=[],message=None,randomloop=True,end_delta
                 ObsQA.TOOLS.io.build_staquery(d=Station.to_frame().T,staquery_output = staquery_output,chan=chan,ATaCR_Parent = ATaCR_Parent)
                 if randomloop & isinstance(days,int) & (not event_mode):
                         NoiseFolder = Path(ATaCR_Parent) / 'Data' / 'raw'
-                        ObsQA.TOOLS.io.DayNoiseWhileLoop(Station.to_frame().T,NoiseFolder,ATaCR_Parent,days=days,attempts=100)
+                        ObsQA.TOOLS.io.DayNoiseWhileLoop(Station.to_frame().T,NoiseFolder,ATaCR_Parent,days=days,attempts=100,ovr=ovr,channels=channels)
                 else:
-                        for j,(NoiseStart,NoiseEnd) in enumerate(zip(Starts,Ends)):
-                                print('<||>'*30)
-                                # print(staname + ' Station ' +str(i+1) + '/' + str(len(catalog)) + ' - Day ' + str(j+1) + '/' + str(len(Starts)),flush=True)
-                                if event_mode:
-                                        print('____'*10);print('>>'*15 +'|| 24-hr EVENT MODE ||'+'<<'*15)
-                                        args = [str(staquery_output),'--start={}'.format(NoiseStart), '--end={}'.format(NoiseEnd),'--channels={}'.format(channels),'--evn']
-                                else:
-                                        args = [str(staquery_output),'--start={}'.format(NoiseStart), '--end={}'.format(NoiseEnd),'--channels={}'.format(channels)]
-                                if ovr:args.append('--overwrite')
-                                status = f'|| [STATUS] | {Station.StaName} | Day:{j+1}/{len(Starts)} | '
-                                if message:status+=message
-                                print(status)
-                                print('____'*10)
-                                atacr_download_data.main(atacr_download_data.get_daylong_arguments(args))
-                                clear_output(wait=False);os.system('cls' if os.name == 'nt' else 'clear')
+                        run_atacr_daynoise(Station,Starts,Ends,staquery_output=staquery_output,event_mode=event_mode,ovr=ovr)
         print(' ')
         print('----Noise Download Complete----')
         # sys.stdout = original
+
+def run_atacr_daynoise(Station,Starts,Ends,channels='Z,P,12',staquery_output='./sta_query.pkl',event_mode=False,ovr=False,message=None):
+        for j,(NoiseStart,NoiseEnd) in enumerate(zip(Starts,Ends)):
+                print('<||>'*30)
+                # print(staname + ' Station ' +str(i+1) + '/' + str(len(catalog)) + ' - Day ' + str(j+1) + '/' + str(len(Starts)),flush=True)
+                if event_mode:
+                        print('____'*10);print('>>'*15 +'|| 24-hr EVENT MODE ||'+'<<'*15)
+                        args = [str(staquery_output),'--start={}'.format(NoiseStart), '--end={}'.format(NoiseEnd),'--channels={}'.format(channels),'--evn']
+                else:
+                        args = [str(staquery_output),'--start={}'.format(NoiseStart), '--end={}'.format(NoiseEnd),'--channels={}'.format(channels)]
+                if ovr:args.append('--overwrite')
+                status = f'|| [STATUS] | {Station.StaName} | Day:{j+1}/{len(Starts)} | '
+                if message:status+=message
+                print(status)
+                print('____'*10)
+                atacr_download_data.main(atacr_download_data.get_daylong_arguments(args))
+                clear_output(wait=False);os.system('cls' if os.name == 'nt' else 'clear')
+
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1205,42 +1221,42 @@ def Run_ATaCR(args):
         dirs = ObsQA.TOOLS.io.dir_libraries(os.getcwd())
         # jkl = jklj
         # a = q
-        if 1 in args.STEPS:
+        if 1 in args.STEP:
                 print('Step 1/7 - BEGIN: Station Metadata')
                 curargs = dict({k:args[k] for k in fv(build_staquery) if np.isin(k,list(args.keys()))})
                 ObsQA.TOOLS.io.build_staquery(**curargs)
                 print('Step 1/7 - COMPLETE: Station Metadata')
-        if 2 in args.STEPS:
+        if 2 in args.STEP:
                 print('Step 2/7 - BEGIN: Download Event Data')
                 args.logoutput_subfolder = str(dirs.Logs) + '/2_7'
                 curargs = dict({k:args[k] for k in fv(DownloadEvents) if np.isin(k,list(args.keys()))})
                 ObsQA.TOOLS.io.DownloadEvents(**curargs)
                 print('Step 2/7 - COMPLETE: Download Event Data')
-        if 3 in args.STEPS:
+        if 3 in args.STEP:
                 print('Step 3/7 - BEGIN: Download Day Data')
                 args.logoutput_subfolder = str(dirs.Logs) + '/3_7'
                 curargs = dict({k:args[k] for k in fv(DownloadDayNoise) if np.isin(k,list(args.keys()))})
                 ObsQA.TOOLS.io.DownloadDayNoise(**curargs)
                 print('Step 3/7 - COMPLETE: Download Day Data')
-        if 4 in args.STEPS:
+        if 4 in args.STEP:
                 print('Step 4/7 - BEGIN: Quality Control Noise Data')
                 args.logoutput_subfolder = str(dirs.Logs) + '/4_7'
                 curargs = dict({k:args[k] for k in fv(DailySpectra) if np.isin(k,list(args.keys()))})
                 ObsQA.TOOLS.io.DailySpectra(**curargs)
                 print('Step 4/7 - COMPLETE: Quality Control Noise Data')
-        if 5 in args.STEPS:
+        if 5 in args.STEP:
                 print('Step 5/7 - BEGIN: Spectral Average of Noise Data')
                 args.logoutput_subfolder = str(dirs.Logs) + '/5_7'
                 curargs = dict({k:args[k] for k in fv(CleanSpectra) if np.isin(k,list(args.keys()))})
                 ObsQA.TOOLS.io.CleanSpectra(**curargs)
                 print('Step 5/7 - COMPLETE: Spectral Average of Noise Data')
-        if 6 in args.STEPS:
+        if 6 in args.STEP:
                 print('Step 6/7 - BEGIN: Calculate Transfer Functions')
                 args.logoutput_subfolder = str(dirs.Logs) + '/6_7'
                 curargs = dict({k:args[k] for k in fv(TransferFunctions) if np.isin(k,list(args.keys()))})
                 ObsQA.TOOLS.io.TransferFunctions(**curargs)
                 print('Step 6/7 - COMPLETE: Calculate Transfer Functions')
-        if 7 in args.STEPS:
+        if 7 in args.STEP:
                 print('Step 7/7 - BEGIN: Correct Event Data')
                 args.logoutput_subfolder = str(dirs.Logs) + '/7_7'
                 curargs = dict({k:args[k] for k in fv(CorrectEvents) if np.isin(k,list(args.keys()))})

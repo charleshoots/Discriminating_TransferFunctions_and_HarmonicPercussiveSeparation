@@ -29,6 +29,7 @@ import stdb
 from obspy.clients.fdsn import Client
 from obspy import Stream, UTCDateTime
 from obstools.atacr import utils
+atacr_status = utils.atacr_status
 from pathlib import Path
 
 from argparse import ArgumentParser
@@ -286,6 +287,9 @@ def get_daylong_arguments(argv=None):
 
 
 def main(args=None):
+    status=lambda stage=None,note=None:atacr_status(step,stanm,stage,note)
+    step='DownloadNoise'
+    # stage=None;note=None;status()
     if args is None:
         # Run Input Parser
         args = get_daylong_arguments()
@@ -312,10 +316,11 @@ def main(args=None):
         # Extract station information from dictionary
         sta = db[stkey]
         stanm = '['+'.'.join([sta.network, sta.station])+']'
+        status()
         # Define path to see if it exists
         datapath = Path('Data')/'raw'/stkey
         if not datapath.is_dir():
-            print(stanm,'\nPath to '+str(datapath)+' doesn`t exist - creating it')
+            stage=None;note=None;status(note=f'Path to {str(datapath)} doesn`t exist - creating it')
             datapath.mkdir(parents=True)
         # Establish client
         if len(args.UserAuth) == 0:
@@ -344,28 +349,7 @@ def main(args=None):
                 tlocs[il] = "--"
         sta.location = tlocs
         # Update Display
-        print(stanm,"\n|===============================================|")
-        print(stanm,"|===============================================|")
-        print(stanm,"|                   {0:>8s}                    |".format(
-            sta.station))
-        print(stanm,"|===============================================|")
-        print(stanm,"|===============================================|")
-        print(stanm,"|  Station: {0:>2s}.{1:5s}                            |".format(
-            sta.network, sta.station))
-        print(stanm,"|      Channel: {0:2s}; Locations: {1:15s}  |".format(
-            sta.channel, ",".join(tlocs)))
-        print(stanm,"|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
-            sta.longitude, sta.latitude))
-        print(stanm,"|      Start time: {0:19s}          |".format(
-            sta.startdate.strftime("%Y-%m-%d")))
-        print(stanm,"|      End time:   {0:19s}          |".format(
-            sta.enddate.strftime("%Y-%m-%d")))
-        print(stanm,"|-----------------------------------------------|")
-        print(stanm,"| Searching day-long files:                     |")
-        print(stanm,"|   Start: {0:19s}                  |".format(
-            tstart.strftime("%Y-%m-%d")))
-        print(stanm,"|   End:   {0:19s}                  |".format(
-            tend.strftime("%Y-%m-%d")))
+        status(note=f'Channels:{sta.channel},S:{tstart.strftime("%Y-%m-%d")},E:{tend.strftime("%Y-%m-%d")}')
         # Split into 24-hour long segments
         dt = 3600.*24.
         t1 = tstart
@@ -373,72 +357,67 @@ def main(args=None):
         while t2 <= tend:
             # Time stamp
             tstamp = str(t1.year).zfill(4)+'.'+str(t1.julday).zfill(3)+'.'
-            print(stanm,"\n"+"*"*60)
-            print(stanm,"* Downloading day-long data for key "+stkey +" and day "+str(t1.year)+"."+str(t1.julday))
-            print(stanm,"*")
+            status(note=f'Day {str(t1.year)}.{str(t1.julday)}')
             # Define file names (to check if files already exist)
             chans = [];[chans.extend(k) for k in [a for a in args.channels]];args.channels=chans
             files={};_=[files.update({c:datapath / (tstamp+'.'+sta.channel+c.replace('P','DH')+'.SAC')}) for c in args.channels]
             if args.evn:
                 files={};_=[files.update({c:datapath / ((t2-2*3600).strftime('%Y.%j.%H.%M')+'.'+sta.channel+c.replace('P','DH')+'.SAC')}) for c in args.channels]
             else:
-                files={};_=[files.update({c:datapath / (tstamp+'.'+sta.channel+c.replace('P','DH'))}) for c in args.channels]
+                files={};_=[files.update({c:datapath / (tstamp+'.'+sta.channel+c.replace('P','DH')+'.SAC')}) for c in args.channels]
             all_exist = np.all([files[k].exists() for k in files.keys()])
             chan_fstr = lambda chan,comp: f'E{chan.upper()}{comp.upper()},H{chan.upper()}{comp.upper()},B{chan.upper()}{comp.upper()}'
             channels=','.join([chan_fstr(sta.channel,c.replace('P','H')) for c in [c for c in ''.join(args.channels)]])
             channels=channels.replace('P','H').replace('HHH','HDH').replace('BHH','BDH').replace('EHH','EDH')
             pressure_channels = ','.join([c for c in channels.split(',') if ('HDH' in c) or ('BDH' in c) or ('EDH' in c)])
             seismic_channels = ','.join([c for c in channels.split(',') if ('HDH' not in c) and ('BDH' not in c) and ('EDH' not in c)])
-            print(f'{stanm} Seismic channels: {seismic_channels}')
-            print(f'{stanm} Pressure channels: {pressure_channels}')
+            status(note=f'Pressure:{pressure_channels}  Seismic:{seismic_channels}')
             stp=Stream();sth=Stream()
             if all_exist & (not args.ovr):
-                print(stanm,"*   "+tstamp + "*SAC                                 ")
-                print(stanm,"*   -> Files already exist, continuing            ")
+                status(note=f'{tstamp} File exists, continuing')
                 t1 += dt;t2 += dt
                 continue
             if len(seismic_channels):
                 try:
-                    print(stanm,"*   "+tstamp + "*SAC                                 ")
-                    print(stanm,"*   -> Downloading Seismic data... ")
+                    stage='[SEISMIC]'
+                    status(stage,note=f'{tstamp} Downloading')
                     sth = client.get_waveforms(network=sta.network, station=sta.station,location=sta.location[0],
                     channel=seismic_channels,
                     starttime=t1, endtime=t2,
                     minimumlength=(24*60*60)-1,
                     attach_response=True) #minimumlength=24*3600-1 <---Add to client.get_waveforms
-                    print(stanm,"*      ...done")
+                    status(stage='[SEISMIC]',note="*      ...done")
                 except Exception:
-                    print(stanm," Error: Unable to download ?H? components - " + "continuing")
+                    status(stage,note=" Error: Unable to download ?H? components - : continuing")
                     t1 += dt
                     t2 += dt
                     continue
             if len(pressure_channels):
                 try:
-                    print(stanm,"*   "+tstamp + "*SAC                                 ")
-                    print(stanm,"*   -> Downloading Pressure data... ")
+                    stage='[PRESSURE]'
+                    status(stage,note=f'{tstamp} Downloading')
                     stp = client.get_waveforms(network=sta.network, station=sta.station,location=sta.location[0],
                     channel=pressure_channels,
                     starttime=t1, endtime=t2,
                     minimumlength=(24*60*60)-1,
                     attach_response=True) #minimumlength=24*3600-1 <---Add to client.get_waveforms
-                    print(stanm,"*      ...done")
+                    status(stage='[PRESSURE]',note="*      ...done")
                 except Exception:
-                    print(stanm," Error: Unable to download ?H? components - " + "continuing")
+                    status(stage,note=" Error: Unable to download ?H? components - : continuing")
                     t1 += dt
                     t2 += dt
                     continue
                 if len(stp) > 1:
-                    print(stanm,"WARNING: There are more than one ?DH trace")
-                    print(stanm,"*   -> Keeping the highest sampling rate")
-                    print(stanm,"*   -> Renaming channel to " + sta.channel[0]+"DH")
+                    status(stage,note=f'WARNING: There are more than one ?DH trace, Keeping the highest sampling rate,Renaming channel to {sta.channel[0]}DH')
                     if stp[0].stats.sampling_rate >stp[1].stats.sampling_rate:stp = Stream(traces=stp[0])
                     else:stp = Stream(traces=stp[1])
             if len(sth)>0:
-                sth.detrend('demean')
+                sth.detrend('demean');sth.detrend('linear')
                 if not sth[0].stats.sampling_rate==args.new_sampling_rate:
                     sth.filter('lowpass', freq=0.5*args.new_sampling_rate,corners=2, zerophase=True)
                     sth.resample(args.new_sampling_rate)
             if len(stp)>0:
+                stp.detrend('demean');stp.detrend('linear')
                 if not stp[0].stats.sampling_rate==args.new_sampling_rate:
                     stp.filter('lowpass', freq=0.5*args.new_sampling_rate,corners=2, zerophase=True)
                     stp.resample(args.new_sampling_rate)
@@ -446,15 +425,15 @@ def main(args=None):
             all_channels_received = len(st)==len(''.join(args.channels))
             # Check streams
             is_ok, st = utils.QC_streams(t1, t2, st)
-            if not is_ok:print(stanm,'QC_Streams says "not ok"...continuing');t1 += dt;t2 += dt;continue
-            if not all_channels_received:t1 += dt;t2 += dt;print(stanm,"Missing components. Skipping day.");continue
+            if not is_ok:status(note='QC_Streams says "not ok"...continuing');t1 += dt;t2 += dt;continue
+            if not all_channels_received:t1 += dt;t2 += dt;status("Missing components. Skipping day.");continue
             # Extract traces - P
             st_sac = Stream()
             if len(st.select(component='H')):
                 fileP=files['P']
                 trP = st.select(component='H')[0]
                 trP = utils.update_stats(trP, sta.latitude, sta.longitude, sta.elevation,sta.channel[0]+'DH')
-                print(stanm,'Saving: ' + str(fileP))
+                status(note='Saving: ' + str(fileP))
                 trP.write(str(fileP), format='SAC')
                 st_sac+=trP
             if len(st.select(component='Z')):
@@ -462,22 +441,23 @@ def main(args=None):
                 # Extract traces - Z
                 trZ = st.select(component='Z')[0]
                 trZ = utils.update_stats(trZ, sta.latitude, sta.longitude, sta.elevation,sta.channel+'Z')
-                print(stanm,'Saving: ' + str(fileZ))
+                status(note='Saving: ' + str(fileZ))
                 trZ.write(str(fileZ), format='SAC')
+                
                 st_sac+=trZ
             # Extract traces - H
             if len(st.select(component='1')):
                 file1=files['1']
                 tr1 = st.select(component='1')[0]
                 tr1 = utils.update_stats(tr1, sta.latitude, sta.longitude, sta.elevation,sta.channel+'1')
-                print(stanm,'Saving: ' + str(file1))
+                status(note='Saving: ' + str(file1))
                 tr1.write(str(file1), format='SAC')
                 st_sac+=tr1
             if len(st.select(component='2')):    
                 file2=files['2']
                 tr2 = st.select(component='2')[0]
                 tr2 = utils.update_stats(tr2, sta.latitude, sta.longitude, sta.elevation,sta.channel+'2')
-                print(stanm,'Saving: ' + str(file2))
+                status(note='Saving: ' + str(file2))
                 tr2.write(str(file2), format='SAC')
                 st_sac+=tr2
             inventory_file = datapath / (datapath.name + '_inventory.xml')

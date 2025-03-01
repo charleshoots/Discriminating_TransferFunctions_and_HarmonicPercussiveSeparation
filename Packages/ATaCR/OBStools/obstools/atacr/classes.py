@@ -590,6 +590,7 @@ class DayNoise(object):
                 for ii, tmp in enumerate(indwin):
                     ind = np.copy(indwin)
                     ind = np.delete(ind, ii)
+                    ind = np.delete(ind,np.where(np.sum(np.isinf(dsl[:,ind]),axis=0)>0)[0])
                     normvar[ii] = norm(np.std(dsl[:, ind], axis=1), ord=2)
                 ubernorm[ind_u, :] = np.median(normvar) - normvar
 
@@ -610,7 +611,6 @@ class DayNoise(object):
                 plt.show()
             else:
                 plt.close('all')
-
             kill = penalty > tol*np.std(penalty)
             if np.sum(kill) == 0:
                 self.goodwins = goodwins

@@ -71,10 +71,10 @@ def save_tight(filename,fig=None,dpi=200,format=None):
         # plt.gca().yaxis.set_major_locator(plt.NullLocator())
         if fig is None:
                 plt.savefig(filename, bbox_inches = 'tight',pad_inches = 0.05,dpi=dpi,format=format)
-                print('Complete')
+                # print('Complete')
         else:
                 fig.savefig(filename, bbox_inches = 'tight',pad_inches = 0.05,dpi=dpi,format=format)
-                print('Complete')
+                # print('Complete')
 def write_pickle(file,var):
     import pickle
     with open(str(file), 'wb') as handle:
@@ -118,7 +118,43 @@ def get_event_list(stanm,evdir,evmeta,tf = 'sta.ZP-21',mirror_fold=None):
     eind = [[np.intersect1d(events,[e.Name for e in evmeta],return_indices=True)[1]][0],[np.intersect1d(events,[e.Name for e in evmeta],return_indices=True)[2]][0]]
     evmeta = Catalog([evmeta[e] for e in eind[1]]);events = [events[e] for e in eind[0]]
     return evmeta
-def get_station_events_hps(stanm,evdir,type='stream',tf = '',mirror_fold=None,evmeta=None,additional_chans=['H1','H2','HDH']):
+
+def load_and_trim(hpsev_fold,stanm,ev,tlen,additional_chans,atacrevfold,label,tf=''):
+    raw = Stream([load_sac(hpsev_fold /'rmresp'/stanm/(ev.Name + '.'+c+'.SAC'),rmresp=False) for c in ['HZ']])
+    raw.trim(ev.origins[0].time,ev.origins[0].time+tlen,fill_value=0)
+    clear_output(wait=False)
+    raw.taper(.001)
+    if len(additional_chans)>0:
+        raw2 = Stream([load_sac(atacrevfold / 'rmresp'/stanm/(f'{ev.Name}.{c}.SAC'),rmresp=False) for c in additional_chans])
+        clear_output(wait=False)
+        raw2.trim(ev.origins[0].time,ev.origins[0].time+tlen,fill_value=0)
+        trim_discrepancy = min([len(raw[0].data),min([len(r.data) for r in raw2])])
+        for r in raw2:r.data=r.data[:trim_discrepancy]
+        raw+=raw2
+    for i in range(len(raw)):raw[i].stats.location='Raw'
+    corrected=Stream(load_sac(hpsev_fold /  'corrected' / stanm/'.'.join([stanm,ev.Name,tf]),rmresp=False))
+    corrected+= Stream([raw.select(channel=c)[0].copy() for c in ['*1','*2','*H']]).copy()
+    clear_output(wait=False)
+    corrected.trim(raw[0].stats.starttime,raw[0].stats.endtime,fill_value=0)
+    corrected.taper(.001)
+    trim_discrepancy = min([min([len(ii.data) for ii in raw]),min([len(i.data) for i in corrected])])
+    for c in corrected:c.data=c.data[:trim_discrepancy]
+    for r in raw:r.data=r.data[:trim_discrepancy]
+    for i in range(len(corrected)):corrected[i].stats.location = 'Corrected.'+label
+    # ++++++++++++++++++++++++++++++++++++++++++
+    return corrected,raw
+
+def add_metrics(corrected,raw):
+    RtrZ=raw.select(channel='*Z')[0].copy()
+    CtrZ=corrected.select(channel='*Z')[0].copy()
+    RtrZ.Metrics=OBSM.Metrics(tr1=raw.select(channel='*1')[0].copy(),tr2=raw.select(channel='*2')[0].copy(),trP=raw.select(channel='*H')[0].copy(),trZ=raw.select(channel='*Z')[0].copy())
+    CtrZ.Metrics = OBSM.Metrics(tr1=corrected.select(channel='*1')[0].copy(),tr2=corrected.select(channel='*2')[0].copy(),trP=corrected.select(channel='*H')[0].copy(),trZ=corrected.select(channel='*Z')[0].copy())
+    CtrZ.Metrics = CtrZ.Metrics / RtrZ.Metrics
+    RtrZ.Metrics = RtrZ.Metrics / CtrZ.Metrics
+    return CtrZ,RtrZ
+
+def get_station_events_hps(stanm,evdir,type='stream',tf='',evmeta=None,additional_chans=['H1','H2','HDH'],tlen=7200):
+    # mirror_fold=None
     # sta,evdir,type='stream',tf = 'sta.ZP-21.HZ.SAC',mirror_fold=None
     # --------------------------------------------- Event list
     # if not evmeta:evmeta = get_event_list(sta=sta,evdir=evdir[0],tf=tf,mirror_fold=mirror_fold)
@@ -131,54 +167,36 @@ def get_station_events_hps(stanm,evdir,type='stream',tf = '',mirror_fold=None,ev
         for evi,ev in enumerate(evmeta):
             if not (stafold / 'rmresp' / stanm / (ev.Name + '.HZ.SAC')).exists():
                 continue
-            raw = Stream(load_sac(stafold / 'rmresp' / stanm / (ev.Name + '.HZ.SAC'),rmresp=False))
-            clear_output(wait=False)
-            corrected = Stream(load_sac(stafold / 'corrected' / stanm /  '.'.join([stanm,ev.Name,tf]),rmresp=False))
-            clear_output(wait=False)
-            raw[0].stats.location = 'Raw'
-            corrected[0].stats.location = 'Corrected.'+label
-            st = raw+corrected
-            st.taper(0.001).filter('bandpass',freqmin=1/1000,freqmax=st[0].stats.sampling_rate/2,zerophase=True,corners=4)
-            st_hold = st_hold + st
+            hpsev_fold = evdir[0];atacrevfold = evdir[1]
+            corrected,raw = load_and_trim(hpsev_fold,stanm,ev,tlen,additional_chans,atacrevfold,label,tf)
+            st_hold+=raw;st_hold+=corrected
+        st_hold.filter('bandpass',freqmin=1/1000,freqmax=st_hold[0].stats.sampling_rate/2,zerophase=True,corners=4)
     elif type=='metrics':
         # For metrics
         st_hold = Stream()
         hpsev_fold = evdir[0];atacrevfold = evdir[1]
-        # Noise = load_pickle(list((atacrevfold.parent.parent/'AVG_STA'/stanm).glob('*sta.pkl'))[0])
+        Noise = load_pickle(list((atacrevfold.parent/'AVG_STA'/stanm).glob('*sta.pkl'))[0])
         for evi,ev in enumerate(evmeta):
             if not (hpsev_fold /'rmresp'/stanm/(ev.Name +'.HZ.SAC')).exists():
                 continue
-            raw = Stream([load_sac(hpsev_fold /'rmresp'/stanm/(ev.Name + '.'+c+'.SAC'),rmresp=False) for c in ['HZ']])
-            clear_output(wait=False)
-            raw.taper(.001)
-            if len(additional_chans)>0:
-                raw2 = Stream([load_sac(atacrevfold / 'rmresp'/stanm/(f'{ev.Name}.{c}.SAC'),rmresp=False) for c in additional_chans])
-                clear_output(wait=False)
-                raw.trim(raw2[0].stats.starttime,raw2[0].stats.endtime,pad=True,fill_value=0);raw+=raw2
-                tlen = raw[0].stats.endtime-raw[0].stats.starttime
-            for i in range(len(raw)):raw[i].stats.location='Raw'
-            corrected = Stream([raw.select(channel=c)[0].copy() for c in ['*1','*2','*H']]).copy()
-            corrected+=load_sac(hpsev_fold /  'corrected' / stanm/'.'.join([stanm,ev.Name,tf]),rmresp=False)
-            clear_output(wait=False)
-            corrected.taper(.001)
-            corrected.trim(raw[0].stats.starttime,raw[0].stats.endtime,pad=True,fill_value=0)
-            for i in range(len(corrected)):corrected[i].stats.location = 'Corrected.'+label
+            corrected,raw = load_and_trim(hpsev_fold,stanm,ev,tlen,additional_chans,atacrevfold,label,tf)
+            assert len(corrected)==len(raw)
             if not (len(corrected)==4) or not (len(raw)==4):print('Data missing');continue
-            RtrZ=raw.select(channel='*Z')[0].copy()
-            CtrZ=corrected.select(channel='*Z')[0].copy()
-            # RtrZ.Metrics=OBSM.Metrics(tr1=raw.select(channel='*1')[0].copy(),tr2=raw.select(channel='*2')[0].copy(),trP=raw.select(channel='*H')[0].copy(),trZ=raw.select(channel='*Z')[0].copy())
-            # CtrZ.Metrics = OBSM.Metrics(tr1=corrected.select(channel='*1')[0].copy(),tr2=corrected.select(channel='*2')[0].copy(),trP=corrected.select(channel='*H')[0].copy(),trZ=corrected.select(channel='*Z')[0].copy())
-            # CtrZ.Metrics = CtrZ.Metrics / RtrZ.Metrics
-            # RtrZ.Metrics = RtrZ.Metrics / CtrZ.Metrics
-            CtrZ.Noise=Noise;RtrZ.Noise=Noise
-            st_hold+=RtrZ;st_hold+=CtrZ
-        # st_hold.Noise=Noise
+            corrected,raw = add_metrics(corrected,raw)
+            corrected.stats.location = 'NoiseCut'
+            corrected.Noise=Noise
+            raw.Noise=Noise
+            st_hold+=raw.copy();st_hold+=corrected.copy()
+        st_hold.Noise=Noise
     return st_hold,evmeta
-def get_station_events(stanm,evdir,type='stream',tf = 'sta.ZP-21.HZ.SAC',mirror_fold=None,evmeta=None):
+
+
+def get_station_events(stanm,evdir,type='stream',tf = 'sta.ZP-21.HZ.SAC',evmeta=None):
+    # mirror_fold=None
     # sta,evdir,type='stream',tf = 'sta.ZP-21.HZ.SAC',mirror_fold=None
     stafold = evdir
     # --------------------------------------------- Event list
-    if evmeta is None:evmeta = get_event_list(stanm=stanm,evdir=evdir,tf=tf,mirror_fold=mirror_fold)
+    # if evmeta is None:evmeta = get_event_list(stanm=stanm,evdir=evdir,tf=tf,mirror_fold=mirror_fold)
     # --------------------------------------------- Load and store data
     label=tf.replace('sta.','').replace('.SAC','')
     # For streams
@@ -190,7 +208,7 @@ def get_station_events(stanm,evdir,type='stream',tf = 'sta.ZP-21.HZ.SAC',mirror_
             corrected = Stream(load_sac(stafold /'corrected'/stanm/ '.'.join([stanm,ev.Name,tf]),rmresp=False))
             clear_output(wait=False)
             raw[0].stats.location = 'Raw'
-            corrected[0].stats.location = 'Corrected.'+label
+            corrected[0].stats.location = 'ATaCR.'+label
             st = raw+corrected
             st.taper(0.001).filter('bandpass',freqmin=1/100,freqmax=1,zerophase=True,corners=4)
             st_hold = st_hold + st
@@ -204,16 +222,12 @@ def get_station_events(stanm,evdir,type='stream',tf = 'sta.ZP-21.HZ.SAC',mirror_
             for i in range(len(raw)):raw[i].stats.location = 'Raw'
             corrected = Stream([raw.select(channel=c)[0].copy() for c in ['*1','*2','*H']]).copy()
             corrected+=load_sac(stafold /'corrected'/stanm/ '.'.join([stanm,ev.Name,tf]),rmresp=False)
-            for i in range(len(corrected)):corrected[i].stats.location = 'Corrected.'+label
             clear_output(wait=False)
             if not (len(corrected)==4) or not (len(raw)==4):print('Data missing');continue
-            RtrZ=raw.select(channel='*Z')[0].copy()
-            RtrZ.Metrics=OBSM.Metrics(tr1=raw.select(channel='*1')[0].copy(),tr2=raw.select(channel='*2')[0].copy(),trP=raw.select(channel='*DH')[0].copy(),trZ=raw.select(channel='*Z')[0].copy())
-            CtrZ=corrected.select(channel='*Z')[0].copy()
-            CtrZ.Metrics = OBSM.Metrics(tr1=corrected.select(channel='*1')[0].copy(),tr2=corrected.select(channel='*2')[0].copy(),trP=corrected.select(channel='*DH')[0].copy(),trZ=corrected.select(channel='*Z')[0].copy())
-            CtrZ.Metrics = CtrZ.Metrics / RtrZ.Metrics
-            RtrZ.Metrics = RtrZ.Metrics / CtrZ.Metrics
-            CtrZ.Noise=Noise;RtrZ.Noise=Noise
-            st_hold+=RtrZ;st_hold+=CtrZ
+            corrected,raw = add_metrics(corrected,raw)
+            corrected.Noise=Noise;raw.Noise=Noise
+            corrected.stats.location = 'ATaCR.'+label
+            st_hold+=raw;st_hold+=corrected
         st_hold.Noise=Noise
     return st_hold,evmeta
+

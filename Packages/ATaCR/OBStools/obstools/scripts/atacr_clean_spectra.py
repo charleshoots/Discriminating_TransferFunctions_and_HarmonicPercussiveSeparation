@@ -29,6 +29,7 @@ import pickle
 import stdb
 from obstools.atacr import StaNoise, Power, Cross, Rotation
 from obstools.atacr import utils, plotting
+atacr_status = utils.atacr_status
 from pathlib import Path
 
 from argparse import ArgumentParser
@@ -240,6 +241,9 @@ def get_cleanspec_arguments(argv=None):
 
 
 def main(args=None):
+    status=lambda stage=None,note=None:atacr_status(step,stanm,stage,note)
+    step='CleanSpectra'
+    # stage=None;note=None;status()
     # if __name__ == '__main__':
     #     freeze_support()
     if args is None:
@@ -275,7 +279,7 @@ def main(args=None):
         # Path where average spectra will be saved
         avstpath = Path('AVG_STA') / stkey
         if not avstpath.is_dir():
-            print('CleanSpectra (A5) |',stanm,"Path to "+str(avstpath)+" doesn`t exist - creating it")
+            status(note="Path to "+str(avstpath)+" doesn`t exist - creating it")
             avstpath.mkdir(parents=True)
         # Path where plots will be saved
         if args.saveplot:
@@ -305,30 +309,14 @@ def main(args=None):
                 tlocs[il] = "--"
         sta.location = tlocs
         # Update Display
-        print('CleanSpectra (A5) |',stanm,"\n|===============================================|")
-        print('CleanSpectra (A5) |',stanm,"|===============================================|")
-        print('CleanSpectra (A5) |',stanm,"|                   {0:>8s}                    |".format(
-            sta.station))
-        print('CleanSpectra (A5) |',stanm,"|===============================================|")
-        print('CleanSpectra (A5) |',stanm,"|===============================================|")
-        print('CleanSpectra (A5) |',stanm,"|  Station: {0:>2s}.{1:5s}                            |".format(
-            sta.network, sta.station))
-        print('CleanSpectra (A5) |',stanm,"|      Channel: {0:2s}; Locations: {1:15s}  |".format(
-            sta.channel, ",".join(tlocs)))
-        print('CleanSpectra (A5) |',stanm,"|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
-            sta.longitude, sta.latitude))
-        print('CleanSpectra (A5) |',stanm,"|      Start time: {0:19s}          |".format(
-            sta.startdate.strftime("%Y-%m-%d %H:%M:%S")))
-        print('CleanSpectra (A5) |',stanm,"|      End time:   {0:19s}          |".format(
-            sta.enddate.strftime("%Y-%m-%d %H:%M:%S")))
-        print('CleanSpectra (A5) |',stanm,"|-----------------------------------------------|")
+        status(stage=f'Channel:{sta.channel}S:{sta.startdate.strftime("%Y-%m-%d %H:%M:%S")}E:{sta.enddate.strftime("%Y-%m-%d %H:%M:%S")}')
         # Filename for output average spectra
         dstart = str(tstart.year).zfill(4)+'.'+str(tstart.julday).zfill(3)+'-'
         dend = str(tend.year).zfill(4)+'.'+str(tend.julday).zfill(3)+'.'
         fileavst = avstpath / (dstart+dend+'avg_sta.pkl')
         if fileavst.exists():
             if not args.ovr:
-                print('CleanSpectra (A5) |',stanm,"*   -> file "+str(fileavst)+" exists - continuing")
+                status(note='*   -> file "+str(fileavst)+" exists - continuing')
                 continue
         # Containers for power and cross spectra
         coh_all = []
@@ -363,9 +351,9 @@ def main(args=None):
             filespec = specpath / (tstamp + 'spectra.pkl')
             # Load file if it exists
             if filespec.exists():
-                print('CleanSpectra (A5) |',stanm,"\n"+"*"*60)
-                print('CleanSpectra (A5) |',stanm,'* Calculating noise spectra for key ' + stkey+' and day '+year+'.'+jday)
-                print('CleanSpectra (A5) |',stanm,"*   -> file "+str(filespec)+" found - loading")
+                stage='Calculating noise spectra'
+                note=f'file {filespec} found - loading'
+                status(stage,note)
                 file = open(filespec, 'rb')
                 daynoise = pickle.load(file)
                 daynoise.file = file.name
@@ -376,8 +364,7 @@ def main(args=None):
                 continue
             coh_all.append(daynoise.rotation.coh)
             ph_all.append(daynoise.rotation.ph)
-            # Coherence
-            # print('CleanSpectra (A5) |',stanm,'[' + str(stkey) + '] Collect Coherences')
+            status(stage,'Collect Coherence')
             coh_12_all.append(
                 utils.smooth(
                     utils.coherence(
@@ -414,7 +401,7 @@ def main(args=None):
                         daynoise.cross.cZP,
                         daynoise.power.cZZ,
                         daynoise.power.cPP), 50))
-            # print('CleanSpectra (A5) |',stanm,'[' + str(stkey) + '] Collect Phase')
+            status(stage,'Collect Phase')
             # Phase
             try:
                 ph_12_all.append(
@@ -447,7 +434,7 @@ def main(args=None):
             except Exception:
                 ph_ZP_all.append(None)
             # Admittance
-            # print('CleanSpectra (A5) |',stanm,'[' + str(stkey) + '] Collect Admittance')
+            status(stage,'Collect Admittance')
             ad_12_all.append(utils.smooth(utils.admittance(
                 daynoise.cross.c12, daynoise.power.c11), 50))
             ad_1Z_all.append(utils.smooth(utils.admittance(
@@ -464,7 +451,6 @@ def main(args=None):
         # Convert to numpy arrays
         coh_all = np.array(coh_all)
         ph_all = np.array(ph_all)
-        # print('CleanSpectra (A5) |',stanm,np.shape(coh_12_all))
         coh_12_all = np.array(coh_12_all)
         coh_1Z_all = np.array(coh_1Z_all)
         coh_1P_all = np.array(coh_1P_all)
@@ -483,7 +469,6 @@ def main(args=None):
         ad_2Z_all = np.array(ad_2Z_all)
         ad_2P_all = np.array(ad_2P_all)
         ad_ZP_all = np.array(ad_ZP_all)
-        # print('CleanSpectra (A5) |',stanm,'516 - Store TFs in Cross')
         # Store transfer functions as objects for plotting
         coh = Cross(coh_12_all, coh_1Z_all, coh_1P_all,coh_2Z_all, coh_2P_all, coh_ZP_all)
         ph = Cross(ph_12_all, ph_1Z_all, ph_1P_all,ph_2Z_all, ph_2P_all, ph_ZP_all)
@@ -491,18 +476,16 @@ def main(args=None):
         if len(stanoise.daylist)<2:
             continue
         # Quality control to identify outliers
-        print('CleanSpectra (A5) |',stanm,'[' + str(stkey) + '] QC-Spectra')
+        status(stage,'QC-Spectra')
         stanoise.QC_sta_spectra(pd=args.pd, tol=args.tol, alpha=args.alpha,
                                 fig_QC=args.fig_QC, debug=args.debug,
                                 save=plotpath, form=args.form)
         
-        print('CleanSpectra (A5) |',stanm,'[' + str(stkey) + '] QC-Spectra-Complete')
+        status(stage,'-Complete')
         # Average spectra for good days
-        # print('CleanSpectra (A5) |',stanm,'[' + str(stkey) + '] AVG-Spectra')
         stanoise.average_sta_spectra(
             fig_average=args.fig_average,
             save=plotpath, form=args.form)
-        # print('CleanSpectra (A5) |',stanm,'[' + str(stkey) + '] AVG-Spectra-Complete')
         if args.fig_av_cross:
             fname = stkey + '.' + 'av_coherence'
             plot = plotting.fig_av_cross(
@@ -549,7 +532,7 @@ def main(args=None):
             else:
                 plot.show()
         # Save to file
-        print('CleanSpectra (A5) |',stanm,'Saving: ' + str(fileavst))
+        status(note=f'Saving: {str(fileavst)}')
         stanoise.save(fileavst)
 
 

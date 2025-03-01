@@ -46,3 +46,19 @@ def avg_meter(avg,m,r):
     x=avg.f
     y=Meters[m](ab=AB,aa=AA,bb=BB)
     return x[x>=0],y[x>=0]
+
+def octave_average(d,f,fmin=.002,fmax=1.025,fraction=3):
+    # 1/3 octave (fraction=3) → Standard in engineering seismology and ground motion studies.
+    # 1/6 octave (fraction=6) → Provides better resolution while still smoothing noise.
+    # 1/12 octave (fraction=12) → High resolution, often used for detailed spectral analysis.
+    # 1/8 octave (fraction=8) → Sometimes used in geophysical applications for a balance between smoothing and resolution.
+    k=np.arange(np.log2(fmin), np.log2(fmax), 1/fraction)
+    freq_centers = 2**k
+    out=[]
+    for i, fc in enumerate(freq_centers):
+        f_low = fc / 2**(1/(2*fraction))
+        f_high = fc * 2**(1/(2*fraction))
+        # Find indices within this band
+        indices = np.where((f >= f_low) & (f <= f_high))[0]
+        if len(indices) > 0:out.append(np.mean(d[indices]))
+    return out

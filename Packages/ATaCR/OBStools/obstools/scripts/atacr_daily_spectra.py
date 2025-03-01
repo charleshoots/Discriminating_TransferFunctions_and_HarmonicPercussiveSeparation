@@ -29,6 +29,7 @@ import numpy as np
 import pickle
 import stdb
 from obstools.atacr import utils, DayNoise
+atacr_status = utils.atacr_status
 from pathlib import Path
 
 from argparse import ArgumentParser
@@ -305,7 +306,9 @@ def get_dailyspec_arguments(argv=None):
 
 
 def main(args=None):
-
+    status=lambda stage=None,note=None:atacr_status(step,stanm,stage,note)
+    step='DaySpectra'
+    # stage=None;note=None;status()
     if args is None:
         # Run Input Parser
         args = get_dailyspec_arguments()
@@ -331,25 +334,23 @@ def main(args=None):
         else:
             stkeys = db.keys()
             sorted(stkeys)
-
     # Loop over station keys
     for stkey in list(stkeys):
-
         # Extract station information from dictionary
         sta = db[stkey]
         stanm = '['+'.'.join([sta.network, sta.station])+']'
+        status()
         # Path where data are located
-        datapath = Path('DATA') / 'raw' /stkey
+        # datapath = Path('DATA') / 'raw' /stkey
+        datapath = Path('DATA') / 'rmresp' /stkey
         if not datapath.is_dir():
-            print('DailySpectra (A4) |',stanm,"\nPath to "+str(datapath)+" doesn`t exist - continuing")
+            status(note='\nPath to "+str(datapath)+" doesn`t exist - continuing')
             continue
-
         # Path where spectra will be saved
         specpath = Path('SPECTRA') / stkey
         if not specpath.is_dir():
-            print('DailySpectra (A4) |',stanm,"\nPath to "+str(specpath)+" doesn`t exist - creating it")
+            status(note='\nPath to "+str(specpath)+" doesn`t exist - creating it')
             specpath.mkdir(parents=True)
-
         # Path where plots will be saved
         if args.saveplot:
             plotpath = specpath / 'PLOTS'
@@ -357,22 +358,18 @@ def main(args=None):
                 plotpath.mkdir(parents=True)
         else:
             plotpath = False
-
         # Get catalogue search start time
         if args.startT is None:
             tstart = sta.startdate
         else:
             tstart = args.startT
-
         # Get catalogue search end time
         if args.endT is None:
             tend = sta.enddate
         else:
             tend = args.endT
-
         if tstart > sta.enddate or tend < sta.startdate:
             continue
-
         # Temporary print locations
         tlocs = sta.location
         if len(tlocs) == 0:
@@ -381,79 +378,29 @@ def main(args=None):
             if len(tlocs[il]) == 0:
                 tlocs[il] = "--"
         sta.location = tlocs
-
-        # Update Display
-        print('DailySpectra (A4) |',stanm,"\n|===============================================|")
-        print('DailySpectra (A4) |',stanm,"|===============================================|")
-        print('DailySpectra (A4) |',stanm,"|                   {0:>8s}                    |".format(
-            sta.station))
-        print('DailySpectra (A4) |',stanm,"|===============================================|")
-        print('DailySpectra (A4) |',stanm,"|===============================================|")
-        print('DailySpectra (A4) |',stanm,"|  Station: {0:>2s}.{1:5s}                            |".format(
-            sta.network, sta.station))
-        print('DailySpectra (A4) |',stanm,"|      Channel: {0:2s}; Locations: {1:15s}  |".format(
-            sta.channel, ",".join(tlocs)))
-        print('DailySpectra (A4) |',stanm,"|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(
-            sta.longitude, sta.latitude))
-        print('DailySpectra (A4) |',stanm,"|      Start time: {0:19s}          |".format(
-            sta.startdate.strftime("%Y-%m-%d %H:%M:%S")))
-        print('DailySpectra (A4) |',stanm,"|      End time:   {0:19s}          |".format(
-            sta.enddate.strftime("%Y-%m-%d %H:%M:%S")))
-        print('DailySpectra (A4) |',stanm,"|-----------------------------------------------|")
-
-        # Get all components
-        # trN1, trN2, trNZ, trNP = utils.get_data(datapath, tstart, tend)
-
-        # # -----------------------------------------------------------------
-        # # -----------------------------------------------------------------<<<<<ORIGINAL>>>>>
-        # print('DailySpectra (A4) |',stanm,'< ORIGINAL >-' * 500)
-        # trace_generator = utils.get_data_generator(datapath, 
-        #                     UTCDateTime(tstart), UTCDateTime(tend),
-        #                     seismic_units="DISP",
-        #                     seismic_pre_filt=None,
-        #                     seismic_water_level=60,
-        #                     pressure_units="VEL", # ATaCR, by default, requests velocity output for pressure. Was this intended?
-        #                     pressure_pre_filt=None,
-        #                     pressure_water_level=60)
-        # # -----------------------------------------------------------------
-        # [0.001, 0.005, 45., 50.]
-        # # -----------------------------------------------------------------<<<<<TEST-ONE>>>>>
-
         if not args.ovr:skipfiles=[datapath/f'{t}..HZ.SAC' for t in ['.'.join(f.name.split('.')[:2]) for f in list((Path('SPECTRA')/stkey).glob('*.pkl'))]]
         else:skipfiles=None
-        trace_generator = utils.get_data_generator(datapath, 
-                            UTCDateTime(tstart), UTCDateTime(tend),skipfiles=skipfiles)
+        trace_generator = utils.get_data_generator(datapath,
+        UTCDateTime(tstart), UTCDateTime(tend),skipfiles=skipfiles,rmresp=False)
         # Window size
         window = args.window
         overlap = args.overlap
         # minimum numer of windows
         minwin = args.minwin
-
-
         # Cycle through available data
         for tr1, tr2, trZ, trP in trace_generator:
-            tr1.detrend('demean')
-            tr2.detrend('demean')
-            trZ.detrend('demean')
-            # trP.detrend('demean')
-            
+            _=[a.detrend('demean') for a in [tr1,tr2,trP,trZ]]
+            _=[a.detrend('linear') for a in [tr1,tr2,trP,trZ]]
             # Time axis
             taxis = np.arange(0., window, trZ.stats.delta)
-
             year = str(trZ.stats.starttime.year).zfill(4)
             jday = str(trZ.stats.starttime.julday).zfill(3)
-
-            print('DailySpectra (A4) |',stanm,"\n"+"*"*60)
-            print('DailySpectra (A4) |',stanm,"* Calculating noise spectra for key " +
-                stkey+" and day "+year+"."+jday)
             tstamp = year+'.'+jday+'.'
             filename = specpath / (tstamp+'spectra.pkl')
-
             if filename.exists():
                 if not args.ovr:
-                    print('DailySpectra (A4) |',stanm,"*   -> file "+str(filename)+" exists - continuing")
+                    status(note=f'File exists:{filename} - continuing')
                     continue
-
             # Initialize instance of DayNoise
             daynoise = DayNoise(tr1, tr2, trZ, trP, window, overlap, key=stkey)
             del tr1, tr2, trZ, trP
@@ -462,30 +409,21 @@ def main(args=None):
                 pd=args.pd, tol=args.tol, alpha=args.alpha,
                 smooth=args.smooth, fig_QC=args.fig_QC,
                 save=plotpath, form=args.form, debug=args.debug)
-
             # Check if we have enough good windows
             nwin = np.sum(daynoise.goodwins)
-            if nwin < minwin:
-                print('DailySpectra (A4) |',stanm,"*   Too few good data segments to calculate " +
-                    "average day spectra")
-                # continue
-            else:
-                print('DailySpectra (A4) |',stanm,"*   {0} good windows. Proceeding...".format(nwin))
-
+            stage='Calculating noise spectra'
+            if nwin < minwin:note=f'Good windows for day average {nwin}<{minwin}';status(stage=stage,note=note)
+            else:note=f'Good windows for day average {nwin}>={minwin}';status(stage=stage,note=note)
             # Average spectra for good windows
             daynoise.average_daily_spectra(
                 calc_rotation=args.calc_rotation,
                 fig_average=args.fig_average,
                 fig_coh_ph=args.fig_coh_ph,
                 save=plotpath, form=args.form)
-
             # Save to file
             daynoise.save(filename)
             del daynoise,taxis,year,jday,tstamp,filename,nwin
         del trace_generator, window, overlap,sta,datapath,specpath,tlocs
-
-
 if __name__ == "__main__":
-
     # Run main program
     main()

@@ -45,7 +45,7 @@ def station_event_page(st_hold,sta,evmeta,method,type='stream',**args):
         fig.suptitle(stastr)
         fn = 1/fnotch(1000*abs(st_hold[0].stats.sac.stel))
         for bi,b in enumerate(columns):
-            print(method+'-'+type + '| Column:'+str(bi+1)+'/'+str(len(columns)))
+            # print(method+'-'+type + '| Column:'+str(bi+1)+'/'+str(len(columns)))
             band_ax = axes[:,bi]
             st_band = st_hold.copy()
             correct_hold = st_band.select(location='*Correct*').copy()
@@ -115,101 +115,101 @@ def station_event_page(st_hold,sta,evmeta,method,type='stream',**args):
 # =XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX==XX=
 # ----------------------------------------------------------------------------------------------------------------
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-def station_event_page_averages(st_hold,sta,evmeta,method,type='stream',raw_reference=None,**args):
-    defargs = AttribDict();defargs.bands=[(1,10),(10,30),(30,100)];defargs.vertical_scale=1.2;defargs.figwidth=20;defargs.figaspect=[1,4]
+def station_event_page_averages(st_hold,sta,evmeta,type='Metrics',raw_reference=None,**args):
+    defargs = AttribDict();defargs.bands=[(1,10),(10,30),(30,100)];defargs.vertical_scale=1.2;defargs.figwidth=20;defargs.figaspect=[4,1]
     defargs.linewidth=[.1,.2];defargs.linecolor=['red','black'];defargs.alpha=[1.0,1.0];defargs.nev=None
     defargs.phases=('P','S');defargs.shadow_phases=('PKIKP','SKS','SKIKSSKIKS');defargs.phasecolors = {'P':'r','S':'b'}
     defargs.csd_pairs=[('ZP','blue'),('ZZ','gray')]
     defargs.Noise=True
-    defargs.columns = ['Coherence']
+    defargs.columns = [['ATaCR',['Coherence','ZZ']],['NoiseCut',['Coherence','ZZ']]]
     [defargs.update({k:args[k]}) for k in list(args.keys())]
     args = defargs
-    if method.lower()=='atacr':
-        args.csd_pairs = [('ZP','#0c51a6'),('ZZ','#2a7e93'),('Z1','#7370cb'),('Z2','#4f86c5')]
-    else:
-        args.csd_pairs = [('ZZ','#2a7e93')]
+    args.csd_pairs = {'ZP':'#0c51a6','ZZ':'#2a7e93','Z1':'#7370cb','Z2':'#4f86c5'}
     # ------------
     if type.lower()=='stream':note = 'Corrected ('+args.linecolor[1]+') | Raw ('+args.linecolor[0]+')'
-    else:note = 'Noise (gray) | Raw (red) | Variance (shaded)'
+    else:note = '\nVariance (shaded)'
     staname = st_hold[0].stats.network+'.'+st_hold[0].stats.station
-    if method.lower()=='atacr':tf='('+st_hold.select(location='*Correct*')[0].stats.location.split('.')[1]+')'
-    else:tf=''
-    stastr = ' | '.join([method.upper(),staname+tf,sta.Experiment,'Depth: '+str(int(1000*abs(st_hold[0].stats.sac.stel)))+'m',
-    'F-Notch: '+str(int(1/fnotch(1000*abs(st_hold[0].stats.sac.stel))))+'s',note])
+    # if method.lower()=='atacr':tf='('+st_hold.select(location='*Correct*')[0].stats.location.split('.')[1]+')'
+    tf=''
+    stastr = ' | '.join([staname+tf,sta.Experiment,'Depth: '+str(int(1000*abs(st_hold[0].stats.sac.stel)))+'m, Notch: '+str(int(1/fnotch(1000*abs(st_hold[0].stats.sac.stel))))+'s',note])
     if not args.nev:args.nev = len(st_hold.select(location='*Raw*'))
-    nrows = 2;ncols=2
-    columns = args.columns
+    nrows = 1;ncols=2
+    columns=[['ATaCR',['Coherence','ZZ']],['NoiseCut',['Coherence','ZZ']]]
     # if type.lower()=='metrics':columns=['Coherence']
     # if type.lower()=='metrics':columns=['Coherence','Phase','Admittance']
-    fig,axes = plt.subplots(nrows=nrows,ncols=ncols,layout='constrained',sharex='all',squeeze=True,figsize=(args.figwidth*args.figaspect[0],nrows*args.figaspect[1]))
+    fig,axes = plt.subplots(nrows=ncols,ncols=nrows,layout='constrained',sharex='all',squeeze=True,figsize=(8,7))
     axes = axes.reshape(-1)
     fig.suptitle(stastr)
     fn = 1/fnotch(1000*abs(st_hold[0].stats.sac.stel))
+    methods=['ATaCR','NoiseCut']
     for bi,b in enumerate(columns):
-        for pi,pair in enumerate(args.csd_pairs):
-            channels = pair[0]
-            if channels[0]==channels[1]:args.Noise=False
-            else: args.Noise=True
-            print(method+'-'+type + '| Column:'+str(bi+1)+'/'+str(len(columns)))
-            ax = axes[pi]
-            st_band = st_hold.copy()
-            correct_hold = st_band.select(location='*Correct*').copy()
-            raw_hold = st_band.select(location='*Raw*').copy()
-            if raw_reference:raw_hold = raw_reference
-            for si,s in enumerate(['Raw','Corrected']):
-                st = {'Raw':raw_hold,'Corrected':correct_hold}[s].copy()
-                for tri in range(len(correct_hold)):
-                    tr_ind = tri
-                    tr = st[tr_ind].copy()
-                    if tr_ind==0:
-                        if type.lower()=='stream':ax.set_title(''.join([str(b[0]),'s-',str(b[1]),'s']))
-                        else:ax.set_title(channels +' '+b)
-                    if type.lower()=='metrics':
-                        x = tr.Metrics.__getattribute__(b)(channels)[0];ind=x<=1
-                        y=tr.Metrics.__getattribute__(b)(channels)[1][ind]
-                        if s=='Raw':
-                            if args.Noise:[
-                            ax.scatter(xy[0],np.abs(xy[1]),c='darkgrey',s=0.1,label=channels+':Noise')
-                            for ni,xy in enumerate([avg_meter(st_hold.Noise,b,channels) for p in [pair]])]
-                            [ax.scatter(x[ind],np.abs(tr.Metrics.__getattribute__(b)(p[0])[1][ind]),label=':'.join([s,p[0]]),s=0.4,color='r',alpha=0.1) for p in [pair]]
-                            [ax.plot(x[ind],np.abs(tr.Metrics.__getattribute__(b)(p[0])[1][ind]),label=':'.join([s,p[0]]),linewidth=0.05,alpha=0.05,color='r') for p in [pair]]
-                        if s=='Corrected':
-                            [ax.scatter(x[ind],np.abs(tr.Metrics.__getattribute__(b)(p[0])[1][ind]),label=':'.join([s,p[0]]),s=0.2,color=p[1],alpha=0.1) for p in [pair]]
-                            [ax.plot(x[ind],np.abs(tr.Metrics.__getattribute__(b)(p[0])[1][ind]),label=':'.join([s,p[0]]),linestyle=':',linewidth=0.05,alpha=0.05,color=p[1]) for p in [pair]]
-                    if type.lower()=='metrics':
-                        ax.set_xlim(1/500,1);ax.set_xscale('log')
-                        # if b.lower()=='phase':ax.set_ylim(-180,180)
-                        if b.lower()=='phase':ax.set_ylim(0,180)
-                        if b.lower()=='coherence':ax.set_ylim(0,1.01)
-                    else:ax.set_xlim(x[0],x[-1]);ax.set_ylim(-1*ylim[tr_ind],ylim[tr_ind]);ax.set_yticklabels('')
-                    # ------------------------------------------------------------------------------------------
-                y_avg = np.mean(([rt.Metrics.__getattribute__(b)(channels)[1][ind] for rt in st]),axis=0)
-                y_var = np.std(([rt.Metrics.__getattribute__(b)(channels)[1][ind] for rt in st]),axis=0)**2
+        method = methods[bi]
+        metric = b[1][0]
+        pair = b[1][1]
+        # for pi,pair in enumerate(args.csd_pairs):
+        channels = pair
+        if channels[0]==channels[1]:args.Noise=False
+        else: args.Noise=True
+        # print(method+'-'+type + '| Column:'+str(bi+1)+'/'+str(len(columns)))
+        ax = axes[bi]
+        st_band = st_hold.copy()
+        correct_hold = st_band.select(location=f'*{method}*').copy()
+        raw_hold = st_band.select(location='*Raw*').copy()
+        if raw_reference:raw_hold = raw_reference
+        for si,s in enumerate(['Corrected']):
+            st = {'Raw':raw_hold,'Corrected':correct_hold}[s].copy()
+            for tri in range(len(correct_hold)):
+                tr_ind = tri
+                tr = st[tr_ind].copy()
+                if tr_ind==0:
+                    if type.lower()=='stream':ax.set_title(''.join([str(metric),'s-',str(pair),'s']))
+                    else:ax.set_title(f'{method} {pair} {metric}')
+                if type.lower()=='metrics':
+                    x = tr.Metrics.__getattribute__(metric)(pair)[0];ind=x<=1
+                    y=tr.Metrics.__getattribute__(metric)(pair)[1][ind]
+                    if s=='Raw':
+                        if args.Noise:[
+                        ax.scatter(xy[0],np.abs(xy[1]),c='darkgrey',s=0.1,label=pair+':Noise')
+                        for ni,xy in enumerate([avg_meter(st_hold.Noise,metric,pair) for p in [1]])]
+                        [ax.scatter(x[ind],np.abs(tr.Metrics.__getattribute__(metric)(pair)[1][ind]),label=':'.join([s,pair]),s=0.4,color='r',alpha=0.1) for p in [1]]
+                        [ax.plot(x[ind],np.abs(tr.Metrics.__getattribute__(metric)(pair)[1][ind]),label=':'.join([s,pair]),linewidth=0.05,alpha=0.05,color='r') for p in [1]]
+                    if s=='Corrected':
+                        [ax.scatter(x[ind],np.abs(tr.Metrics.__getattribute__(metric)(pair)[1][ind]),label=':'.join([s,pair]),s=0.2,color=args.csd_pairs[pair],alpha=0.1) for p in [1]]
+                        [ax.plot(x[ind],np.abs(tr.Metrics.__getattribute__(metric)(pair)[1][ind]),label=':'.join([s,pair]),linestyle=':',linewidth=0.05,alpha=0.05,color=args.csd_pairs[pair]) for p in [1]]
+                if type.lower()=='metrics':
+                    ax.set_xlim(1/500,1);ax.set_xscale('log')
+                    # if metric.lower()=='phase':ax.set_ylim(-180,180)
+                    if metric.lower()=='phase':ax.set_ylim(0,180)
+                    if metric.lower()=='coherence':ax.set_ylim(0,1.01)
+                else:ax.set_xlim(x[0],x[-1]);ax.set_ylim(-1*ylim[tr_ind],ylim[tr_ind]);ax.set_yticklabels('')
+                # ------------------------------------------------------------------------------------------
+            y_avg = np.mean(([rt.Metrics.__getattribute__(metric)(pair)[1][ind] for rt in st]),axis=0)
+            y_var = np.std(([rt.Metrics.__getattribute__(metric)(pair)[1][ind] for rt in st]),axis=0)**2
 
-                # Should I set Phase domain to [0,180] instead of [-180,180]? Would be easier to read...
-                # y_avg = np.mean(np.abs([rt.Metrics.__getattribute__(b)(channels)[1][ind] for rt in st]),axis=0)
-                # y_var = np.std(np.abs([rt.Metrics.__getattribute__(b)(channels)[1][ind] for rt in st]),axis=0)**2
-                if s=='Corrected':
-                    stallaz=[tr.stats.sac.stla,tr.stats.sac.stlo,tr.stats.sac.stel]
-                    evllaz=[evmeta[tr_ind].origins[0].latitude,evmeta[tr_ind].origins[0].longitude,evmeta[tr_ind].origins[0].depth/1000]
-                    tr.stats.sac.gcarc = lt.math.distance(sta,evmeta[tr_ind])
-                    # if type.lower()=='metrics':
-                        # evstr = '|'.join(['['+str(tr_ind+1)+'] ',evmeta[tr_ind].Name])
-                    # el:
-                    if not type.lower()=='metrics':
-                        evstr = '|'.join(['['+str(tr_ind+1)+'] ',evmeta[tr_ind].Name,'M'+str(evmeta[tr_ind].magnitudes[0].mag),str(np.round(tr.stats.sac.gcarc,2))+'°'])
-                        ax.text(np.max(ax.get_xlim()),np.min(ax.get_ylim()),evstr,bbox=dict(facecolor='white', alpha=1),horizontalalignment='right',verticalalignment='center',fontsize=10)
-                    # ------
-                    ax.scatter(x[ind],y_avg,label=':'.join([s,channels]),s=0.5,color=pair[1])
-                    ax.plot(x[ind],y_avg,label=':'.join([s,channels]),linewidth=0.8,alpha=0.8,color=pair[1])
-                    ax.fill_between(x[ind],y_avg-y_var,y_avg+y_var, alpha=0.2,color=pair[1])
-                elif s=='Raw':
-                    ax.scatter(x[ind],y_avg,label=':'.join([s+'-Average',channels]),s=0.5,color='r')
-                    ax.plot(x[ind],y_avg,label=':'.join([s+'-Average',channels]),linewidth=0.8,alpha=0.5,color='r')
-            if type.lower()=='metrics':ax.set_xlabel('frequency (hz)')
-            else:ax.set_xlabel('seconds')
-            ax.axvline(1/fn,alpha=0.4,linewidth=1,color='k',linestyle='-.')
-            ax.text(1/fn,1,str(int(fn))+'s',verticalalignment='top',horizontalalignment='right')
+            # Should I set Phase domain to [0,180] instead of [-180,180]? Would be easier to read...
+            # y_avg = np.mean(np.abs([rt.Metrics.__getattribute__(metric)(pair)[1][ind] for rt in st]),axis=0)
+            # y_var = np.std(np.abs([rt.Metrics.__getattribute__(metric)(pair)[1][ind] for rt in st]),axis=0)**2
+            if s=='Corrected':
+                stallaz=[tr.stats.sac.stla,tr.stats.sac.stlo,tr.stats.sac.stel]
+                evllaz=[evmeta[tr_ind].origins[0].latitude,evmeta[tr_ind].origins[0].longitude,evmeta[tr_ind].origins[0].depth/1000]
+                tr.stats.sac.gcarc = lt.math.distance(sta,evmeta[tr_ind])
+                # if type.lower()=='metrics':
+                    # evstr = '|'.join(['['+str(tr_ind+1)+'] ',evmeta[tr_ind].Name])
+                # el:
+                if not type.lower()=='metrics':
+                    evstr = '|'.join(['['+str(tr_ind+1)+'] ',evmeta[tr_ind].Name,'M'+str(evmeta[tr_ind].magnitudes[0].mag),str(np.round(tr.stats.sac.gcarc,2))+'°'])
+                    ax.text(np.max(ax.get_xlim()),np.min(ax.get_ylim()),evstr,bbox=dict(facecolor='white', alpha=1),horizontalalignment='right',verticalalignment='center',fontsize=10)
+                # ------
+                ax.scatter(x[ind],y_avg,label=':'.join([s,pair]),s=0.5,color=args.csd_pairs[pair])
+                ax.plot(x[ind],y_avg,label=':'.join([s,pair]),linewidth=0.8,alpha=0.8,color=args.csd_pairs[pair])
+                ax.fill_between(x[ind],y_avg-y_var,y_avg+y_var, alpha=0.2,color=args.csd_pairs[pair])
+            elif s=='Raw':
+                ax.scatter(x[ind],y_avg,label=':'.join([s+'-Average',pair]),s=0.5,color='r')
+                ax.plot(x[ind],y_avg,label=':'.join([s+'-Average',pair]),linewidth=0.8,alpha=0.5,color='r')
+        if type.lower()=='metrics':ax.set_xlabel('frequency (hz)')
+        else:ax.set_xlabel('seconds')
+        ax.axvline(1/fn,alpha=0.4,linewidth=1,color='k',linestyle='-.')
+        ax.text(1/fn,1,str(int(fn))+'s',verticalalignment='top',horizontalalignment='right')
     return fig
 
 

@@ -1,4 +1,5 @@
 {
+    "python.pythonPath": "~/opt/anaconda3/envs/Seismic/bin/python",
     "workbench.colorCustomizations": {
         "titleBar.activeBackground": "#2c6d89",
         "titleBar.activeForeground": "#FFFFFF",

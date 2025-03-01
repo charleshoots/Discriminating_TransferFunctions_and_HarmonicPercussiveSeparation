@@ -5,22 +5,25 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "True:justMyCode",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "justMyCode": true,
-        },
-        {
-            "name": "False:justMyCode",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "justMyCode": false,
+          "name": "Python: Current File",
+          "type": "python",
+          "request": "launch",
+          "program": "${file}",
+          "console": "integratedTerminal",
+          "justMyCode": false,  // Ensure this is set to false to allow stepping into library code
+          "stopOnEntry": false,  // Set to true if you want to stop at the first line of the program
+          "env": {
+            "PYTHONBREAKPOINT": "pdb.set_trace"  // Use pdb for breakpoints
+          },
+          "envFile": "${workspaceFolder}/.env",  // Load environment variables from a .env file
+          "args": [],  // Add any program arguments here
+          "cwd": "${workspaceFolder}",  // Set the working directory
+          "debugOptions": [
+            "RedirectOutput",
+            "ShowReturnValue"
+          ]
         }
-    ],
+      ],
 "debugpy.debugJustMyCode": false,
 "debug.allowBreakpointsEverywhere": true,
 "purpose": ["debug-in-terminal"]

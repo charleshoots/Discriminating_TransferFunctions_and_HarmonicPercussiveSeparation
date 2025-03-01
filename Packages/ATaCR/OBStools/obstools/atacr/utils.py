@@ -38,6 +38,11 @@ import warnings,itertools,re
 warnings.filterwarnings('ignore')
 
 def unravel(lst):return list(itertools.chain.from_iterable(lst))
+def atacr_status(step,station,stage=None,note=None):
+    s = f'[{str(step)}] || [{str(station)}]'
+    if stage:s=f'{s} | {str(stage)}'
+    if note:s=f'{s} || {str(note)}'
+    print(s)
 
 def traceshift(trace, tt):
     """
@@ -567,16 +572,17 @@ def run_rmresp(tr,inv):
     tr.remove_response(inventory=inv,pre_filt=Config.pre_filt,output=Config.units,water_level=Config.water_level,zero_mean=Config.zero_mean)
     return tr
 
-def load_data(files):
+def load_data(files,rmresp=None):
     if not isinstance(files,list):files=[files]
     """
     Loads four files defined by the tuple, files.
     -CHoots, 2023
     """
     # Implicitly define (was already done if a parent folder is named 'rmresp') whether remove response is needed.
-    if np.any(np.isin('rmresp',unravel([[e.name for e in list(f.parents)] for f in files]))):
-        rmresp=False
-    else:rmresp=True;inv=read_inventory(Path(str(files[0])).parent / '*_inventory.xml')
+    if rmresp is None:
+        if np.any(np.isin('rmresp',unravel([[e.name for e in list(f.parents)] for f in files]))):
+            rmresp=False
+        else:rmresp=True;inv=read_inventory(Path(str(files[0])).parent / '*_inventory.xml')
     #Load data
     st = [read(str(f))[0] for f in files]
     #Remove response
@@ -585,7 +591,7 @@ def load_data(files):
     st=check_fs(st)
     return st
 
-def get_data_generator(datapath, tstart, tend,skipfiles=None):
+def get_data_generator(datapath, tstart, tend,skipfiles=None,rmresp=None):
     """
     The same as get_data but now factored as a generator object such that the data is never loaded until its index is called.
     Generators can only be iterated, and activated by use in a for loop
@@ -595,7 +601,7 @@ def get_data_generator(datapath, tstart, tend,skipfiles=None):
     file_list = search_files(datapath, tstart, tend)
     for files in file_list:
         if (skipfiles is not None) & np.any(np.isin(files,skipfiles)):continue
-        yield load_data(files)
+        yield load_data(files,rmresp=rmresp)
 
 def make_inventory(stats,response):
     from obspy.core.inventory import Inventory, Network, Station, Channel, Site

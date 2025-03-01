@@ -34,8 +34,9 @@ from obspy.geodetics.base import gps2dist_azimuth as epi
 from obspy.geodetics import kilometer2degrees as k2d
 from obspy.core import Stream, UTCDateTime
 from obstools.atacr import utils, EventStream
+atacr_status = utils.atacr_status
 from pathlib import Path
-
+import pandas as pd
 from argparse import ArgumentParser
 from os.path import exists as exist
 from numpy import nan
@@ -305,6 +306,9 @@ def get_event_arguments(argv=None):
     return args
 
 def main(args=None):
+    status=lambda stage=None,note=None:atacr_status(step,stanm,stage,note)
+    step='DownloadEvents'
+    # stage=None;note=None;status()
     if args is None:
         # Run Input Parser
         args = get_event_arguments()
@@ -327,13 +331,6 @@ def main(args=None):
         else:
             stkeys = db.keys()
             sorted(stkeys)
-    # Loop over station keys
-    print('-X-'*10)
-    print('---len stkeys:' + str(len(stkeys)))
-    for stkey in stkeys:
-        print(stkey)
-    print('-X-'*10)
-    import pandas as pd
     pd.Series({'Result':'Not Started'}).to_pickle('RunTest.pkl')
     for stkey in list(stkeys):
         # Extract station information from dictionary
@@ -342,7 +339,7 @@ def main(args=None):
         # Define path to see if it exists
         eventpath = Path('EVENTS') / 'raw' / Path(stkey)
         if not eventpath.is_dir():
-            print(stanm,'\nPath to '+str(eventpath)+' doesn`t exist - creating it')
+            status(note='\nPath to '+str(eventpath)+' doesn`t exist - creating it')
             eventpath.mkdir(parents=True,exist_ok=True)
         # Establish client
         if len(args.UserAuth) == 0:
@@ -360,10 +357,10 @@ def main(args=None):
             tend = sta.enddate
         else:
             tend = args.endT
-        print(stanm,'Station life: ' + str(sta.startdate) + ' -> ' + str(sta.enddate))
-        print(stanm,'Event: ' + str(tstart) + ' -> ' + str(tend))
+        status(note='Station life: ' + str(sta.startdate) + ' -> ' + str(sta.enddate))
+        status(note='Event: ' + str(tstart) + ' -> ' + str(tend))
         if tstart > sta.enddate or tend < sta.startdate:
-            print(stanm,'Event not in station window')
+            status(note='Event not in station window')
             pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
             continue
         # Temporary print locations
@@ -375,32 +372,25 @@ def main(args=None):
                 tlocs[il] = "--"
         sta.location = tlocs
         # Update Display
-        print(stanm,"\n|===============================================|")
-        print(stanm,"|===============================================|")
-        print(stanm,"|                   {0:>8s}                    |".format(sta.station))
-        print(stanm,"|===============================================|")
-        print(stanm,"|===============================================|")
-        print(stanm,"|  Station: {0:>2s}.{1:5s}                            |".format(sta.network, sta.station))
-        print(stanm,"|      Channel: {0:2s}; Locations: {1:15s}  |".format(sta.channel, ",".join(tlocs)))
-        print(stanm,"|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(sta.longitude, sta.latitude))
-        print(stanm,"|      Start time: {0:19s}          |".format(sta.startdate.strftime("%Y-%m-%d %H:%M:%S")))
-        print(stanm,"|      End time:   {0:19s}          |".format(sta.enddate.strftime("%Y-%m-%d %H:%M:%S")))
-        print(stanm,"|-----------------------------------------------|")
-        print(stanm,"| Searching Possible events:                    |")
-        print(stanm,"|   Start: {0:19s}                  |".format(tstart.strftime("%Y-%m-%d %H:%M:%S")))
-        print(stanm,"|   End:   {0:19s}                  |".format(tend.strftime("%Y-%m-%d %H:%M:%S")))
+
+        status(note="|  Station: {0:>2s}.{1:5s}                            |".format(sta.network, sta.station))
+        status(note="|      Channel: {0:2s}; Locations: {1:15s}  |".format(sta.channel, ",".join(tlocs)))
+        status(note="|      Lon: {0:7.2f}; Lat: {1:6.2f}                |".format(sta.longitude, sta.latitude))
+        status(note="|      Start time: {0:19s}          |".format(sta.startdate.strftime("%Y-%m-%d %H:%M:%S")))
+        status(note="|      End time:   {0:19s}          |".format(sta.enddate.strftime("%Y-%m-%d %H:%M:%S")))
+        status(note="|   Start: {0:19s}                  |".format(tstart.strftime("%Y-%m-%d %H:%M:%S")))
+        status(note="|   End:   {0:19s}                  |".format(tend.strftime("%Y-%m-%d %H:%M:%S")))
         if args.maxmag is None:
-            print(stanm,"|   Mag:   >{0:3.1f}".format(args.minmag) + "                                 |")
+            status(note="|   Mag:   >{0:3.1f}".format(args.minmag) + "                                 |")
         else:
-            print(stanm,"|   Mag:   {0:3.1f} - {1:3.1f}".format(args.minmag, args.maxmag) + "                            |")
-        print(stanm,"| ...                                           |")
+            status(note="|   Mag:   {0:3.1f} - {1:3.1f}".format(args.minmag, args.maxmag) + "                            |")
+        status(note="| ...                                           |")
         # Get catalogue using deployment start and end
         cat = client.get_events(starttime=tstart, endtime=tend,minmagnitude=args.minmag, maxmagnitude=args.maxmag,orderby='magnitude')
         # Total number of events in Catalogue
         nevtT = len(cat)
-        print(stanm,"|  Found {0:5d}".format(nevtT) + " possible events                  |")
         if nevtT>1:
-            print(stanm,'Requesting the largest mag of the',str(nevtT),' candidate events')
+            status(note=f'Requesting the largest mag of the,{str(nevtT)}, candidate events')
             nevtT = 1
         # Select order of processing
         ievs = range(0, nevtT)
@@ -422,24 +412,13 @@ def main(args=None):
             if mag is None:
                 mag = -9.
             # Display Event Info
-            print(stanm,"\n"+"*"*60)
-            print(stanm,
-                "* #({0:d}/{1:d}):  {2:13s}".format(
-                    inum+1, nevtT, time.strftime("%Y%m%d_%H%M%S")))
-            print(stanm,
-                "*   Origin Time: " + time.strftime("%Y-%m-%d %H:%M:%S"))
-            print(stanm,
-                "*   Lat: {0:6.2f}; Lon: {1:7.2f}".format(lat, lon))
-            print(stanm,
-                "*   Dep: {0:6.2f}; Mag: {1:3.1f}".format(dep/1000., mag))
-            print(stanm,
-                "*   Dist: {0:7.2f} km; {1:7.2f} deg".format(
-                    epi_dist, gac))
+            status(note="*   Origin Time: " + time.strftime("%Y-%m-%d %H:%M:%S"))
+            status(note="*   Lat: {0:6.2f}; Lon: {1:7.2f}".format(lat, lon))
+            status(note="*   Dep: {0:6.2f}; Mag: {1:3.1f}".format(dep/1000., mag))
+            status(note="*   Dist: {0:7.2f} km; {1:7.2f} deg".format(epi_dist, gac))
             # If distance outside of distance range:
             if not (gac > args.mindist and gac < args.maxdist):
-                print(stanm,
-                    "\n*   -> Event outside epicentral distance " +
-                    "range - continuing")
+                status(note='-> Event outside epicentral distance range - continuing')
                 pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                 continue
             t1 = time
@@ -459,16 +438,14 @@ def main(args=None):
             fileZ = eventpath / (tstamp+'.'+sta.channel+'Z.SAC')
             # Pressure channel
             fileP = eventpath / (tstamp+'.'+sta.channel[0]+'DH.SAC')
-            print(stanm,"\n* Channels selected: " + str(args.channels)+' and vertical')
+            status(note="\n* Channels selected: " + str(args.channels)+' and vertical')
             # If data file exists, continue
             if not args.ovr:
                 if fileZ.exists():
                     if fileP.exists():
                         if file1.exists():
                             if file2.exists():
-                                    print(stanm,"*")
-                                    print(stanm,"*   "+str(fileZ))
-                                    print(stanm,"*   -> File already exists - continuing")
+                                    status(note=f'{fileZ} File already exists - continuing')
                                     pd.Series({'Result':'Already exists'}).to_pickle('RunTest.pkl')
                                     continue
             if "P" not in args.channels:
@@ -478,17 +455,15 @@ def main(args=None):
                 'H' + sta.channel.upper() + '1,' + 'H' + sta.channel.upper() + '2,' + 'H' + sta.channel.upper() + 'Z'
                 # Get waveforms from client
                 try:
-                    print(stanm,"*   "+tstamp + "                                     ")
-                    print(stanm,"*   -> Downloading Seismic data... ")
+                    status(note=str(tstamp))
+                    status(note="*   -> Downloading Seismic data... ")
                     sth = client.get_waveforms(
                         network=sta.network, station=sta.station,
                         location=sta.location[0], channel=channels,
                         starttime=t1, endtime=t2, attach_response=True)
-                    print(stanm,"*      ...done")
+                    status(note="*      ...done")
                 except Exception:
-                    print(stanm,
-                        " Error: Unable to download ?H? components - " +
-                        "continuing")
+                    status(note=" Error: Unable to download ?H? components - continuing")
                     pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                     continue
             elif "12" not in args.channels:
@@ -498,39 +473,35 @@ def main(args=None):
                 'H' + sta.channel.upper() + 'Z'
                 # Get waveforms from client
                 try:
-                    print(stanm,"*   "+tstamp + "                                     ")
-                    print(stanm,"*   -> Downloading Seismic data... ")
+                    status(note=str(tstamp))
+                    status(note="*   -> Downloading Seismic data... ")
                     sth = client.get_waveforms(
                         network=sta.network, station=sta.station,
                         location=sta.location[0], channel=channels,
                         starttime=t1, endtime=t2, attach_response=True)
-                    print(stanm,"*      ...done")
+                    status(note="*      ...done")
                 except Exception:
-                    print(stanm,
-                        " Error: Unable to download ?H? components - " +
-                        "continuing")
+                    status(note=" Error: Unable to download ?H? components - continuing")
                     pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                     continue
                 try:
-                    print(stanm,"*   -> Downloading Pressure data...")
+                    status(note="*   -> Downloading Pressure data...")
                     stp = client.get_waveforms(
                         network=sta.network, station=sta.station,
                         location=sta.location[0], channel=args.pressure_channels,
                         starttime=t1, endtime=t2, attach_response=True)
-                    print(stanm,"*      ...done")
+                    status(note="*      ...done")
                     if len(stp) > 1:
-                        print(stanm,"WARNING: There are more than one ?DH trace")
-                        print(stanm,"*   -> Keeping the highest sampling rate")
-                        print(stanm,
-                            "*   -> Renaming channel to " +
-                            sta.channel[0] + "DH")
+                        status(note="WARNING: There are more than one ?DH trace")
+                        status(note="*   -> Keeping the highest sampling rate")
+                        status(note="*   -> Renaming channel to " + sta.channel[0] + "DH")
                         if stp[0].stats.sampling_rate > \
                                 stp[1].stats.sampling_rate:
                             stp = Stream(traces=stp[0])
                         else:
                             stp = Stream(traces=stp[1])
                 except Exception:
-                    print(stanm," Error: Unable to download ?DH component - " + "continuing")
+                    status(note=" Error: Unable to download ?DH component - " + "continuing")
                     pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                     continue
             else:
@@ -539,36 +510,36 @@ def main(args=None):
                 'H' + sta.channel.upper() + '1,' + 'H' + sta.channel.upper() + '2,' + 'H' + sta.channel.upper() + 'Z'
                 # Get waveforms from client
                 try:
-                    print(stanm,"*   "+tstamp + "                                     ")
-                    print(stanm,"*   -> Downloading Seismic data... ")
+                    status(note="*   "+tstamp + "                                     ")
+                    status(note="*   -> Downloading Seismic data... ")
                     sth = client.get_waveforms(network=sta.network, station=sta.station,location=sta.location[0],
                     channel=channels,starttime=t1, endtime=t2, attach_response=True)
-                    print(stanm,"*      ...done")
+                    status(note="*      ...done")
                 except Exception:
-                    print(stanm,
+                    status(note=
                         " Error: Unable to download ?H? components - " + "continuing")
                     pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                     continue
                 try:
-                    print(stanm,"*   -> Downloading Pressure data...")
+                    status(note="*   -> Downloading Pressure data...")
                     stp = client.get_waveforms(network=sta.network, station=sta.station,location=sta.location[0], channel=args.pressure_channels,
                     starttime=t1, endtime=t2, attach_response=True)
-                    print(stanm,"     ...done")
+                    status(note="     ...done")
                     if not type(stp[0].stats.response)==obspy.core.inventory.response.Response:
-                        print(stanm,'No response data returned. Skipping')
+                        status(note='No response data returned. Skipping')
                         pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                         continue
                     if len(stp) > 1:
-                        print(stanm,"WARNING: There are more than one ?DH trace")
-                        print(stanm,"*   -> Keeping the highest sampling rate")
-                        print(stanm,"*   -> Renaming channel to " + sta.channel[0] + "DH")
+                        status(note="WARNING: There are more than one ?DH trace")
+                        status(note="*   -> Keeping the highest sampling rate")
+                        status(note="*   -> Renaming channel to " + sta.channel[0] + "DH")
                         if stp[0].stats.sampling_rate > \
                                 stp[1].stats.sampling_rate:
                             stp = Stream(traces=stp[0])
                         else:
                             stp = Stream(traces=stp[1])
                 except Exception:
-                    print(stanm," Error: Unable to download ?DH component - " +
+                    status(note=" Error: Unable to download ?DH component - " +
                         "continuing")
                     pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                     continue
@@ -593,11 +564,11 @@ def main(args=None):
             # Check streams
             is_ok, st = utils.QC_streams(t1, t2, st)
             if not is_ok:
-                print(stanm,'QC_Streams says "not ok"...continuing')
+                status(note='QC_Streams says "not ok"...continuing')
                 pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                 continue
             if len(st)<len(''.join(args.channels)):
-                print(stanm,"Missing components. Skipping day.")
+                status(note="Missing components. Skipping day.")
                 pd.Series({'Result':'Fail'}).to_pickle('RunTest.pkl')
                 continue
             # Extract traces - P
@@ -606,14 +577,14 @@ def main(args=None):
                 stp = st.select(component='H')
                 trP = stp[0]
                 trP = utils.update_stats(trP, sta.latitude, sta.longitude, sta.elevation,sta.channel[0]+'DH')
-                print(stanm,'Saving: ' + str(fileP))
+                status(note='Saving: ' + str(fileP))
                 trP.write(str(fileP), format='SAC')
                 st_sac+=trP
             if "Z" in args.channels:
                 # Extract traces - Z
                 trZ = st.select(component='Z')[0]
                 trZ = utils.update_stats(trZ, sta.latitude, sta.longitude, sta.elevation,sta.channel+'Z')
-                print(stanm,'Saving: ' + str(fileZ))
+                status(note='Saving: ' + str(fileZ))
                 trZ.write(str(fileZ), format='SAC')
                 st_sac+=trZ
             # Extract traces - H
@@ -622,9 +593,9 @@ def main(args=None):
                 tr2 = st.select(component='2')[0]
                 tr1 = utils.update_stats(tr1, sta.latitude, sta.longitude, sta.elevation,sta.channel+'1')
                 tr2 = utils.update_stats(tr2, sta.latitude, sta.longitude, sta.elevation,sta.channel+'2')
-                print(stanm,'Saving: ' + str(file1))
+                status(note='Saving: ' + str(file1))
                 tr1.write(str(file1), format='SAC')
-                print(stanm,'Saving: ' + str(file2))
+                status(note='Saving: ' + str(file2))
                 tr2.write(str(file2), format='SAC')
                 st_sac+=tr1
                 st_sac+=tr2

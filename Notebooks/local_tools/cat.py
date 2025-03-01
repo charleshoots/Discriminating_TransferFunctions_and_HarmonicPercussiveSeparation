@@ -34,6 +34,16 @@ def shared_events(events,dirs,chan='HZ',tf='sta.ZP-21',minsta=10,stanm=None):
 def quarantine_data(folder,reg_list):
     qfold=(folder/'_quarantine_');qfold.mkdir(exist_ok=True)
     for r in reg_list:[shutil.move(f,qfold/f.name) for f in list(folder.glob(f'*{r}*'))]
+
+def banner(msg):
+    w=30
+    print('**'*w)
+    print('__'*w)
+    nmsg=f'< {msg} >'
+    print(f'{'|'*int((w-len(msg))/1)}{nmsg}{'|'*int((w-len(msg))/1)}')
+    print('__'*w)
+    print('**'*w)
+
 # q = [i.replace('QC','').replace('.png','')]
 # for i in q:quarantine_data(dirs.Noise/'raw'/'.'.join(i.split('.')[:2]),['.'.join(i.split('.')[-2:])])
 # print('...All raw data quarantined')
@@ -42,7 +52,27 @@ def quarantine_data(folder,reg_list):
 # for i in q:quarantine_data(dirs.TransferFunctions/'.'.join(i.split('.')[:2]),['.'.join(i.split('.')[-2:])])
 # print('...All transfer functions quarantined')
 
+def inquarantine(stanm,day,noisefold):return np.all([len(list((noisefold/g/stanm/'_quarantine').glob(day+'*.SAC')))>0 for g in ['rmresp','raw']])
 
+def update_noise_qurantine(dirs):
+    badfolder = dirs.Spectra/'_QualityControls'/'AnalystBadDays'
+    noisefolder = dirs.Noise
+    files=list(badfolder.glob('*.png'))
+    print(f'{len(files)} files to assert quarantine')
+    sta=[];nq=[]
+    for f in files:
+        stanm='.'.join(f.name.split('.')[:2])
+        sta.append(stanm)
+        # .zfill(3)
+        day='.'.join([s.zfill(3) for s in f.name.split('.')[2:4]])
+        # day=('.'.join(f.name.split('.')[2:4])).zfill(3)
+        for nfold in [noisefolder/'rmresp'/stanm,noisefolder/'raw'/stanm]:
+            (nfold/'_quarantine').mkdir(exist_ok=True)
+            [shutil.move(fn,fn.parent/'_quarantine'/fn.name) for fn in list(nfold.glob(day + '*'))]
+        nq.append(len(list((nfold/'_quarantine').glob('*.SAC')))/4)
+    print(f'...done')
+    print('Stations with quarantine: ')
+    _=[print(f'{str(pi+1)} | {p} | days quarantined : {n}') for pi,(n,p) in enumerate(zip(nq,sta))]
 def update_rmresp_folder(datafold,reg='*SAC',ovr=False):
     rawfold=Path(datafold)/'raw'
     (Path(datafold)/'rmresp').mkdir(exist_ok=True)
@@ -133,11 +163,34 @@ def update_inventory(cat):
     for inv,s in zip(cat.Inventory,cat.iloc):s.Inventory=Inventory([inv[i] for i in np.unique([n.stations[0].channels[0]._code for n in inv],return_index=True)[1]])
     return cat
 
-def mirror(afold,bfold,events,comp='HZ'):
-    mirrored=[ev for ev in events if 
-    (len(list(afold.glob(f'*{ev.Name}*{comp}.SAC')))>0) 
-    and (len(list(bfold.glob(f'*{ev.Name}*{comp}.SAC')))>0)]
-    return Catalog(mirrored)
+# def mirror(afold,bfold,events,comp='HZ'):
+#     mirrored=[ev for ev in events if 
+#     (len(list(afold.glob(f'*{ev.Name}*{comp}.SAC')))>0) 
+#     and (len(list(bfold.glob(f'*{ev.Name}*{comp}.SAC')))>0)]
+#     return Catalog(mirrored)
+
+
+def mirror(stanm,catalog,dirs):
+    # print(stanm)
+    sta=catalog.loc[stanm].copy()
+    ref_events=[e.Name for e in sta.Events]
+    for fi,fold in enumerate([dirs.Events_HPS,dirs.Events]):
+        events=np.array([e.name.replace('.HZ.SAC','') for e in list((fold/'rmresp'/stanm).glob('*.HZ.SAC'))])
+        c,ia,ib=np.intersect1d(ref_events,events,return_indices=True)
+        events=np.array(['.'.join(e.name.replace('.HZ.SAC','').replace(f'{stanm}.','').split('.')[:4]) for e in list((fold/'corrected'/stanm).glob('*.HZ.SAC'))])
+        c,ia,ib=np.intersect1d(c,events,return_indices=True)
+
+        # c,ia,ib=np.intersect1d(events_pre,c,return_indices=True)
+
+        c,ia,ib=np.intersect1d(ref_events,c,return_indices=True)
+        if fi==1:
+            c,ia,ib=np.intersect1d([e.Name for e in sta.Events],c,return_indices=True)
+            events=Catalog([sta.Events[i] for i in ia])
+        else:
+            events=c
+        ref_events=events.copy()
+    return events
+
 def mirror_events(reports):
     nkeys = [n for n in list(reports[0].__dict__.keys()) if not n=='f']
     mirror = dict()
