@@ -39,9 +39,7 @@ def mirror_events(reports):
 
 
 def sta_metrics(report,sta,
-    csd_pairs={'ZP':'#0c51a6','ZZ':'#2a7e93','Z1':'#7370cb','Z2':'#4f86c5'},
     columns=[['ATaCR',['Coherence','ZZ']],['NoiseCut',['Coherence','ZZ']]],**args):
-
     defargs = AttribDict();defargs.bands=[(1,10),(10,30),(30,100)];defargs.vertical_scale=1.2;defargs.figwidth=20;defargs.figaspect=[4,1]
     defargs.linewidth=[.1,.2];defargs.linecolor=['red','black'];defargs.alpha=[1.0,1.0];defargs.nev=None
     defargs.phases=('P','S');defargs.shadow_phases=('PKIKP','SKS','SKIKSSKIKS');defargs.phasecolors = {'P':'r','S':'b'}
@@ -50,20 +48,14 @@ def sta_metrics(report,sta,
     defargs.columns = [['ATaCR',['Coherence','ZZ']],['NoiseCut',['Coherence','ZZ']]]
     [defargs.update({k:args[k]}) for k in list(args.keys())]
     args = defargs
-    args.csd_pairs = {'ZP':'#0c51a6','ZZ':'#2a7e93','Z1':'#7370cb','Z2':'#4f86c5'}
-    # ------------
-    if type.lower()=='stream':note = 'Corrected ('+args.linecolor[1]+') | Raw ('+args.linecolor[0]+')'
-    else:note = '\nVariance (shaded)'
-
-    n,st=f'n{sta.Network}',f'{sta.Station}'
-
-    staname = sta.StaName
+    args.csd_pairs = {'Z1':'#0c51a6','ZP':'#2a7e93','ZZ':'#7370cb','Z2':'#4f86c5'}
+    note = 'Corrected ('+args.linecolor[1]+') | Raw ('+args.linecolor[0]+')'
+    # else:note = '\nVariance (shaded)'
+    stanm = sta.StaName
     tf=''
-    stastr = ' | '.join([staname+tf,sta.Experiment,'Depth: '+str(int(abs(sta.StaDepth)))+'m, Notch: '+str(int(1/fnotch(1000*abs(sta.StaDepth))))+'s',note])
+    stastr = ' | '.join([stanm+tf,sta.Experiment,'Depth: '+str(int(abs(sta.StaDepth)))+'m, Notch: '+str(int(1/fnotch(1000*abs(sta.StaDepth))))+'s',note])
     nrows = 1;ncols=2
     columns=[['ATaCR',['Coherence','ZZ']],['NoiseCut',['Coherence','ZZ']]]
-    # if type.lower()=='metrics':columns=['Coherence']
-    # if type.lower()=='metrics':columns=['Coherence','Phase','Admittance']
     fig,axes = plt.subplots(nrows=ncols,ncols=nrows,layout='constrained',sharex='all',squeeze=True,figsize=(8,7))
     axes = axes.reshape(-1)
     fig.suptitle(stastr)
@@ -73,67 +65,21 @@ def sta_metrics(report,sta,
         method = methods[bi]
         metric = b[1][0]
         pair = b[1][1]
-        # for pi,pair in enumerate(args.csd_pairs):
-        # channels = pair
-        # if channels[0]==channels[1]:args.Noise=False
-        # else: args.Noise=True
-        # print(method+'-'+type + '| Column:'+str(bi+1)+'/'+str(len(columns)))
         ax = axes[bi]
-        # st_band = st_hold.copy()
-        # correct_hold = st_band.select(location=f'*{method}*').copy()
-        # raw_hold = st_band.select(location='*Raw*').copy()
-        # if raw_reference:raw_hold = raw_reference
-        for si,s in enumerate(['Corrected']):
-            # st = {'Raw':raw_hold,'Corrected':correct_hold}[s].copy()
-            for tri in range(len([1])):
-                # tr_ind = tri
-                # tr = st[tr_ind].copy()
-                # if tr_ind==0:
-                #     if type.lower()=='stream':ax.set_title(''.join([str(metric),'s-',str(pair),'s']))
-                #     else:
-                ax.set_title(f'{method} {pair} {metric}')
-                if type.lower()=='metrics':
-                    x = report.f;ind=x<=1;x=x[ind]
-                    y=report[method][n][st].coh[:,ind]
-                    # if s=='Raw':
-                        # if args.Noise:[
-                        # ax.scatter(xy[0],np.abs(xy[1]),c='darkgrey',s=0.1,label=pair+':Noise')
-                        # for ni,xy in enumerate([avg_meter(st_hold.Noise,metric,pair) for p in [1]])]
-                        # [ax.scatter(x[ind],np.abs(tr.Metrics.__getattribute__(metric)(pair)[1][ind]),label=':'.join([s,pair]),s=0.4,color='r',alpha=0.1) for p in [1]]
-                        # [ax.plot(x[ind],np.abs(tr.Metrics.__getattribute__(metric)(pair)[1][ind]),label=':'.join([s,pair]),linewidth=0.05,alpha=0.05,color='r') for p in [1]]
-                    if s=='Corrected':
-                        [ax.scatter(x,yy,label=':'.join([s,pair]),s=0.2,color=args.csd_pairs[pair],alpha=0.1) for yy in y]
-                        [ax.plot(x,yy,label=':'.join([s,pair]),linestyle=':',linewidth=0.05,alpha=0.05,color=args.csd_pairs[pair]) for yy in y]
-                if type.lower()=='metrics':
-                    ax.set_xlim(1/500,1);ax.set_xscale('log')
-                    # if metric.lower()=='phase':ax.set_ylim(-180,180)
-                    if metric.lower()=='phase':ax.set_ylim(0,180)
-                    if metric.lower()=='coherence':ax.set_ylim(0,1.01)
-                # ------------------------------------------------------------------------------------------
-            y_avg = np.mean(y,axis=0)
-            y_var = np.std(y,axis=0)**2
-
-            # Should I set Phase domain to [0,180] instead of [-180,180]? Would be easier to read...
-            # y_avg = np.mean(np.abs([rt.Metrics.__getattribute__(metric)(pair)[1][ind] for rt in st]),axis=0)
-            # y_var = np.std(np.abs([rt.Metrics.__getattribute__(metric)(pair)[1][ind] for rt in st]),axis=0)**2
-            if s=='Corrected':
-                # stallaz=[tr.stats.sac.stla,tr.stats.sac.stlo,tr.stats.sac.stel]
-                # evllaz=[evmeta[tr_ind].origins[0].latitude,evmeta[tr_ind].origins[0].longitude,evmeta[tr_ind].origins[0].depth/1000]
-                # tr.stats.sac.gcarc = lt.math.distance(sta,evmeta[tr_ind])
-                # if type.lower()=='metrics':
-                    # evstr = '|'.join(['['+str(tr_ind+1)+'] ',evmeta[tr_ind].Name])
-                # el:
-                # if not type.lower()=='metrics':
-                #     evstr = '|'.join(['['+str(tr_ind+1)+'] ',evmeta[tr_ind].Name,'M'+str(evmeta[tr_ind].magnitudes[0].mag),str(np.round(tr.stats.sac.gcarc,2))+'°'])
-                #     ax.text(np.max(ax.get_xlim()),np.min(ax.get_ylim()),evstr,bbox=dict(facecolor='white', alpha=1),horizontalalignment='right',verticalalignment='center',fontsize=10)
-                # ------
-                ax.scatter(x,y_avg,label=':'.join([s,pair]),s=0.5,color=args.csd_pairs[pair])
-                ax.plot(x,y_avg,label=':'.join([s,pair]),linewidth=0.8,alpha=0.8,color=args.csd_pairs[pair])
-                ax.fill_between(x,y_avg-y_var,y_avg+y_var, alpha=0.2,color=args.csd_pairs[pair])
-            # elif s=='Raw':
-            #     ax.scatter(x[ind],y_avg,label=':'.join([s+'-Average',pair]),s=0.5,color='r')
-            #     ax.plot(x[ind],y_avg,label=':'.join([s+'-Average',pair]),linewidth=0.8,alpha=0.5,color='r')
-        if type.lower()=='metrics':ax.set_xlabel('frequency (hz)')
+        for tri in range(len([1])):ax.set_title(f'{method} {pair} {metric}')
+        x = report.f;ind=x<=1;x=x[ind]
+        y=report[method][stanm].coh[:,ind]
+        [ax.scatter(x,yy,label=':'.join([pair]),s=5,facecolor=args.csd_pairs[pair],alpha=0.05) for yy in y]
+        [ax.plot(x,yy,label=':'.join([pair]),linestyle=':',linewidth=0.05,alpha=0.05,color=args.csd_pairs[pair]) for yy in y]
+        ax.set_xlim(1/500,1);ax.set_xscale('log')
+        if metric.lower()=='phase':ax.set_ylim(0,180)
+        if metric.lower()=='coherence':ax.set_ylim(0,1.01)
+        y_avg = np.mean(y,axis=0)
+        y_var = np.std(y,axis=0)**2
+        ax.scatter(x,y_avg,label=':'.join([pair]),s=0.5,color=args.csd_pairs[pair])
+        ax.plot(x,y_avg,label=':'.join([pair]),linewidth=0.8,alpha=0.8,color=args.csd_pairs[pair])
+        ax.fill_between(x,y_avg-y_var,y_avg+y_var, alpha=0.2,color=args.csd_pairs[pair])
+        ax.set_xlabel('frequency (Hz)')
         # else:ax.set_xlabel('seconds')
         ax.axvline(1/fn,alpha=0.4,linewidth=1,color='k',linestyle='-.')
         ax.text(1/fn,1,str(int(np.round(fn)))+'s',verticalalignment='top',horizontalalignment='right')

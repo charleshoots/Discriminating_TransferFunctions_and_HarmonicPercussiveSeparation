@@ -1,4 +1,5 @@
 from modules import *
+from scipy.stats import iqr
 
 def fnotch(d):
         '''The frequency knotch root function described in Crawford et al., 1998.
@@ -47,18 +48,47 @@ def avg_meter(avg,m,r):
     y=Meters[m](ab=AB,aa=AA,bb=BB)
     return x[x>=0],y[x>=0]
 
-def octave_average(d,f,fmin=.002,fmax=1.025,fraction=3):
+def octave_average(d,f,fmin=1/500,fmax=1.025,fraction=8):
     # 1/3 octave (fraction=3) → Standard in engineering seismology and ground motion studies.
     # 1/6 octave (fraction=6) → Provides better resolution while still smoothing noise.
     # 1/12 octave (fraction=12) → High resolution, often used for detailed spectral analysis.
     # 1/8 octave (fraction=8) → Sometimes used in geophysical applications for a balance between smoothing and resolution.
     k=np.arange(np.log2(fmin), np.log2(fmax), 1/fraction)
+    if fmin==None:fmin=f[1]
     freq_centers = 2**k
     out=[]
+    d=np.atleast_2d(d)
     for i, fc in enumerate(freq_centers):
         f_low = fc / 2**(1/(2*fraction))
         f_high = fc * 2**(1/(2*fraction))
         # Find indices within this band
         indices = np.where((f >= f_low) & (f <= f_high))[0]
-        if len(indices) > 0:out.append(np.mean(d[indices]))
-    return out
+        if len(indices) > 0:out.append(np.mean(d[:,indices]))
+        else:out.append(None)
+    freq_centers=freq_centers[~(np.array(out)==None)]
+    out = np.array(out)[~(np.array(out)==None)]
+    out = np.array(out.tolist())
+    return freq_centers,np.array(out)
+
+def cohstats(coh,margin=1,axis=0):
+    coh = coh[~np.any(np.isnan(coh),axis=1)]
+    q1q3iqr = lambda coh,axis=0:np.array((np.percentile(coh,25,axis=axis),np.percentile(coh,75,axis=axis),iqr(coh,rng=(0.25,0.75),axis=axis)))
+    S=q1q3iqr(coh)
+    lower_whisker=S[0,:]-1.5*S[2,:]
+    upper_whisker=S[1,:]+1.5*S[2,:]
+
+    inliers = (coh<=(np.array(upper_whisker)*margin))&(coh>=(np.array(lower_whisker)/margin))
+    outliers = ~inliers
+    verify=np.sum([np.any((c[o]<=np.max(c[i]))&(c[o]>=np.min(c[i]))) for c,i,o in zip(coh.T,inliers.T,outliers.T)])
+    median=np.array([np.median(c[i]) for c,i in zip(coh.T,inliers.T)])
+    # inliers=[c[(c>=(lw/margin))&(c<=(uw*margin))] for lw,uw,c in zip(lower_whisker,upper_whisker,coh.T)]
+    # outliers=[c[(c<(lw/margin))+(c>(uw*margin))] for lw,uw,c in zip(lower_whisker,upper_whisker,coh.T)]
+    # upper_whisker=[np.max(a) if len(a)>0 else w for a,w in zip(inliers,upper_whisker)]
+    # lower_whisker=[np.min(a) if len(a)>0 else w for a,w in zip(inliers,lower_whisker)]
+    lower=lower_whisker
+    upper=upper_whisker
+    # upper=np.array([np.max(c[i]) for c,i in zip(coh.T,inliers.T)])
+    # lower=np.array([np.min(c[i]) for c,i in zip(coh.T,inliers.T)])
+    # return {'upper':upper_whisker,'lower':lower_whisker,'median':median,'outliers':outliers}
+    return upper, lower, median, outliers, inliers
+

@@ -85,4 +85,11 @@ def get_reports(comp,catalog,Archive,dirs,AVG=True,methods=['ATaCR','NoiseCut'])
     #         if AVG:
     #             # Coherences.Uncorrected[stanm].coh=Coherences.Uncorrected[stanm].coh.mean(axis=0)
     #             Coherences[m][stanm].coh=np.nanmean(Coherences[m][stanm].coh,axis=0)
+    temp=AttribDict();temp.f=Report.f
+    for m in methods:
+        temp[m]=AttribDict()
+        for stanm in catalog.StaName:
+            n,s = stanm.split('.')
+            temp[m][stanm]=Report[m][f'n{n}'][s]
+    Report = temp
     return Report

@@ -120,7 +120,7 @@ def noisecut(
 
     win_length_samples = _valid_win_length_samples(
         win_length_samples, win_length, trace.stats.sampling_rate)
-
+    
     windows = int(1/(1-overlap))
     hop_length = win_length_samples // windows
     n_fft = win_length_samples
@@ -159,7 +159,7 @@ def noisecut(
     if verbose:
         print('Match-Filter | width='+str(width))
     S_filter = librosa.decompose.nn_filter(S_full1,aggregate=np.median,metric='cosine', width=width)
-
+    doodle = poodle
     # The output of the filter shouldn't be greater than the input
     S_filter = np.minimum(np.abs(S_full1), np.abs(S_filter))
     margin_i = 1

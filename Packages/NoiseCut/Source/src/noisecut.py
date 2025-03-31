@@ -160,7 +160,6 @@ def noisecut(
         width = (((S_full1.shape[-1] - 1) // 2) - 1) // 5 #Was hardcoded at 200. This sets the width at the largest value possible for the data given to the similarity filter.
     # print('Match-Filter Width='+str(width))
     S_filter = librosa.decompose.nn_filter(S_full1,aggregate=np.median,metric='cosine', width=width)
-
     # The output of the filter shouldn't be greater than the input
     S_filter = np.minimum(np.abs(S_full1), np.abs(S_filter))
     margin_i = 1

@@ -5,7 +5,7 @@
 # import fnmatch
 # import obspy
 # from obspy import read_inventory
-from imports import *
+# from imports import *
 from modules import *
 # ----
 def get_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):

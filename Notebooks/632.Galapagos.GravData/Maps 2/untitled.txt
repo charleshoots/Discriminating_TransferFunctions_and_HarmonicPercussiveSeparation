@@ -1,0 +1,46 @@
+#!/bin/csh
+#=================================================================================
+#=================================================================================
+
+set calc = "yes"
+#----------------------------------------------------------------------------------
+set R = "-97/-85/-3.5/22.5"
+set I = "0.0025"
+# note the extension "llf" stands for lon, lat, faa 
+
+if ($calc == "yes" ) then 
+ awk '{iprint $1 "  " $2 "  " $6}' /Volumes >! f
+aa.llf
+ cat KM1004_1.llf >> faa.llf
+
+ blockmean faa.llf -I$I -R$R >! tmp
+ /bin/rm -f faa.grd
+ #surface tmp -Gboug.grd -I$I -R$R -T0.25
+ nearneighbor tmp -Gfaa.grd -N1 -I$I -R$R -S0.015 -Vl 
+endif
+#----------------------------------------------------------------------------------
+gmtset HEADER_FONT_SIZE 20
+gmtset PLOT_DEGREE_FORMAT -ddd:mmF
+
+set proj = "m2"
+set grdfile = faa.grd
+set psfile = Faa.ps
+set gradfile = junk.grd
+
+set cpt = "faa.cpt"
+makecpt -Chaxby -T-100/350/10 >! $cpt
+grdgradient $grdfile -G$gradfile -A325 -N4 -V
+
+grdimage $grdfile -I$gradfile  -J$proj -R$R -C$cpt -X0.7 -Y1.2 -K >! $psfile
+#grdimage $grdfile -J$proj -R$R -C$cpt -X0.7 -Y1.0 -K  -Vl >! $psfile
+grdcontour topo_15.1.grd -C0.5  -J$proj -R -W2/50 -O -K >> $psfile
+
+gmtset D_FORMAT %.0f
+pscoast -J$proj -R -W2,0 -G80/50/45 -Df -O  -K >> $psfile
+psscale -D4/-0.5/7/0.1h -C$cpt -B50f10:"Free-Air Anomaly (mGal)": -V -O -K >> $psfile
+
+gmtset D_FORMAT %.2f.
+psbasemap -J$proj -Ba30mf10m:." ":SWEn -R$R -O >> $psfile
+gmtset D_FORMAT %.9f
+
+echo Check it out:  $grdfile

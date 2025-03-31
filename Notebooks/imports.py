@@ -1,4 +1,5 @@
 from modules import *
+octavg = lt.math.octave_average
 os.system('cls' if os.name == 'nt' else 'clear')
 # kk
 # # ====================================================================================
@@ -70,25 +71,6 @@ project_path = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/Research'
 # project_path = Path('/Volumes/ECHO/Research')
 os.chdir(project_path)
 dirs = io.dir_libraries(str(project_path))
-
-archive =  project_path / '_DataArchive'
-plotfolder = project_path / '_FigureArchive' / '_GEN6'
-# IRIS_EVENT_LINK = lambda s: f'https://ds.iris.edu/ds/nodes/dmc/tools/event/{s.resource_id.id.split('=')[-1]}'
-
-dirs.Plots = plotfolder;dirs.Archive=archive
-dirs.Events_HPS = dirs.Archive / 'HPS_Data' / 'Data'
-dirs.Analysis=dirs.Archive/'Analysis'
-dirs.P01=AttribDict()
-dirs.P01.Parent = dirs.Archive/'P01_Analysis_Figures'
-dirs.P01.S01 = dirs.P01.Parent/'S01_NoisePlots'
-dirs.P01.S02 = dirs.P01.Parent/'S02_StationPages'
-dirs.P01.S03 = dirs.P01.Parent/'S03_HPSPlots'
-dirs.P01.S04 = dirs.P01.Parent/'S04_CoherenceConour'
-dirs.P01.S05 = dirs.P01.Parent/'S05_CohvCohScatters'
-dirs.P01.S06 = dirs.P01.Parent/'S06_StemPlots'
-dirs.P01.S07 = dirs.P01.Parent/'S07_EventRecords_Traces'
-dirs.P01.S08 = dirs.P01.Parent/'S08_EventRecords_Metrics'
-dirs.P01.S99 = dirs.P01.Parent/'S99_Summaries'
 
 # ____________________________________________________________________________________
 # |||||||||||||||||||||||||||||||||||| Catalogs ||||||||||||||||||||||||||||||||||||||

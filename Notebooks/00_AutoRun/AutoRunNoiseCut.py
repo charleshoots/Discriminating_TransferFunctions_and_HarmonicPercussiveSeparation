@@ -9,7 +9,7 @@ from obspy.core.util.attribdict import AttribDict as attr
 HPSDataFolder = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/ATACR_HPS_Comp/_DataArchive/HPS_Data')
 HPSDataFolder=dirs.Events_HPS
 # get_noisecut_event(parentfolder,staname,event,channel=['*1','*2','*Z','*H'],len_hrs=2,pre_trim=False,post_trim=True,win_length=163.84,width=None)
-ovr = False
+ovr = True
 cat = catalog.copy()
 def unravel(lst):return list(itertools.chain.from_iterable(lst))
 # cat = cat.iloc[np.min(np.where(catalog.Network=='XE')):]
@@ -33,8 +33,9 @@ for stai,Station in enumerate(cat.iloc):
         print(state)
         fin = HPSDataFolder/'rmresp'/stanm/f'{Event.Name}.HZ.SAC'
         if not fin.exists():print(f'FILE: {fin} | Does not exist. Continuing');continue
-        try:out = (get_noisecut_event(HPSDataFolder/'rmresp',stanm,Event.Name,channel=channel))[0]
-        except:baddata+=1;continue
+        # try:
+        out = (get_noisecut_event(HPSDataFolder/'rmresp',stanm,Event.Name,channel=channel))[0]
+        # except:baddata+=1;continue
         if len(out)==0:badcut+=1;continue
         st = out.Corrected[0].copy()
         if (st[0].stats.endtime - st[0].stats.starttime)<(7200-500):unexpectedlen+=1;continue

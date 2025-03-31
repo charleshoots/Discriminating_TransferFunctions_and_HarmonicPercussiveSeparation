@@ -28,7 +28,7 @@ Args=AttribDict()
 # catalog = catalog.iloc[np.where(catalog.StaName=='YO.X01')[0][0]:]
 # -----------------------------------------------------------------------------------
 ## =============================================================================== ##
-# cat = catalog.copy()
+cat = catalog.copy()
 # cat = pd.read_pickle(dirs.Catalogs / 'Catalog_Test_DensityIncreased.ShalllowIncreased.pkl')
 
 
@@ -36,25 +36,26 @@ Args=AttribDict()
 # events = lt.cat.unravel_cat(cat[cat.Network=='7D'])
 # cat = cat[cat.StaName=='7D.J25A'];stanm=cat.iloc[0].StaName
 # cat.Events[0] = Catalog([e for e in events if len(list((dirs.Events/'corrected'/stanm).glob(f'*{e.Name}*.SAC')))==4])
-
-
 # cat=cat[cat.StaName.isin(['2D.OBS03','2D.OBS06','7D.G17B','7D.G25B','YL.B09W','YO.X10','Z6.16'])]
+# cat=cat[cat.StaName.isin(['2D.OBS23'])]
+# cat=catalog.copy()
+
 Args.Minmag,Args.Maxmag=6.0,8.0
 Args.cleanspectra_flags = '--figQC --figAverage --figCoh --figCross --save-fig'
 Args.dailyspectra_flags='--figQC --figAverage --figCoh --save-fig'
 ## =============================================================================== ##
 # -----------------------------------------------------------------------------------
 
-Args.STEPS = [3]
+Args.STEPS = [4,5,6,7]
 Args.fork = False
-Args.event_mode = True
+Args.event_mode = False 
 Args.event_window = 3600*2 #7200
 Args.channels = 'Z,P,12'
 # Args.channels = 'P,12'
 # Args.channels = 'Z'
 Args.ATaCR_Parent = dirs.ATaCR
-Args.days=20
-Args.ovr=False
+Args.days=10
+Args.ovr=True
 
 
 # ----=----=----=----

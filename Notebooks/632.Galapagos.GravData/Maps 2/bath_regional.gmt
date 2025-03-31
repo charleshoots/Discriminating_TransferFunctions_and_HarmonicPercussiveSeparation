@@ -1,0 +1,50 @@
+#!/bin/csh
+
+gmt gmtset PS_PAGE_ORIENTATION portrait PROJ_LENGTH_UNIT inch 
+gmt gmtset FORMAT_GEO_MAP D FONT_HEADING 11
+gmt gmtset MAP_ANNOT_OFFSET_PRIMARY 3p MAP_ANNOT_OFFSET_SECONDARY 3p MAP_FRAME_PEN thin,black MAP_DEFAULT_PEN thin,black
+
+set psfile = Regional_bath
+
+set R = "-97/-85/-2.0/4"
+
+set psfile = Regional_bath
+set proj = M6.5
+/bin/rm $psfile*
+#----------------------------------------------------------------
+#gmt grdmath regional_GMRT500m.grd 1000 DIV = regional_GMRT500m.grd
+#gmt grdmath GMRTv421_200m.grd 1000 DIV = regional.grd
+gmt grdgradient regional.grd -Ggradient.grd -A315 -V -N8 
+#----------------------------------------------------------------
+set grdfile = regional.grd
+
+gmt gmtset -Vl FORMAT_FLOAT_OUT %.1f
+set cpt = bath.cpt
+gmt gmtset -Vl FORMAT_FLOAT_OUT %.3f
+#gmt makecpt -Clapaz -T-3.5/-0.5 >! $cpt
+#gmt makecpt -Cdem2 -T0/1.5 >! land.cpt
+
+#makecpt -T-4/0.0/0.2 -Cjet -Z >! $cpt
+#makecpt -T-2/1.5/0.1 -Crelief >! stuff.cpt
+
+set Btop = "pa1f0SWen"
+
+gmt grdimage $grdfile -R$R -J$proj -X1 -Y5 -Igradient.grd -C$cpt -P -K >! $psfile.ps
+#gmt grdcontour new_bathymetry_256x256.grd -R$Rc -Jx8.75e-3 -C1000 -Xc -Yc -O -K >> $psfile
+gmtset LABEL_FONT_SIZE 9p ANNOT_FONT_SIZE_PRIMARY 9p
+gmt psscale  -Dx1/-0.5/2/0.1h -C$cpt -G-4/1 -B1f0.5:"Elevation (km)": -V -O -K >> $psfile.ps
+#gmt pscoast -J$proj -R$R -Wthinner,0 -Dh -O  -K >> $psfile.ps
+gmt psxy Sinton_axis.xy -J -R -Wthinner,255,"dashed" -K -O -V >> $psfile.ps
+#gmt psxy IG_stations.txt -J -R -Ss0.05 -Wthin,0 -K -O -V >> $psfile.ps
+gmt gmtset -Vl FORMAT_FLOAT_OUT %.0f
+
+gmtset ANNOT_FONT_SIZE_PRIMARY 10p
+gmt psbasemap -R$R -J$proj -B$Btop -O >> $psfile.ps
+
+gmt gmtset -Vl FORMAT_FLOAT_OUT %.3f
+
+gv $psfile.ps &
+gmt psconvert -Tf $psfile.ps
+
+/bin/rm $psfile.ps
+

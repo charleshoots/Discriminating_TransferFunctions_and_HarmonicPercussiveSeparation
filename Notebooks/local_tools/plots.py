@@ -1,6 +1,71 @@
 from modules import *
 from local_tools.math import avg_meter
 import local_tools as lt
+import scipy.stats as stats
+from matplotlib.gridspec import GridSpec
+def analyze_distribution(f,fn,data,method):
+    """Analyze and visualize the distribution of each column in a numpy array in a single figure."""
+    num_columns = data.shape[1]
+    
+    # Compute statistics for each column
+    means = np.mean(data, axis=0)
+    std_devs = np.std(data, axis=0)
+    skewnesses = stats.skew(data, axis=0)
+    kurtoses = stats.kurtosis(data, axis=0)
+    fig = plt.figure(figsize=(10, 9))
+    gs = GridSpec(3, 2, height_ratios=[1.5, 1, 1], width_ratios=[1, 1])
+
+    ax=fig.add_subplot(gs[0, :])
+    _=[ax.scatter(f,y, alpha=0.1, s=5,c='k') for y in data]
+    # ax.set_title("Scatter Plot of Data")
+    ax.set_xlabel("Column Index")
+    ax.set_ylabel("Value")
+    ax.axvline(fn, color='k', linestyle='--',linewidth=1,alpha=.3)
+    ax.set_xlim([f.min(),f.max()])
+    ax.set_xscale('log')
+
+    # Plot means
+    ax=fig.add_subplot(gs[1, 0])
+    ax.plot(f,means, marker='o', linestyle='-', color='b', alpha=0.2,markersize=3)
+    ax.set_title("Mean of Each Frequency")
+    ax.set_xlabel("Frequency (Hz)")
+    ax.set_ylabel("Mean Value")
+    ax.axvline(fn, color='k', linestyle='--',linewidth=1,alpha=.3)
+    ax.set_xlim([f.min(),f.max()])
+    ax.set_xscale('log')
+    
+    # Plot standard deviations
+    ax=fig.add_subplot(gs[1, 1])
+    ax.plot(f,std_devs, marker='o', linestyle='-', color='r', alpha=0.2,markersize=3)
+    ax.set_title("Standard Deviation of Each Frequency")
+    ax.set_xlabel("Frequency (Hz)")
+    ax.set_ylabel("Standard Deviation")
+    ax.axvline(fn, color='k', linestyle='--',linewidth=1,alpha=.3)
+    ax.set_xlim([f.min(),f.max()])
+    ax.set_xscale('log')
+    
+    # Plot skewness
+    ax=fig.add_subplot(gs[2, 0])
+    ax.plot(f,skewnesses, marker='o', linestyle='-', color='g', alpha=0.2,markersize=3)
+    ax.set_title("Skewness of Each Frequency")
+    ax.set_xlabel("Frequency (Hz)")
+    ax.set_ylabel("Skewness")
+    ax.axvline(fn, color='k', linestyle='--',linewidth=1,alpha=.3)
+    ax.set_xlim([f.min(),f.max()])
+    ax.set_xscale('log')
+    # Plot kurtosis
+    ax=fig.add_subplot(gs[2, 1])
+    ax.plot(f,kurtoses, marker='o', linestyle='-', color='purple', alpha=0.2,markersize=3)
+    ax.set_title("Kurtosis of Each Frequency")
+    ax.set_xlabel("Frequency (Hz)")
+    ax.set_ylabel("Kurtosis")
+    ax.axvline(fn, color='k', linestyle='--',linewidth=1,alpha=.3)
+    ax.set_xlim([f.min(),f.max()])
+    ax.set_xscale('log')
+    fig.suptitle(method)
+    plt.tight_layout()
+    plt.show()
+
 def get_gridplot():
     fig = plt.figure(figsize=(20,15),layout="constrained")
     height_ratios = [1,1,0.6,0.6,0.6,0.6]

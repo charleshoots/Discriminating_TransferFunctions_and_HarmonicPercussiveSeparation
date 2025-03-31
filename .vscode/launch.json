@@ -1,3 +1,17 @@
+// {
+//     "version": "0.2.0",
+//     "configurations": [
+//         {
+//             "name": "APython",
+//             "type": "python",
+//             "request": "launch",
+//             "program": "${file}",
+//             "console": "integratedTerminal",
+//             "justMyCode": true,
+//             "stopOnEntry": true,
+//         }
+//     ]
+// }
 {
     // Use IntelliSense to learn about possible attributes.
     // Hover to view descriptions of existing attributes.
@@ -21,10 +35,17 @@
           "debugOptions": [
             "RedirectOutput",
             "ShowReturnValue"
-          ]
+          ],
+          "debugpy.debugJustMyCode": false,
+          "debug.allowBreakpointsEverywhere": true,
+          "purpose": ["Python: Current File"],
+          "debug.allowBreakpointsEverywhere": true,
+          "jupyter.debugJustMyCode": false,
         }
       ],
 "debugpy.debugJustMyCode": false,
 "debug.allowBreakpointsEverywhere": true,
-"purpose": ["debug-in-terminal"]
+"debug.allowBreakpointsEverywhere": true,
+"debugpy.debugJustMyCode": false,
+"jupyter.debugJustMyCode": false,
 }

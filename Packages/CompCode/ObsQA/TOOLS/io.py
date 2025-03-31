@@ -43,6 +43,73 @@ def fv(func):
 #### ----------------------------------------------------------
 #### ----------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+# ====================================================================================
+def _valid_win_length_samples(win_length_samples, win_length, sampling_rate):
+    _next_pow2 = lambda n:int(round(2**np.ceil(np.log2(n))))
+    if win_length_samples is None and win_length is None:win_length_samples = _next_pow2(120*sampling_rate)
+    elif win_length_samples is None and win_length is not None:win_length_samples = _next_pow2(win_length*sampling_rate)
+    elif win_length is not None and win_length_samples is not None:raise ValueError('Parameters win_length and win_length_samples are both defined.')
+    elif win_length_samples is not None and win_length is None:
+        win_length_samples = int(win_length_samples)
+        if win_length_samples != _next_pow2(win_length_samples):raise ValueError('Parameter win_length_samples must be a power of 2.')
+    return win_length_samples
+# ====================================================================================
+def spectrogram(trace,fs=None,win_length=163.84,pow2db=True):
+    if fs==None:fs=trace.stats.sampling_rate
+    if isinstance(trace,Trace):x=trace.data.astype(float)
+    win_length_samples=None
+    win_length_samples = _valid_win_length_samples(win_length_samples, win_length, fs)
+    hop_length = win_length_samples // 4
+    n_fft = win_length_samples
+    S, phase = librosa.magphase(librosa.stft(x,n_fft=n_fft,hop_length=hop_length,win_length=win_length_samples))
+    df = fs/win_length_samples
+    f = np.arange(S.shape[0]) * df
+    t = np.arange(S.shape[1]) * hop_length
+    t = t/fs
+    if pow2db:S=librosa.power_to_db(np.abs(S))
+    return S,f,t
+# ====================================================================================
+def plot_spectrogram(S, frequencies, times,ax=None,ymax=1,figsize=(10,4),cmap='magma',vlim=[-98,-18],cbar=True):
+    
+    vmin,vmax=vlim
+    units = ['seconds','minutes','hours']
+    while times[-1]>7200:times = times/60;units.pop(0)
+    times=times/3600
+    if ax is None:fig,ax=plt.subplots(nrows=1,ncols=1,figsize=figsize)
+    else:fig=ax.figure
+    pcm=ax.pcolormesh(times, frequencies,S,
+    cmap=cmap,shading='auto',vmin=vmin,vmax=vmax)
+    plt.yticks(fontsize= 7)
+    ax.set_xticks([])
+    if cbar:
+        cbar=fig.colorbar(pcm, ax=ax, pad= 0.01)
+        cbar.ax.tick_params(labelsize=7)
+        cbar.set_label('dB', fontsize=7)  # Customize font size and weight
+
+    ax.set_ylim(frequencies[1],ymax)
+    ax.set_yscale('log')
+    # plt.xlabel(units[0])
+    return fig,pcm
+# ====================================================================================
+def get_traces(stanm,event,channel='HZ',tf='sta.ZP-21'):
+    dirs=dir_libraries()
+    rawdir=dirs.Events/'rmresp'/stanm
+    atacr_correcteddir=dirs.Events/'corrected'/stanm
+    hps_correcteddir=dirs.Events_HPS/'corrected'/stanm
+    rawfile=rawdir/f'{event}.{channel}.SAC'
+    hpsfile=hps_correcteddir/f'{stanm}.{event}.{channel}.SAC'
+    atacrfile=atacr_correcteddir/f'{stanm}.{event}.{tf}.{channel}.SAC'
+    allexist=np.all([(rawfile).exists(),(atacrfile).exists(),(hpsfile).exists()])
+    if allexist:
+        files,methods=[rawfile,hpsfile,atacrfile],['Raw','NoiseCut','ATaCR']
+        st=load_sac(atacrfile)
+        st.stats.location='ATaCR'
+        st=Stream([load_sac(f) for f in files])
+        for s,m in zip(st,methods):s.stats.location=m
+        return st
+    else:print(f'Not all files exist : {stanm} | {event}');return None
+# ====================================================================================
+
 def audit_events(eventsfolder,Minmag=6.0,Maxmag=7.0):
     client = Client()
     timedelta = 60
@@ -196,10 +263,10 @@ def getstalist():
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def dir_libraries(CompFolder):
+def dir_libraries(project_path=str(Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/Research'))):
         # ATaCR_ML_DataFolder = dict()
-        # ATaCR_ML_DataFolder['ML_ATaCR_Parent'] = CompFolder + '/ATaCR'
-        # ATaCR_ML_DataFolder['ML_DataParentFolder'] = CompFolder + '/ATaCR/DATA'
+        # ATaCR_ML_DataFolder['ML_ATaCR_Parent'] = project_path + '/ATaCR'
+        # ATaCR_ML_DataFolder['ML_DataParentFolder'] = project_path + '/ATaCR/DATA'
         # ATaCR_ML_DataFolder['ML_RawDayData'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/datacache_day'
         # ATaCR_ML_DataFolder['ML_PreProcDayData'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/datacache_day_preproc'
         # ATaCR_ML_DataFolder['ML_RawEventData'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/datacache_event'
@@ -210,7 +277,7 @@ def dir_libraries(CompFolder):
         # ATaCR_ML_DataFolder['ML_TransferFunctions'] = ATaCR_ML_DataFolder['ML_DataParentFolder'] + '/noisetc/TRANSFUN'
 
         ATaCR_Py_DataFolder = dict()
-        ATaCR_Py_DataFolder['Py_DataParentFolder'] = CompFolder + '/_DataArchive/ATaCR_Data/ATaCR_Python'
+        ATaCR_Py_DataFolder['Py_DataParentFolder'] = project_path + '/_DataArchive/ATaCR_Data/ATaCR_Python'
         ATaCR_Py_DataFolder['Py_RawDayData'] = ATaCR_Py_DataFolder['Py_DataParentFolder'] + '/Data'
         ATaCR_Py_DataFolder['Py_StaSpecAvg'] = ATaCR_Py_DataFolder['Py_DataParentFolder'] + '/AVG_STA'
         ATaCR_Py_DataFolder['Py_CorrectedTraces'] = ATaCR_Py_DataFolder['Py_DataParentFolder'] + '/EVENTS'
@@ -227,8 +294,28 @@ def dir_libraries(CompFolder):
         d.Noise = Path(ATaCR_Py_DataFolder['Py_RawDayData'])
         d.NoiseTrace = Path(ATaCR_Py_DataFolder['Py_DataParentFolder']) / 'Noise'
         d.Logs = Path(ATaCR_Py_DataFolder['Py_Logs'])
-        ATaCR_Py_DataFolder = d
-        return ATaCR_Py_DataFolder
+
+        archive =  Path(str(Path(project_path) / '_DataArchive'))
+        plotfolder = Path(str(Path(project_path) / '_FigureArchive' / '_GEN6'))
+        # IRIS_EVENT_LINK = lambda s: f'https://ds.iris.edu/ds/nodes/dmc/tools/event/{s.resource_id.id.split('=')[-1]}'
+
+        d.Plots = plotfolder;d.Archive=archive
+        d.Events_HPS = d.Archive / 'HPS_Data' / 'Data'
+        d.Analysis=d.Archive/'Analysis'
+        d.P01=AttribDict()
+        d.P01.Parent = d.Archive/'P01_Analysis_Figures'
+        d.P01.S01 = d.P01.Parent/'S01_NoisePlots'
+        d.P01.S02 = d.P01.Parent/'S02_StationPages'
+        d.P01.S03 = d.P01.Parent/'S03_HPSPlots'
+        d.P01.S04 = d.P01.Parent/'S04_CoherenceConour'
+        d.P01.S05 = d.P01.Parent/'S05_CohvCohScatters'
+        d.P01.S06 = d.P01.Parent/'S06_StemPlots'
+        d.P01.S07 = d.P01.Parent/'S07_EventRecords_Traces'
+        d.P01.S08 = d.P01.Parent/'S08_EventRecords_Metrics'
+        d.P01.S99 = d.P01.Parent/'S99_Summaries'
+        d.Papers=Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/Research/_FigureArchive/_Papers')
+        d.Ch1=d.Papers/'Ch1'
+        return d
 #### \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### ---------------------------------------------------------------------------------------------------------------------------------------------------
 #### ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -955,6 +1042,7 @@ def DownloadDayNoise(catalog=None,days=[],message=None,randomloop=True,end_delta
                 print('--' + staname + '--',flush=True)
 
                 ObsQA.TOOLS.io.build_staquery(d=Station.to_frame().T,staquery_output = staquery_output,chan=chan,ATaCR_Parent = ATaCR_Parent)
+
                 if randomloop & isinstance(days,int) & (not event_mode):
                         NoiseFolder = Path(ATaCR_Parent) / 'Data' / 'raw'
                         ObsQA.TOOLS.io.DayNoiseWhileLoop(Station.to_frame().T,NoiseFolder,ATaCR_Parent,days=days,attempts=100,ovr=ovr,channels=channels)
@@ -978,6 +1066,13 @@ def run_atacr_daynoise(Station,Starts,Ends,channels='Z,P,12',staquery_output='./
                 if message:status+=message
                 print(status)
                 print('____'*10)
+                # dateformat = '%Y.%j.%H.%M'
+                # jkljk = hjkhkj
+                if not ovr:
+                       fls=len(list((dir_libraries().Noise/'raw'/Station.StaName).rglob(f'{UTCDateTime(NoiseStart).strftime('%Y.%j')}*.SAC')))
+                       if fls>=len(''.join(channels.split(','))):continue
+                fls=len(list((dir_libraries().Noise/'raw'/'_quarantine'/Station.StaName).rglob(f'{UTCDateTime(NoiseStart).strftime('%Y.%j')}*.SAC')))
+                if fls>0:continue
                 atacr_download_data.main(atacr_download_data.get_daylong_arguments(args))
                 clear_output(wait=False);os.system('cls' if os.name == 'nt' else 'clear')
 

@@ -335,7 +335,7 @@ class DayNoise(object):
 
         # Number of points to overlap
         ss = int(self.window*self.overlap/self.dt)
-
+        # windows (16), window lengths (2hrs), overlaps (30%), and tapers (hanning)
         # hanning window
         hanning = np.hanning(2*ss)
         wind = np.ones(ws)
@@ -487,7 +487,6 @@ class DayNoise(object):
         if np.sum([(psd == 0.).any() for psd in
                    [psd1, psd2, psdZ, psdP] if psd is not None]) > 0.:
             smooth = True
-
         if smooth:
             # Smooth out the log of the PSDs
             sl_psd1 = None

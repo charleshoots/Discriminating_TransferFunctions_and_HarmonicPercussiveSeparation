@@ -113,7 +113,7 @@ slice = {
 'Distance_from_Land_km': 100000,'Distance_to_Plate_Boundary_km': 50000,
 'Sediment_Thickness_m': 5000,'Deployment_Length_days': 10000,'Seismometer':'Trillium Compact'}
 # -----
-
+catalog = catalog[catalog.Network=='Z6']
 for method_report,method in zip(reports,methods):
     cat = catalog.copy()
     f = method_report['f']
@@ -187,7 +187,7 @@ for method_report,method in zip(reports,methods):
                     evind = list(np.sort(np.intersect1d(events,mirror[sta.StaName],return_indices=True)[1]))
                     nev = len(evind)
                     fband_coh = coh[evind][:,f_ind_notch(f,sta.StaDepth,b)]
-                    fband_coh = np.mean(abs(fband_coh),axis=1)
+                    fband_coh = np.mean(fband_coh,axis=1)
                     # if len(np.where(f[ind] < fnotch(sta.StaDepth))[0])==0:
                         # if method=='ATaCR':outside_band.append(si)
                             # coh = coh*0+1

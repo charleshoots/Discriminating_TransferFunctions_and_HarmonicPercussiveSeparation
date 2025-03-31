@@ -1,5 +1,7 @@
-from imports import *
+# from imports import *
 from modules import *
+from local_tools.io import *
+from local_tools.math import *
 # from quick_class import *
 # import warnings
 # import fnmatch
@@ -13,7 +15,29 @@ from modules import *
 # from matplotlib.patches import Rectangle
 # from obspy import Stream
 # from modules import *
-
+def update_noise_quarantine(cat):
+    dirs=dir_libraries()
+    for stanm in cat.StaName:
+        fold = dirs.SpectraAvg/stanm
+        f=load_pickle(list((fold).glob('*.avg_sta.pkl'))[0])
+        gooddays = f.day_files[f.gooddays]
+        baddays = f.day_files[~f.gooddays]
+        if len(baddays)>0:
+            fold=dirs.Spectra/stanm;(fold/'_quarantine').mkdir(exist_ok=True)
+            for day in baddays:
+                if (fold/day).exists():shutil.move(fold/day, fold/'_quarantine'/day)
+            fold=dirs.Noise/'raw'/stanm;(fold/'_quarantine').mkdir(exist_ok=True)
+            for day in baddays:
+                d=day.split('.spectra')[0]
+                bad=list(fold.glob(f'{d}.*.SAC'))
+                [shutil.move(r, fold/'_quarantine'/r.name) for r in bad]
+            fold=dirs.Noise/'rmresp'/stanm;(fold/'_quarantine').mkdir(exist_ok=True)
+            for day in baddays:
+                d=day.split('.spectra')[0]
+                bad=list(fold.glob(f'{d}.*.SAC'))
+                [shutil.move(r, fold/'_quarantine'/r.name) for r in bad]
+    Ndays = {stanm:len(list((dirs.Spectra/stanm).glob('*spectra.pkl'))) for stanm in cat.StaName}
+    return Ndays
 def shared_events(events,dirs,chan='HZ',tf='sta.ZP-21',minsta=10,stanm=None):
     atacrfold = dirs.Events/'corrected'
     hpsfold = dirs.Events_HPS/'corrected'

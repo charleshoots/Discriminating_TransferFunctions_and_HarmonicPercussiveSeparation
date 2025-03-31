@@ -1,4 +1,5 @@
-from imports import *
+# from imports import *
+from modules import *
 from quick_class import *
 import warnings
 import fnmatch
