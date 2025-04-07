@@ -49,8 +49,10 @@ def sta_metrics(report,sta,
     [defargs.update({k:args[k]}) for k in list(args.keys())]
     args = defargs
     args.csd_pairs = {'Z1':'#0c51a6','ZP':'#2a7e93','ZZ':'#7370cb','Z2':'#4f86c5'}
-    note = 'Corrected ('+args.linecolor[1]+') | Raw ('+args.linecolor[0]+')'
-    # else:note = '\nVariance (shaded)'
+    note=''
+    # note = 'Corrected ('+args.linecolor[1]+') | Raw ('+args.linecolor[0]+') \nVariance (shaded)'
+    # else:
+    note = '\nVariance (shaded)'
     stanm = sta.StaName
     tf=''
     stastr = ' | '.join([stanm+tf,sta.Experiment,'Depth: '+str(int(abs(sta.StaDepth)))+'m, Notch: '+str(int(1/fnotch(1000*abs(sta.StaDepth))))+'s',note])
@@ -112,7 +114,6 @@ from local_tools.plots import station_event_page_averages,station_event_page
 # # ======================================================================================================================================================
 
 
-get_reports
 
 # type='metrics'# type='stream'
 plotfolder = dirs.P01.S02
@@ -124,18 +125,12 @@ columns =['Coherence']
 minsta=10
 cat = catalog.copy()
 cat.sort_values(by='StaDepth',inplace=True)
+
+# cat = cat.loc[['ZA.B02','Z6.16','Z6.11','YO.X10','7D.G34D','7D.G26D','7D.G25B','7D.G17B']]
+
 event_catalog = lt.cat.unravel_cat(cat)
 # types = ['metrics','stream']
 for type in ['metrics']:
-# for type in ['stream','metrics']:
-    # csd_pairs=[('ZP','#0c51a6')]
-    # csd_pairs=[('ZZ','#2a7e93')]
-    # csd_pairs=[('Z1','#7370cb')]
-    # csd_pairs=[('Z2','#4f86c5')]
-    # pairs = [[('ZP','#0c51a6')],
-    #         [('ZZ','#2a7e93')],
-    #         [('Z1','#7370cb')],
-    #         [('Z2','#4f86c5')]]
     pairs = [['ZZ','#2a7e93']]    
     if type=='stream':pairs = [pairs[0]];runs=[0,1]
     else: runs=[99]
@@ -146,7 +141,6 @@ for type in ['metrics']:
                 if run==0:method='ATaCR';evdir = atacrfold;tf='sta.ZP-21.HZ.SAC';mirror_fold = hpsfold
                 elif run==1:method = 'Noisecut';tf='HZ.SAC';evdir = [hpsfold,dirs.Events];mirror_fold = atacrfold
                 else:method='Both'
-
                 if (type.lower()=='metrics') & (averages==True):
                     file = sta.StaName+'.'+method.lower()+'.'+columns[0]+'.png'
                     folder = plotfolder / ('Coherences' if type.lower()=='metrics' else 'Events')
@@ -154,38 +148,12 @@ for type in ['metrics']:
                     folder = plotfolder / 'Events'
                     file = sta.StaName+'.'+note+'.'+method.lower()+'.png'
                 if ((folder / file).exists()) & (not ovr):print('File exists. Skipping.');continue
-
-
-                # clear_output(wait=False);os.system('clear')
                 print('[*]'*30)
                 print('|'.join([f'{method}  | Overall:{np.round((1/len(runs))*100*((stai+1)/len(cat)),1)}% |{str(stai+1)}/{str(len(cat))}',sta.StaName]))
                 print('-Load data')
-                # if type=='stream':
-                #     if method.lower()=='noisecut':
-                #         evmeta = shared_events(event_catalog,dirs,minsta=minsta,stanm=sta.StaName)
-                #         st_hold,evmeta = get_station_events_hps(sta.StaName,evdir,tf=tf,type=type,evmeta=evmeta)
-                #     else:
-                #         evmeta = shared_events(event_catalog,dirs,minsta=minsta,stanm=sta.StaName)
-                #         st_hold,evmeta = get_station_events(sta.StaName,evdir,tf=tf,type=type,evmeta=evmeta)
-                #         raw_reference = st_hold.select(location='*Raw*').copy()
-                # else:
-                #         evmeta = shared_events(event_catalog,dirs,minsta=minsta,stanm=sta.StaName)
-                #         tf='HZ.SAC';evdir = [hpsfold,dirs.Events];mirror_fold = atacrfold
-                #         st_hold_noisecut,evmeta = get_station_events_hps(sta.StaName,evdir,tf=tf,type=type,evmeta=evmeta)
-                #         evdir = atacrfold;tf='sta.ZP-21.HZ.SAC';mirror_fold = hpsfold
-                #         st_hold_atacr,evmeta = get_station_events(sta.StaName,evdir,tf=tf,type=type,evmeta=evmeta)
-                #         st_hold = st_hold_atacr.select(location='*Raw*').copy() + st_hold_atacr.select(location='*ATaCR*').copy() + st_hold_noisecut.select(location='*NoiseCut*').copy()
-                #         raw_reference = st_hold_atacr.select(location='*Raw*').copy()
-                #         del st_hold_noisecut,st_hold_atacr
-
-                # clear_output(wait=False);os.system('clear')
                 print('-Plot data')
-                # print('|'.join([f'{method} ({run+1}/2) | Overall:{np.round(100*((stai+1)/len(cat)),1)}% |{str(stai+1)}/{str(len(cat))}',sta.StaName]))
                 print('[*]'*30)
                 print('Load complete')
-                # fold = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/Research/_FigureArchive/_GEN6/StationEventPages/low_rez')
-                # np.array([len(list((fold/c.StaName).glob('*.png')))/10 for c in catalog.iloc])
-                # np.array([len(list((fold/c.StaName).glob('*events*.png')))/2 for c in catalog.iloc]) #EVENTS=DONE
                 bands = [(1,10),(10,30),(30,100)]
                 note=''
                 if (type.lower()=='metrics') & (averages==True):
@@ -198,11 +166,8 @@ for type in ['metrics']:
                 if type.lower()=='metrics':note=csd_pairs[0]+note
                 save_tight(folder / file,fig,dpi=200)
                 plt.close('all')
-                # del st_hold
 
 lt.cat.banner('S02 COMPLETE!')
-
-
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

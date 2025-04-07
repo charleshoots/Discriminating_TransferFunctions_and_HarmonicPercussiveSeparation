@@ -85,8 +85,8 @@ HJan23['Good_Channels']=HJan23.T[-4:].sum().T==4
 # catalog = pd.read_pickle(dirs.Catalogs / 'Catalog_Test_DensityIncreased.ShalllowIncreased.pkl')
 
 # catalog = pd.read_pickle(dirs.Catalogs / 'Catalog_022325.pkl')
-catalog = pd.read_pickle(dirs.Catalogs / 'Catalog_022725.pkl')
-
+# catalog = pd.read_pickle(dirs.Catalogs / 'Catalog_022725.pkl')
+catalog = pd.read_pickle(dirs.Catalogs / 'Catalog_040225.pkl')
 
 # catalog_inventory=Inventory()
 # for c in catalog.Inventory:catalog_inventory+=c
@@ -111,6 +111,39 @@ ColorStandard.components = {'ZP':'#0c51a6','ZZ':'#2d8297','Z1':'#70cbc0','Z2':'#
 ColorStandard.network = {'2D': '#d2ad90','7A': '#94530c','7D': '#64783c','X9': '#c04797','XF': '#893949',
 'XO': '#b25fdf','YL': '#4553b1','YO': '#9797ff','Z6': '#a28463','ZA': '#abc098','ZN': '#4f7a8e'}
 PyGMT_PLT_Scatter_Translator = {'o':'c','x':'x','^':'t','s':'s'}
+
+
+
+# Data specific, do not modify.
+a=[]
+for sta in catalog.iloc:
+    snm=sta.StaName
+    SpecAVG=lambda file=list((dirs.SpectraAvg/snm).glob('*.avg_sta.pkl'))[0]:load_pickle(file)
+    dayfiles=SpecAVG().day_files[SpecAVG().gooddays]
+    DaySpec=lambda fo=dirs.Spectra/snm,dayfiles=dayfiles: [load_pickle(fo/fi) for fi in dayfiles]
+    TF=lambda file=list((dirs.TransferFunctions/snm).glob('*-*transfunc.pkl'))[0]:load_pickle(file)
+    Coherence = lambda snm=snm:AttribDict({k:get_reports('ZZ',catalog,Archive=dirs.Archive,dirs=dirs)[k][snm] if not k=='f' else get_reports('ZZ',catalog,Archive=dirs.Archive,dirs=dirs).f for k in ['ATaCR','NoiseCut','f']})
+    Traces = lambda event,snm=snm:get_traces(snm,event)
+    IRIS_EVENT_LINK = lambda s: f'https://ds.iris.edu/ds/nodes/dmc/tools/event/{s.resource_id.id.split('=')[-1]}'
+    Print_IRIS_Event_Page = lambda e: f'{e.magnitudes[0].magnitude_type} {e.magnitudes[0].mag} | {e.Name}: {IRIS_EVENT_LINK(e)}'
+    IRISPages = lambda evs=Catalog([sta.Events[ii] for ii in np.flip(np.argsort([i.magnitudes[0].mag for i in sta.Events]))]):[Print_IRIS_Event_Page(e) for e in evs]
+    Data=AttribDict()
+    Noise=AttribDict()
+    Noise.Day=DaySpec
+    Noise.Averaged=SpecAVG
+    Data.Noise=Noise
+    Data.TF=TF
+    Data.Coherence=Coherence
+    Data.Traces=Traces
+    Data.IRIS_Event_Pages = IRISPages
+    a.append(Data)
+catalog['Data']=a
+catalog=catalog[['StaName', 'Station', 'Network','Data', 'Latitude', 'Longitude', 'Experiment',
+'Environment', 'Pressure_Gauge', 'StaDepth', 'Start', 'End', 'Events','Deployment', 'Inventory']]
+
+
+
+
 
 # n_nets=catalog.Network.unique().shape[0]
 # # [display(c) for c in [cm.__dict__[e].resampled(70).resampled(n_nets) for e in ['oslo_categorical','nuuk_categorical','devon_categorical','hawaii_categorical','imola_categorical','lapaz_categorical']]]

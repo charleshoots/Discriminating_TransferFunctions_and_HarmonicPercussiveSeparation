@@ -25,7 +25,7 @@ from concurrent.futures import wait
 import time
 import logging
 import matplotlib.pyplot as plt
-from NoiseCut.Source.src import *
+from NoiseCut.src import *
 from IPython.display import clear_output
 from modules import *
 # from modules import modules
@@ -70,28 +70,35 @@ def spectrogram(trace,fs=None,win_length=163.84,pow2db=True):
     return S,f,t
 # ====================================================================================
 def plot_spectrogram(S, frequencies, times,ax=None,ymax=1,figsize=(10,4),cmap='magma',vlim=[-98,-18],cbar=True):
-    
-    vmin,vmax=vlim
-    units = ['seconds','minutes','hours']
-    while times[-1]>7200:times = times/60;units.pop(0)
-    times=times/3600
-    if ax is None:fig,ax=plt.subplots(nrows=1,ncols=1,figsize=figsize)
-    else:fig=ax.figure
-    pcm=ax.pcolormesh(times, frequencies,S,
-    cmap=cmap,shading='auto',vmin=vmin,vmax=vmax)
-    plt.yticks(fontsize= 7)
-    ax.set_xticks([])
-    if cbar:
-        cbar=fig.colorbar(pcm, ax=ax, pad= 0.01)
-        cbar.ax.tick_params(labelsize=7)
-        cbar.set_label('dB', fontsize=7)  # Customize font size and weight
+        vmin,vmax=vlim
+        units = ['seconds','minutes','hours']
+        while times[-1]>7200:times = times/60;units.pop(0)
+        times=times/3600
+        if ax is None:fig,ax=plt.subplots(nrows=1,ncols=1,figsize=figsize)
+        else:fig=ax.figure
+        pcm=ax.pcolormesh(times, frequencies,S,
+        cmap=cmap,shading='auto',vmin=vmin,vmax=vmax)
+        plt.yticks(fontsize= 7)
+        ax.set_xticks([])
+        if cbar:
+                cbar=fig.colorbar(pcm, ax=ax, pad= 0.01)
+                cbar.ax.tick_params(labelsize=7)
+                cbar.set_label('dB', fontsize=7)  # Customize font size and weight
 
-    ax.set_ylim(frequencies[1],ymax)
-    ax.set_yscale('log')
-    # plt.xlabel(units[0])
-    return fig,pcm
+        ax.set_ylim(frequencies[1],ymax)
+        ax.set_yscale('log')
+        # plt.xlabel(units[0])
+        return fig,pcm
 # ====================================================================================
+def basic_preproc(d,lowpass=1,percent=.03):
+        d.detrend('linear');d.detrend('demean')
+        if not percent==None:d.taper(percent)
+        if not lowpass==None:d.filter('lowpass',freq=lowpass,zerophase=True)
+        d.detrend('linear');d.detrend('demean')
+        return d
+
 def get_traces(stanm,event,channel='HZ',tf='sta.ZP-21'):
+    if type(event)==obspy.core.event.event.Event:event=event.Name
     dirs=dir_libraries()
     rawdir=dirs.Events/'rmresp'/stanm
     atacr_correcteddir=dirs.Events/'corrected'/stanm
@@ -106,6 +113,8 @@ def get_traces(stanm,event,channel='HZ',tf='sta.ZP-21'):
         st.stats.location='ATaCR'
         st=Stream([load_sac(f) for f in files])
         for s,m in zip(st,methods):s.stats.location=m
+        s,e=max([tr.stats.starttime for tr in st]),max([tr.stats.endtime for tr in st])
+        st.trim(s,e,pad=True,fill_value=0)
         return st
     else:print(f'Not all files exist : {stanm} | {event}');return None
 # ====================================================================================
@@ -312,6 +321,7 @@ def dir_libraries(project_path=str(Path('/Users/charlesh/Documents/Codes/OBS_Met
         d.P01.S06 = d.P01.Parent/'S06_StemPlots'
         d.P01.S07 = d.P01.Parent/'S07_EventRecords_Traces'
         d.P01.S08 = d.P01.Parent/'S08_EventRecords_Metrics'
+        d.P01.S09 = d.P01.Parent/'S09_Station_Noise_QC'
         d.P01.S99 = d.P01.Parent/'S99_Summaries'
         d.Papers=Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/Research/_FigureArchive/_Papers')
         d.Ch1=d.Papers/'Ch1'

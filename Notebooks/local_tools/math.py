@@ -80,7 +80,8 @@ def cohstats(coh,margin=1,axis=0):
     inliers = (coh<=(np.array(upper_whisker)*margin))&(coh>=(np.array(lower_whisker)/margin))
     outliers = ~inliers
     verify=np.sum([np.any((c[o]<=np.max(c[i]))&(c[o]>=np.min(c[i]))) for c,i,o in zip(coh.T,inliers.T,outliers.T)])
-    median=np.array([np.median(c[i]) for c,i in zip(coh.T,inliers.T)])
+    # median=np.array([np.median(c[i]) for c,i in zip(coh.T,inliers.T)])
+    mean_inliers = np.array([np.mean(c[i]) for c, i in zip(coh.T, inliers.T)])
     # inliers=[c[(c>=(lw/margin))&(c<=(uw*margin))] for lw,uw,c in zip(lower_whisker,upper_whisker,coh.T)]
     # outliers=[c[(c<(lw/margin))+(c>(uw*margin))] for lw,uw,c in zip(lower_whisker,upper_whisker,coh.T)]
     # upper_whisker=[np.max(a) if len(a)>0 else w for a,w in zip(inliers,upper_whisker)]
@@ -90,5 +91,53 @@ def cohstats(coh,margin=1,axis=0):
     # upper=np.array([np.max(c[i]) for c,i in zip(coh.T,inliers.T)])
     # lower=np.array([np.min(c[i]) for c,i in zip(coh.T,inliers.T)])
     # return {'upper':upper_whisker,'lower':lower_whisker,'median':median,'outliers':outliers}
-    return upper, lower, median, outliers, inliers
+    return upper, lower, mean_inliers, outliers, inliers
 
+def smooth(data, nd, axis=0):
+    if np.any(data):
+        if data.ndim > 1:
+            filt = np.zeros(data.shape)
+            for i in range(data.shape[::-1][axis]):
+                if axis == 0:filt[:, i] = np.convolve(data[:, i], np.ones((nd,))/nd, mode='same')
+                elif axis == 1:filt[i, :] = np.convolve(data[i, :], np.ones((nd,))/nd, mode='same')
+        else:filt = np.convolve(data, np.ones((nd,))/nd, mode='same')
+        return filt
+    else:return None
+def Stream_LogPSD(st,smoothed=True,window=7200,overlap=0.3):
+    fs=st[0].stats.sampling_rate
+    dt=1/fs
+    days = [[tr.stats.starttime.strftime('%Y.%j') for tr in sst] for sst in [st.select(channel='*1'),st.select(channel='*2'),st.select(channel='*Z'),st.select(channel='*DH')]]
+    ws = int(window/dt)
+    ss = int(window*overlap/dt)
+    hanning = np.hanning(2*ss)
+    wind = np.ones(ws)
+    wind[0:ss] = hanning[0:ss]
+    wind[-ss:ws] = hanning[ss:ws]
+    _stft = lambda tr:stft(tr.data, fs, return_onesided=False, boundary=None,
+    padded=False, window=wind, nperseg=ws, noverlap=ss,detrend='constant')
+    f, t, _ = _stft(st[0])
+    psd = np.array([(_stft(tr.data)[-1]*ws) for tr in st])
+    psd = abs(psd)**2*2/dt
+    logpsd = 10*np.log10(psd,where=(psd>0.))
+    # smoothed = True if logpsd.shape[-1]>50 else False
+    smoothed = True
+    if smoothed:logpsd=np.array([smooth(sl,50,axis=0) for sl in logpsd])
+    # logpsd = logpsd.mean(axis=2).T
+    faxis = int(len(f)/2)
+    f = f[0:faxis]
+    logpsd = logpsd[:,0:faxis,:]
+    # logpsd = 10*np.log10(psd,where=(psd>0.))
+    disp_to_accel=40*np.log10(2*np.pi*f,where=f>0.).reshape(-1,1);disp_to_accel[f==0]=0
+    faxis=f>0 #Extract positive frequencies only
+    disp_to_accel=disp_to_accel[faxis]
+    f=f[faxis]
+    sls = logpsd[:,faxis,:]
+    logpsd=sls
+    comps = [tr.stats.channel.replace('HDH','HP')[-1] for tr in st]
+    sls=logpsd
+    if ~np.isin('P',comps):
+        sls = sls+disp_to_accel
+    sls = np.array([sl-abs(sl[f<1,:]).mean(axis=0) for sl in sls])
+    sls = sls[:,:,~np.isinf(sls.sum(axis=0).sum(axis=0))]
+    sls=sls.mean(axis=-1)
+    return comps,days,f,t,sls

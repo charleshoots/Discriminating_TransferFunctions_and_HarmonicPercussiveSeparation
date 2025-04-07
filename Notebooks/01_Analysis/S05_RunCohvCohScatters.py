@@ -54,21 +54,21 @@ for fraci,fraction in enumerate([.2,.4,.6,.8,1,2,4,8,12]):
             # if Comp=='ZP':
             #     for stanm,stadepth in zip(catalog.StaName,catalog.StaDepth):
             #         Y[stanm].coh[:,f>fnotch(stadepth)]=1.0
-        R=AttribDict()
-        for m in [i for i in list(Report.keys()) if not i=='f']:
-            R[m]=AttribDict()
-            for n in [i for i in list(Report[m].keys()) if not i=='f']:
-                for s in list(Report[m][n].keys()):
-                    stanm=f'{n[1:]}.{s}'
-                    R[m][stanm]=AttribDict()
-                    # if AVG:R[m][stanm].coh=np.mean(Report[m][n][s].coh,axis=0)
-                    # else:
-                    R[m][stanm].coh=Report[m][n][s].coh
-                    R[m][stanm].events=Report[m][n][s].events
+        # R=AttribDict()
+        # for m in [i for i in list(Report.keys()) if not i=='f']:
+        #     R[m]=AttribDict()
+        #     for n in [i for i in list(Report[m].keys()) if not i=='f']:
+        #         for s in list(Report[m][n].keys()):
+        #             stanm=f'{n[1:]}.{s}'
+        #             R[m][stanm]=AttribDict()
+        #             # if AVG:R[m][stanm].coh=np.mean(Report[m][n][s].coh,axis=0)
+        #             # else:
+        #             R[m][stanm].coh=Report[m][n][s].coh
+        #             R[m][stanm].events=Report[m][n][s].events
 
 
-        X=R[xmethod]
-        Y=R[ymethod]
+        X=Report[xmethod]
+        Y=Report[ymethod]
         for bi,band in enumerate(fbands):
             # ax = axes[ci,bi]
             ax = axes[ci]

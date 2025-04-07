@@ -55,9 +55,25 @@ def shared_events(events,dirs,chan='HZ',tf='sta.ZP-21',minsta=10,stanm=None):
     ev_cat_shared = Catalog(good)
     return ev_cat_shared
 # A nice little script for efficiently quarantining bad data.
-def quarantine_data(folder,reg_list):
-    qfold=(folder/'_quarantine_');qfold.mkdir(exist_ok=True)
+def quarantine_data(folder,reg_list,qfold='_quarantine'):
+    qfold=(folder/qfold);qfold.mkdir(exist_ok=True)
     for r in reg_list:[shutil.move(f,qfold/f.name) for f in list(folder.glob(f'*{r}*'))]
+
+def partition_extra_days(cat,dirs):
+    qfold = 'extra.days'
+    folders = [dirs.Noise/'raw',dirs.Noise/'rmresp',dirs.Spectra]
+    for si,sta in cat.iloc:
+        noise=sta.Data.Noise.Averaged()
+        days=noise.day_files
+        if sum(noise.gooddays)<10:print(f'{sta.StaName}::{sum(noise.gooddays)}');continue
+        good=days[noise.gooddays]
+        bad = days[~noise.gooddays]
+        goodwins_n=np.array([sum(g) for g in noise.day_goodwins[noise.gooddays]])
+        good = good[np.flip(np.argsort(goodwins_n))]
+        goodwins_n=goodwins_n[np.flip(np.argsort(goodwins_n))]
+        keep = good[:10]
+        extra = ['.'.join(e.split('.')[:2]) for e in good[10:]]
+        if len(extra)>0:[lt.cat.quarantine_data(folder/sta.StaName,extra,qfold=qfold) for folder in folders]
 
 def banner(msg):
     w=30
@@ -101,6 +117,9 @@ def update_rmresp_folder(datafold,reg='*SAC',ovr=False):
     rawfold=Path(datafold)/'raw'
     (Path(datafold)/'rmresp').mkdir(exist_ok=True)
     files=list(rawfold.rglob(reg))
+    files=[f for f in files if (not f.parent.name=='_depreciated')]
+    files=[f for f in files if (not f.parent.name=='_quarantine')]
+    files=[f for f in files if (f.parent.parent.name=='raw')]
     for fi,f in enumerate(files):
         state=f'{np.round(100*((fi+1)/len(files)),3)}% | {str(fi+1).zfill(len(str(len(files))))}/{len(files)}'
         dest=Path(str(f).replace('/raw/','/rmresp/'))

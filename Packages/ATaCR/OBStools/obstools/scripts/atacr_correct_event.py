@@ -198,6 +198,8 @@ def get_correct_arguments(argv=None):
 
     args = parser.parse_args(argv)
 
+    args.TF_to_SAC = {'ZP-21':True}
+
     # Check inputs
     if not exist(args.indb):
         parser.error("Input file " + args.indb + " does not exist")
@@ -344,6 +346,10 @@ def main(args=None):
                 tr2.resample(args.new_sampling_rate)
                 trP.resample(args.new_sampling_rate)
             eventstream = EventStream(tr1, tr2, trZ, trP)
+            eventstream.plotpath=plotpath/'noise_removed'
+            (plotpath/'noise_removed').mkdir(exist_ok=True,parents=True)
+
+
             # Check if Trace is from SAC file with event info
             evlo = None
             evla = None
@@ -425,7 +431,8 @@ def main(args=None):
                             file = correctpath / eventstream.prefix
                             eventstream.save(str(file) + '.sta.pkl')
                             # Now save as SAC files
-                            for key, value in tfaverage.tf_list.items():
+                            # for key, value in tfaverage.tf_list.items():
+                            for key, value in args.TF_to_SAC.items():
                                 if value and eventstream.ev_list[key]:
                                     # Postfix
                                     nameZ = '.sta.' + key + '.'
@@ -504,7 +511,8 @@ def main(args=None):
                             file = correctpath / eventstream.prefix
                             eventstream.save(str(file) + '.day.pkl')
                             # Now save as SAC files
-                            for key, value in tfaverage.tf_list.items():
+                            # for key, value in tfaverage.tf_list.items():
+                            for key, value in args.TF_to_SAC.items():
                                 if value and eventstream.ev_list[key]:
                                     # Postfix
                                     nameZ = '.day.' + key + '.'
@@ -518,7 +526,6 @@ def main(args=None):
                                     sta.elevation, sta.channel+'Z',evla=evla,evlo=evlo)
                                     # Save as SAC file
                                     trZ.write(str(fileZ), format='SAC')
-
 
 if __name__ == "__main__":
     # Run main program

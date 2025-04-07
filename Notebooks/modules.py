@@ -56,7 +56,7 @@ from obspy import read
 # ____________________________________________________________________________________
 # ||||||||||||||||||||||| BRANCHED COMMUNITY GITs/PACKAGES |||||||||||||||||||||||||||
 from OrientPy import * #DLOPy
-from NoiseCut.Source.src import * #Noisecut
+from NoiseCut.src import * #Noisecut
 import obstools as obs #ATaCR
 # ____________________________________________________________________________________
 # ||||||||||||||||||||||||||||||||||| MY CODES |||||||||||||||||||||||||||||||||||||||

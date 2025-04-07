@@ -63,14 +63,14 @@ for mi,method in enumerate(Methods):
         if (method=='ATaCR')&(not Comp=='ZZ'):continue
         report = get_reports(Comp,catalog,dirs.Archive,dirs,AVG=True,methods=[method])
         c_report = report[method]
-        f=c_report.f
+        f=report.f
         # c_report[f'n{n}'][s].coh.shape[np.intersect1d(c_report[f'n{n}'][s].events,[e.Name for e in lt.cat.mirror('7D.FS42D',cat,dirs)],return_indices=True)[1],:]
 
         # np.intersect1d(c_report[f'n{'7D'}'][s].events,[e.Name for e in lt.cat.mirror('7D.FS42D',cat,dirs)],return_indices=True)[1]
         n,s=cat.Network[0],cat.Station[0]
         coh=np.array([np.nanmean(
-        c_report[f'n{n}'][s].coh[np.intersect1d(c_report[f'n{n}'][s].events,[e.Name for e in lt.cat.mirror(f'{n}.{s}',cat,dirs)],return_indices=True)[1],:],
-        axis=0) for n,s in zip(cat.Network,cat.Station)])
+        c_report[stnm].coh[np.intersect1d(c_report[stnm].events,[e.Name for e in lt.cat.mirror(stnm,cat,dirs)],return_indices=True)[1],:],
+        axis=0) for stnm in cat.StaName])
 
         z=[z for z in cat.StaDepth]
         # clear_output(wait=False);os.system('cls' if os.name=='nt' else 'clear')

@@ -51,7 +51,8 @@ hps_report = load_pickle(file)
 method = 'ATaCR'
 file = str(reportfolder / method.lower() / 'Complete' /('complete_' + 'ATaCR'.lower() + '.ZZ_coh.report.pkl'))
 atacr_report = load_pickle(file)
-reports,methods = [hps_report,atacr_report],['HPS','ATaCR']
+# reports,methods = [hps_report,atacr_report],['HPS','ATaCR']
+reports,methods = [atacr_report,hps_report],['ATaCR','HPS',]
 # reports,methods = [atacr_report,atacr_report],['ATaCR','ATaCR']
 mirror = mirror_events(reports)
 
@@ -74,7 +75,7 @@ mirror = mirror_events(reports)
 # _ = [inst_colormap.update({inst:c}) for c,inst in zip(colors_hex,catalog.Instrument_Design.unique())]
 # inst_colormap
 
-f_ind_notch = lambda f,z,lr: f<fnotch(z) if lr=='left' else f>=fnotch(z)
+f_ind_notch = lambda f,z,lr: ((f<fnotch(z))&(f<=1)&(f>0)) if lr=='left' else ((f>=fnotch(z))&(f<=1)&(f>0))
 def report_parser(cat,report,sort='StaDepth',network=None,band=[],average=False,slice=None):
     icat = cat.copy()
     f = report['f'];f_ind = np.isfinite(f)
@@ -98,6 +99,8 @@ def report_parser(cat,report,sort='StaDepth',network=None,band=[],average=False,
         coh = [ireport[sta.Station].coh[inds[si],:] for si,sta in enumerate(icat.iloc)]
     zzcoh_xf_ysta = np.array([np.mean(np.array(c)[:,f_ind if not isinstance(band,str) else f_ind_notch(f,z,band)],axis=1) for c,z in zip(coh,icat.StaDepth)],dtype=object)
     zzcoh_xsta_yevent = [np.mean(np.array(c)[:,f_ind if not isinstance(band,str) else f_ind_notch(f,z,band)],axis=1) for c,z in zip(coh,icat.StaDepth)]
+    if band=='right':
+        k=1
     if sort=='Magnitude':
         x = []
         for si,(s,e) in enumerate(zip(icat.iloc,events)):
@@ -113,7 +116,7 @@ slice = {
 'Distance_from_Land_km': 100000,'Distance_to_Plate_Boundary_km': 50000,
 'Sediment_Thickness_m': 5000,'Deployment_Length_days': 10000,'Seismometer':'Trillium Compact'}
 # -----
-catalog = catalog[catalog.Network=='Z6']
+# catalog = catalog[catalog.Network=='Z6']
 for method_report,method in zip(reports,methods):
     cat = catalog.copy()
     f = method_report['f']
@@ -128,8 +131,6 @@ for method_report,method in zip(reports,methods):
             y=[np.array([j for j in a]) for a in y]
             y=[a[~np.isnan(a)] for a in y]
             networkaverage[n][bi] = np.mean([np.mean(j) for j in y])
-            # np.sum([np.sum(k) for k in y]) / np.sum([len(k) for k in y])
-            if (b=='right')&(method=='ATaCR'):networkaverage[n][bi]=1
     for d in np.unique(Instrument_Design):
         di = np.array(Instrument_Design)==d
         for bi,b in enumerate(bands):
@@ -137,8 +138,6 @@ for method_report,method in zip(reports,methods):
             y=[np.array([j for j in a]) for a in y]
             y=[a[~np.isnan(a)] for a in y]
             instrumentaverage[d][bi] = np.mean([np.mean(j) for j in [a for ii,a in zip(di,y) if ii]])
-            # np.sum([np.sum(k) for k in y[di]]) / np.sum([len(k) for k in y[di]])
-            if (b=='right')&(method=='ATaCR'):instrumentaverage[d][bi]=1
     for d in np.unique(Seismometer):
         di = np.array(Seismometer)==d
         for bi,b in enumerate(bands):
@@ -146,13 +145,11 @@ for method_report,method in zip(reports,methods):
             y=[np.array([j for j in a]) for a in y]
             y=[a[~np.isnan(a)] for a in y]
             seismometeraverage[d][bi] = np.mean([np.mean(j) for j in [a for ii,a in zip(di,y) if ii]])
-            if (b=='right')&(method=='ATaCR'):seismometeraverage[d][bi]=1
+            
     # ======XXXXX===========XXXXX===========XXXXX===========XXXXX===========XXXXX=====
     nrows = 2
     # ======XXXXX===========XXXXX===========XXXXX===========XXXXX===========XXXXX=====
     for ni,n in enumerate(nets):
-        if (method=='HPS') & (n=='7D'):
-            k=1
         icat = cat[cat.Network==n].copy()
         icat = icat.sort_values(by='StaDepth',ascending=True)
         if len(icat)>11:fig,axes = plt.subplots(nrows=nrows,ncols=1,squeeze=True,figsize=(23,7),sharey='all')
@@ -161,7 +158,7 @@ for method_report,method in zip(reports,methods):
         fn = [round(100/fnotch(s.StaDepth))/100 for s in icat.iloc]
         stanm = [s.StaName for s in icat.iloc]
         seismometer = [s.Deployment.Seismometer for s in icat.iloc]
-        note = f'(UPDATED 2.14.25) ZZ Coherences| '
+        note = f'(UPDATED 4.05.25) ZZ Coherences| '
         fig.suptitle(note + icat.iloc[0].Experiment + ' (' + n + ')' + '| '+method.replace('HPS','Noisecut')+'' + '\n Checkers: Station bands not corrected in ATaCR'
         + '\n' + 'Seismometer average:  Guralp CMG3T 120=●, Trillium 240=X , Trillium Compact=▲'
         '\nInstrument average: Square  ,  Network average: Dashed line'
@@ -171,8 +168,9 @@ for method_report,method in zip(reports,methods):
         f = method_report['f']
         inst_hold = []
 
-
         for axi,(ax,b )in enumerate(zip(axes,bands)):
+            if (method=='ATaCR')&(n=='Z6'):
+                k=1
             # band_hz = [1/int(a) for a in b.split('-')];ind = (f<band_hz[0]) & (f>=band_hz[1])
             # outside_band = [si for si,sta in enumerate(icat.iloc) if len(np.where(f[ind] < fnotch(sta.StaDepth))[0])==0]
             x,y = report_parser(cat,method_report,sort='StaDepth',band=b,network=n)
@@ -188,9 +186,7 @@ for method_report,method in zip(reports,methods):
                     nev = len(evind)
                     fband_coh = coh[evind][:,f_ind_notch(f,sta.StaDepth,b)]
                     fband_coh = np.mean(fband_coh,axis=1)
-                    # if len(np.where(f[ind] < fnotch(sta.StaDepth))[0])==0:
-                        # if method=='ATaCR':outside_band.append(si)
-                            # coh = coh*0+1
+
                     yy.append(fband_coh)
                     labels.append(sta.StaName+'\n n='+str(nev)+'\n' + str(round(10*(int(sta.StaDepth)/1000))/10) + 'km,' + str(int(int(notch*10)/10)) + 's')
 
@@ -201,7 +197,6 @@ for method_report,method in zip(reports,methods):
 
             yy=[i[~np.isnan(i)] for i in yy]
 
-            if (method=='ATaCR')&(b=='right'):yy=[a*0+1 for a in yy];y=y*0+1
 
             if axi==1:
                 bplot = ax.boxplot(yy,patch_artist=True,labels=labels,positions=positions)

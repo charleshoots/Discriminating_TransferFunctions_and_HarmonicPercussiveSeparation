@@ -7,6 +7,7 @@
 # from obspy import read_inventory
 # from imports import *
 from modules import *
+from scipy.signal import coherence,welch
 # ----
 def get_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
     warnings.filterwarnings("ignore")
@@ -23,7 +24,7 @@ def get_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=
         tr.remove_response(inventory=inv,pre_filt=pressure_pre_filt,output=pressure_units,water_level=pressure_water_level)
     return tr[0]
 
-def pull_cohphadm(stanm,UncorrectedFold,CorrectedFold,
+def pull_cohphadm(stanm,cat,UncorrectedFold,CorrectedFold,
         tf='ZP-21',
         gs=True,
         corrected_comp='HZ',raw_comp='HDH'):
@@ -42,35 +43,64 @@ def pull_cohphadm(stanm,UncorrectedFold,CorrectedFold,
         c=evs.copy();correvs=[f'{stanm}.{i}.{corrected_comp}.SAC' for i in c]
         c=evs.copy();rawevs=[f'{i}.{raw_comp}.SAC' for i in c]
                 #     events = [c.replace('.sta','').replace('.HZ.SAC','').split(stanm + '.')[-1].split('.' + tf)[0] for c in correvs]
-        events = [c.replace('.sta','').replace('.HZ.SAC','').replace(stanm+'.','') for c in correvs]
+        events = [c.replace('.sta','').replace('.HZ.SAC','').replace('.H1.SAC','').replace('.H2.SAC','').replace(stanm+'.','') for c in correvs]
         if len(tf)>0:
                 events=[c.replace('.'+tf,'') for c in events]
                 correvs=[c.replace('.HZ.','.sta.'+tf+'.HZ.') for c in correvs]
         cpa_list,ev_list = [],[]
-        for ev,r,c in zip(events,rawevs,correvs):
-                # if r=='2011.070.06.15.H1.SAC':
-                #        if stanm=='2D.OBS15':
-                #                 k=1
+
+        #data_test: Tests if each event in the catalog was found.
+        data_test = [(np.isin(e.Name,events)).tolist() for e in cat.loc[stanm].Events]
+        #data_test_conv: Tests if each event found is also in the catalog.
+        data_test_conv = [(np.isin(e,[o.Name for o in cat.loc[stanm].Events])).tolist() for e in events]
+
+        log_warnings=[]
+        #I don't want to track whether ZP coherence post-correction is collected
+        if (not np.all(data_test)) & (not np.isin('HDH',[raw_comp,corrected_comp])):
+                [print(f'{e.Name}: {t}') for t,e in zip(data_test,cat.loc[stanm].Events) if t==False]
+                log_warnings=[f'{stanm}:{e.Name}:Catalog event not found' for t,e in zip(data_test,cat.loc[stanm].Events) if t==False]
+        #        assert np.all(data_test)
+        corr,raw=[],[]
+        for conv_test,ev,r,c in zip(data_test_conv,events,rawevs,correvs):
+                #Only collect coherences for events currently listed in the data volume.
+                if not conv_test:
+                        log_warnings.append(f'{stanm}:{ev}:Event not found in catalog')
+                        continue #These two lines do the exact same thing.
                 rawst = load_sac(rawevpath/r,rmresp=False)
                 if len(rawst)==0:print(f'{stanm}|{ev}| Data missing or corrupt');continue
-                ###### rawst=rawst[0]
                 corrst = load_sac(correvpath/c,rmresp=False)
                 if len(corrst)==0:print(f'{stanm}|{ev}| Data missing or corrupt');continue
-                ###### corrst=corrst[0]
+                corr.append(corrst);raw.append(rawst)
+        corr=Stream(corr);raw=Stream(raw)
+        for ev,rawst,corrst in zip(events,raw,corr):
                 tend = np.min([rawst.stats.endtime,corrst.stats.endtime])
-                rawst = rawst.copy().trim(tend-7200,tend);corrst = corrst.copy().trim(tend-7200,tend)
+                rawst.trim(tend-7200,tend)
+                corrst.trim(tend-7200,tend)
                 trim_n = min([corrst.data.shape[0],rawst.data.shape[0]])
-                rawst.data=rawst.data[:trim_n];corrst.data=corrst.data[:trim_n]
-                # ((trim_n/rawst.stats.sampling_rate)/3600)<1.5
+                rawst.data=rawst.data[:trim_n]
+                corrst.data=corrst.data[:trim_n]
                 if len(np.unique([len(rawst.data),len(corrst.data)]))>1:raise Exception('Trace lenghts not equal')
+        corr=basic_preproc(corr);raw=basic_preproc(raw)
+        for ev,rawst,corrst in zip(events,raw,corr):
                 cpa = cohphadm(rawst,corrst)
                 cpa.Event = ev
                 cpa_list.append(cpa)
                 ev_list.append(ev)
-        return ev_list,cpa_list
+        _=[print(s) for s in log_warnings]
+        return ev_list,cpa_list,log_warnings
 
 class DataHold(object):
     def __init__(self):self
+
+# corrected_trace = corrected_traces[ei]
+# original_trace = original_traces[ei]
+# npts = original_trace.stats.npts
+# npts = 1024
+# # npts=10*int(round(2**np.ceil(np.log2(120*original_trace.stats.sampling_rate))))
+# # npts=2**int(np.ceil(np.log2(original_trace.stats.npts)))
+# npts=int(np.ceil(np.log2(original_trace.stats.npts)))*1024
+# fs = original_trace.stats.sampling_rate
+# fvals, coh = coherence(original_trace.data, corrected_trace.data, fs=fs, nperseg=npts)
 class cohphadm(object):
         def __init__(self,A, B=None,overlap=0.3,csd=None,f=None,fs=None):
                 if B is None:A=B.copy()
@@ -88,9 +118,16 @@ class cohphadm(object):
                 g = 9.80665
                 f = (g/(2*np.pi*d))**0.5
                 return f
+        # def COH(self):
+        #         f,ab,aa,bb = self._powercross(self.A.data,self.B.data)
+        #         coh = self._calc_coherence(ab,aa,bb)
+        #         return f[f>0],coh[f>0]
         def COH(self):
                 f,ab,aa,bb = self._powercross(self.A.data,self.B.data)
                 coh = self._calc_coherence(ab,aa,bb)
+                fs=self.B.stats.sampling_rate
+                npts = int(np.ceil(np.log2(self.B.stats.npts)))*1024
+                f, coh = coherence(self.A.data,self.B.data, fs=fs, nperseg=npts)
                 return f[f>0],coh[f>0]
         def PH(self):
                 f,ab,aa,bb = self._powercross(self.A.data,self.B.data)
@@ -100,9 +137,16 @@ class cohphadm(object):
                 f,ab,aa,bb = self._powercross(self.A.data,self.B.data)
                 adm = self._calc_admittance(ab,bb)
                 return f[f>0],adm[f>0]
+
         def _calc_coherence(self,ab,aa,bb):
-                coh = ((abs(ab)**2)/abs(aa*bb))
+                #Magnitude-Squared Coherence (MSC) function (Bell,2015):
+                coh = ((abs(ab)**2)/(np.abs(aa)*np.abs(bb)))
+                # ------------------------------
+                #Complex-Valued Coherence (CVC) (Crawford&Webb,2000):
+                #Only useful if I want to retain phase or slightly bias output towards 1 (unity).
+                # coh = (  (ab)  /  ((aa*bb)**0.5) )
                 return coh
+
         def _calc_phase(self,ab):
                 ph = np.angle(ab,deg=True)
                 return ph

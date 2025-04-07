@@ -475,7 +475,8 @@ class DayNoise(object):
                     fname = self.key + '.' + self.tkey + \
                         '.specgram_H1.H2.Z.P.' + form
                     if isinstance(save, Path):
-                        fname = save / fname # e.g. .specgram_H1.H2.Z.P.png'
+                        (save /'other.figs').mkdir(exist_ok=True)
+                        fname = save /'other.figs'/ fname
                     plt.savefig(
                         str(fname), dpi=300, bbox_inches='tight', format=form)
                 else:
@@ -495,13 +496,10 @@ class DayNoise(object):
             sl_psdP = None
             sl_psdZ = utils.smooth(10*np.log10(psdZ,where=(psdZ > 0.)), 50, axis=0)
             if self.ncomp == 2 or self.ncomp == 4:
-                sl_psdP = utils.smooth(
-                    10*np.log10(psdP,where=(psdP > 0.)), 50, axis=0)
+                sl_psdP = utils.smooth(10*np.log10(psdP,where=(psdP > 0.)), 50, axis=0)
             if self.ncomp == 3 or self.ncomp == 4:
-                sl_psd1 = utils.smooth(
-                    10*np.log10(psd1,where=(psd1 > 0.)), 50, axis=0)
-                sl_psd2 = utils.smooth(
-                    10*np.log10(psd2,where=(psd2 > 0.)), 50, axis=0)
+                sl_psd1 = utils.smooth(10*np.log10(psd1,where=(psd1 > 0.)), 50, axis=0)
+                sl_psd2 = utils.smooth(10*np.log10(psd2,where=(psd2 > 0.)), 50, axis=0)
 
         else:
             # Take the log of the PSDs
@@ -795,7 +793,8 @@ class DayNoise(object):
             if save:
                 fname = self.key + '.' + self.tkey + '.' + 'average.' + form
                 if isinstance(save, Path):
-                    fname = save / fname
+                    (save /'other.figs').mkdir(exist_ok=True)
+                    fname = save /'other.figs'/ fname
                 plot.savefig(
                     str(fname), dpi=300, bbox_inches='tight', format=form)
             else:
@@ -816,7 +815,8 @@ class DayNoise(object):
                 if save:
                     fname = self.key + '.' + self.tkey + '.' + 'coh_ph.' + form
                     if isinstance(save, Path):
-                        fname = save / fname
+                        (save /'other.figs').mkdir(exist_ok=True)
+                        fname = save /'other.figs'/ fname
                     plot.savefig(
                         str(fname), dpi=300, bbox_inches='tight', format=form)
                 else:
@@ -1612,14 +1612,25 @@ class TFNoise(object):
         # |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
         taper_mode = 1
         self.taper_mode = taper_mode
+        self.fs = int(objnoise.f.shape[0]*objnoise.f[1]) #Assuming positive and negative frequencies, this yields the sample rate.
         if self.taper_mode==0:
             #### NO-TAPER (Taper-0)
             comp_tf_taper = 1
             tilt_tf_taper = 1
         elif self.taper_mode==1:
             ### TAPER-1
-            comp_tf_taper = self.calc_tf_taper(self.f,self.frequency_notch)
-            tilt_tf_taper = self.calc_tf_taper(self.f,self.frequency_notch)
+            self.taper_rate = 5
+            # For noise sampled at 10hz, this (self.taper_rate = 5) yields a taper width of 50 samples.
+            # 
+            # I had to experiment with this alot to find a taper width that wouldn't eat into the modified spectra
+            # too much but also not produce ringing in the corrected trace.
+            # 
+            minwidth = int(self.taper_rate*self.fs) #int(taper_rate*self.fs) forces the taper to decline by less than taper_rate (%) per-sample.
+            comp_tf_taper = self.calc_tf_taper(self.f,self.frequency_notch,minwidth=minwidth)
+            tilt_tf_taper = self.calc_tf_taper(self.f,self.frequency_notch,minwidth=minwidth)
+            self.taper_width = np.where([(self.f>self.frequency_notch)&(self.f>0)&(comp_tf_taper==0)])[1].min()-\
+            np.where([(self.f<=self.frequency_notch)&(self.f>0)&(comp_tf_taper==1)])[1].max()
+
         # elif self.taper_mode==2:
         #     ### TAPER-2
         #     comp_tf_taper = self.calc_tf_taper(self.f,1/10)
@@ -1888,14 +1899,41 @@ class TFNoise(object):
         pickle.dump(self, file)
         file.close()
 
-    def calc_tf_taper(self,f,fn,fall=0.1):
+    def calc_tf_taper(self,f,fn,fall=0.1,minwidth=0):
         frac = 2*min(np.where(f>=fn)[0])/len(f)
         ctukey = 1-windows.tukey(len(f),frac)
-        bar = ctukey[min(np.where(f>=fn*(1-fall))[0])]
+        bar = ctukey[min(np.where(f>=(fn*(1-fall)))[0])]
         ctukey[ctukey>=bar] = bar
         ctukey = ctukey/max(ctukey)
         taper = ctukey
+        # taper[abs(f)>=fn] = 0
+        # taper[f>=fn] = 0
         return taper
+
+    # def calc_tf_taper(self,f,fn,fall=0.1,minwidth=10):
+    #     taper_end_f = fn
+    #     taper_end_ind=min(np.where(f>=fn)[0])
+    #     taper_start_f=(fn*(1-fall))
+    #     taper_start_ind=min(np.where(f>=taper_start_f)[0])
+    #     taper_width=(taper_end_ind-taper_start_ind)
+    #     # if taper_width<minwidth:taper_end_ind+=(minwidth-taper_width) #Make taper width wider in the direction of higher frequencies
+    #     if taper_width<minwidth:taper_start_ind-=int(minwidth-taper_width) #Make taper width wider in the direction of lower frequencies
+    #     taper_start_f = f[taper_start_ind]
+    #     taper_start_ind=min(np.where(f>=taper_start_f)[0])
+    #     taper_end_f = f[taper_end_ind]
+    #     frac = 2*taper_end_ind/len(f)
+    #     # frac = 2*minwidth/len(f)
+    #     ctukey = 1-windows.tukey(len(f),frac)
+    #     bar = ctukey[taper_start_ind]
+    #     ctukey[ctukey>=bar] = bar
+    #     ctukey = ctukey/max(ctukey)
+    #     taper = ctukey
+    #     taper_width = (np.sum((~(taper==0))&(~(taper==1)))+1)/2
+    #     print(f'width: {taper_width}')
+    #     # taper[abs(f)>=fn] = 0
+    #     return taper
+
+
 
     def fnotch(self,d):
             '''The frequency knotch root function described in Crawford et al., 1998.
@@ -2026,6 +2064,14 @@ class EventStream(object):
         def add(self, key, value):
             self[key] = value
 
+    def quick_plot(self,f,noise,tfkey):
+            plt.scatter(f,noise,s=5);plt.xscale('log')
+            plt.xlim(0,1)
+            title=f'{self.trZ.stats.network}.{self.trZ.stats.station} : {self.evtime.strftime('%Y.%j.%H.%M')} : {tfkey}'
+            plt.title(f'Noise removed for \n {title}')
+            file = self.plotpath/(title.replace(' : ','.')+'.png')
+            plt.savefig(file)
+
     def correct_data(self, tfnoise):
         """
         Method to apply transfer functions between multiple components (and
@@ -2141,20 +2187,20 @@ class EventStream(object):
         f = np.fft.fftfreq(self.npts, d=self.dt)
 
         self.npts = trZ.data.shape[0]
-        if not f.shape[0]==tfnoise.f.shape[0]:
-            f,ftZ=self.stft_adapter(trZ,overlap=0.3,window=tfnoise.f.shape[0]/trZ.stats.sampling_rate)
-            f,ft1=self.stft_adapter(tr1,overlap=0.3,window=tfnoise.f.shape[0]/tr1.stats.sampling_rate)
-            f,ft2=self.stft_adapter(tr2,overlap=0.3,window=tfnoise.f.shape[0]/tr2.stats.sampling_rate)
-            f,ftP=self.stft_adapter(trP,overlap=0.3,window=tfnoise.f.shape[0]/trP.stats.sampling_rate)
-            self.tr1.data=np.real(np.fft.ifft(ft1));self.tr2.data=np.real(np.fft.ifft(ft2))
-            self.trZ.data=np.real(np.fft.ifft(ftZ));self.trP.data=np.real(np.fft.ifft(ftP))
+        # if not f.shape[0]==tfnoise.f.shape[0]:
+        #     f,ftZ=self.stft_adapter(trZ,overlap=0.3,window=tfnoise.f.shape[0]/trZ.stats.sampling_rate)
+        #     f,ft1=self.stft_adapter(tr1,overlap=0.3,window=tfnoise.f.shape[0]/tr1.stats.sampling_rate)
+        #     f,ft2=self.stft_adapter(tr2,overlap=0.3,window=tfnoise.f.shape[0]/tr2.stats.sampling_rate)
+        #     f,ftP=self.stft_adapter(trP,overlap=0.3,window=tfnoise.f.shape[0]/trP.stats.sampling_rate)
+        #     self.tr1.data=np.real(np.fft.ifft(ft1));self.tr2.data=np.real(np.fft.ifft(ft2))
+        #     self.trZ.data=np.real(np.fft.ifft(ftZ));self.trP.data=np.real(np.fft.ifft(ftP))
 
-            print('[WARNING] Event trace and tranfser functions have different lengths.'
-            '\nUsing STFT to adapt event spectra.')
-            if not np.allclose(f, tfnoise.f):
-                raise(Exception(
-                    'Frequency axes are different: ', f, tfnoise.f,
-                    ' - the noise and event windows are not the same, aborting'))
+        #     print('[WARNING] Event trace and tranfser functions have different lengths.'
+        #     '\nUsing STFT to adapt event spectra.')
+        #     if not np.allclose(f, tfnoise.f):
+        #         raise(Exception(
+        #             'Frequency axes are different: ', f, tfnoise.f,
+        #             ' - the noise and event windows are not the same, aborting'))
 
         for key, value in tf_list.items():
 
@@ -2195,6 +2241,13 @@ class EventStream(object):
                         (ft2 - ft1*TF_21)*TF_P2_1)*TF_ZP_21
                     corrtime = np.real(np.fft.ifft(corrspec))
                     correct.add('ZP-21', corrtime)
+                    self.quick_plot(f,np.abs(TF_Z1*ft1 - \
+                        (ft2 - ft1*TF_21)*TF_Z2_1 - \
+                        (ftP - ft1*TF_P1 -
+                        (ft2 - ft1*TF_21)*TF_P2_1)*TF_ZP_21),key)
+
+
+            
 
             if key == 'ZH' and self.ev_list[key]:
                 if value and tf_list[key]:

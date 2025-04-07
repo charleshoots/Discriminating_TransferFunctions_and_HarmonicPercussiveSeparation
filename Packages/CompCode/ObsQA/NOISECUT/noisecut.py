@@ -91,7 +91,7 @@ def noisecut(
         trace,
         ret_spectrograms=False,
         win_length_samples=None,
-        win_length=None,resample_factor=1.0,width=None,kernel_size=80,overlap=0.75,verbose=True,margin=5):
+        win_length=163.84,resample_factor=1.0,width=None,kernel_size=80,overlap=0.75,verbose=True,margin=5):
     '''
     Reduce noise from all the components of the OBS data using HPS noise
     reduction algorithms.
@@ -155,11 +155,13 @@ def noisecut(
     # We'll compare frames using cosine similarity, and aggregate similar
     # frames by taking their (per-frequency) median value.
     if width is None:
-        width = ((((S_full1.shape[-1] - 1) // 2) - 1) // 5) - 10 #Was hardcoded at 200. This sets the width at the largest value possible for the data given to the similarity filter.
+        width = ((((S_full1.shape[-1] - 1) // 2) - 1) // 5) - 10 
+        #Was hardcoded at 200. 
+        #This defines the minimum waiting factor, in samples, implimented by the similarity filter.
+        #This sets the width at the largest value possible for the data given to the similarity filter.
     if verbose:
         print('Match-Filter | width='+str(width))
     S_filter = librosa.decompose.nn_filter(S_full1,aggregate=np.median,metric='cosine', width=width)
-    doodle = poodle
     # The output of the filter shouldn't be greater than the input
     S_filter = np.minimum(np.abs(S_full1), np.abs(S_filter))
     margin_i = 1
@@ -174,8 +176,7 @@ def noisecut(
 
     S_background = mask_i * S_full1
 
-    if verbose:
-        print('HPSS Median-Filter | kernel_size='+str(kernel_size) + ', margin=' + str(margin))
+    if verbose:print('HPSS Median-Filter | kernel_size='+str(kernel_size) + ', margin=' + str(margin))
     # In the second step we apply a median filter
     D_harmonic, D_percussive = librosa.decompose.hpss(
         S_full2,
@@ -195,10 +196,8 @@ def noisecut(
 
     z = x - new
     stats = trace.stats
-    if len(stats.location)>0:
-        stats.location = stats.location + '->HPS'
-    else:
-        stats.location = 'HPS'
+    if len(stats.location)>0:stats.location = stats.location + '->HPS'
+    else:stats.location = 'HPS'
 
     hps_trace = Trace(data=z, header=stats)
 

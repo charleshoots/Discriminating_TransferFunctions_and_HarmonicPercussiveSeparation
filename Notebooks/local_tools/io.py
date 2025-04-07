@@ -63,11 +63,11 @@ def get_event_record(event,cat,dirs,method,P12_folder=None):
     del st_raw,st_corrected
     # ________________________________________________________________________________
     return st_hold
-def save_tight(filename,fig=None,dpi=200,format=None):
+def save_tight(filename,fig=None,dpi=200,format=None,margins=True):
         # Saves figure to PDF with no margins. Do not modify
         # plt.gca().set_axis_off()
         # plt.subplots_adjust(top = 1, bottom = 0.0, right = 1, left = 0,hspace = 0.07, wspace = 0.03)
-        plt.margins(0.1,0.1)
+        if margins:plt.margins(0.1,0.1)
         # plt.gca().xaxis.set_major_locator(plt.NullLocator())
         # plt.gca().yaxis.set_major_locator(plt.NullLocator())
         if fig is None:
