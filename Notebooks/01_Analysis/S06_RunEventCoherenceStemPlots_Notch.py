@@ -111,10 +111,12 @@ def report_parser(cat,report,sort='StaDepth',network=None,band=[],average=False,
     if sort=='stalta':x=[];y=[]
     if sort=='StaDepth':x = list(icat.StaDepth);y = zzcoh_xf_ysta
     return x,y
+
 slice = {
 'Water_Depth_m':5000,'Pressure_Gauge': 'DPG','Environment': 'North Pacific',
 'Distance_from_Land_km': 100000,'Distance_to_Plate_Boundary_km': 50000,
 'Sediment_Thickness_m': 5000,'Deployment_Length_days': 10000,'Seismometer':'Trillium Compact'}
+
 # -----
 # catalog = catalog[catalog.Network=='Z6']
 for method_report,method in zip(reports,methods):

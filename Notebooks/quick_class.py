@@ -8,6 +8,7 @@
 # from imports import *
 from modules import *
 from scipy.signal import coherence,welch
+from modules import *
 # ----
 def get_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=[0.001, 0.002, 45.0, 50.0],seismic_units="DISP",pressure_units="DEF",pressure_water_level=None,seismic_water_level=60):
     warnings.filterwarnings("ignore")
@@ -27,7 +28,10 @@ def get_sac(file,seismic_pre_filt=[0.001, 0.002, 45.0, 50.0], pressure_pre_filt=
 def pull_cohphadm(stanm,cat,UncorrectedFold,CorrectedFold,
         tf='ZP-21',
         gs=True,
-        corrected_comp='HZ',raw_comp='HDH'):
+        corrected_comp='HZ',raw_comp='HDH',reverse=False):
+        from modules import load_sac
+        from modules import basic_preproc
+        # modules
         correvpath = CorrectedFold
         rawevpath = UncorrectedFold
         # raw_stanm_subfolder=None,corrected_stanm_subfolder=None,
@@ -80,9 +84,11 @@ def pull_cohphadm(stanm,cat,UncorrectedFold,CorrectedFold,
                 rawst.data=rawst.data[:trim_n]
                 corrst.data=corrst.data[:trim_n]
                 if len(np.unique([len(rawst.data),len(corrst.data)]))>1:raise Exception('Trace lenghts not equal')
-        corr=basic_preproc(corr);raw=basic_preproc(raw)
+        corr=basic_preproc(corr)
+        raw=basic_preproc(raw)
         for ev,rawst,corrst in zip(events,raw,corr):
-                cpa = cohphadm(rawst,corrst)
+                if reverse:cpa = cohphadm(corrst,rawst)
+                else:cpa = cohphadm(rawst,corrst)
                 cpa.Event = ev
                 cpa_list.append(cpa)
                 ev_list.append(ev)
@@ -151,7 +157,7 @@ class cohphadm(object):
                 ph = np.angle(ab,deg=True)
                 return ph
         def _calc_admittance(self,ab,bb):
-                ad = np.abs(ab)/bb
+                ad = np.abs(np.abs(ab)/bb)
                 return ad
         def _meta(self):
                 self.dt = np.unique([s.stats.delta for s in [self.A,self.B] if isinstance(s,obspy.core.trace.Trace)])[0]

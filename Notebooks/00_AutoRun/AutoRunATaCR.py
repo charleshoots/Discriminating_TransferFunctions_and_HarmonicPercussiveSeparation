@@ -36,14 +36,14 @@ step_time = lambda: print(f"{'X'*30}{'\n'}{'X'*30}{'\n'}{'\n'*1}|{ATaCR_Steps[ST
 cat = catalog.copy()
 # cat = cat.iloc[89:]
 # cat = cat.loc[['YL.A10W','X9.BB420','7D.J28C','7D.G34D']]
-# cat = cat.loc[['YL.A10W']]
+# cat = cat.loc[['7D.FS08D']]
 Args.Minmag,Args.Maxmag=6.0,8.0
 Args.cleanspectra_flags = '--figQC --figAverage --figCoh --figCross --save-fig'
 Args.dailyspectra_flags='--figQC --figAverage --figCoh --save-fig'
 ## =============================================================================== ##
 # -----------------------------------------------------------------------------------
 
-Args.STEPS = [4,5,6,7]
+Args.STEPS = [6]
 Args.fork = False
 Args.event_mode = False 
 Args.event_window = 3600*2 #7200

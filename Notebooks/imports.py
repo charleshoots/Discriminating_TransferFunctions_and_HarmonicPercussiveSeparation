@@ -86,7 +86,9 @@ HJan23['Good_Channels']=HJan23.T[-4:].sum().T==4
 
 # catalog = pd.read_pickle(dirs.Catalogs / 'Catalog_022325.pkl')
 # catalog = pd.read_pickle(dirs.Catalogs / 'Catalog_022725.pkl')
-catalog = pd.read_pickle(dirs.Catalogs / 'Catalog_040225.pkl')
+# catalog = pd.read_pickle(dirs.Catalogs / 'Catalog_040225.pkl')
+catalog = pd.read_pickle(dirs.Catalogs / 'Catalog_041425.pkl')
+
 
 # catalog_inventory=Inventory()
 # for c in catalog.Inventory:catalog_inventory+=c
@@ -141,8 +143,15 @@ catalog['Data']=a
 catalog=catalog[['StaName', 'Station', 'Network','Data', 'Latitude', 'Longitude', 'Experiment',
 'Environment', 'Pressure_Gauge', 'StaDepth', 'Start', 'End', 'Events','Deployment', 'Inventory']]
 
-
-
+import itertools
+from collections.abc import Iterable
+def unravel(nested_list):
+    flat_list = []
+    for item in nested_list:
+        test=(isinstance(item, Iterable)) and (not isinstance(item, str))
+        if test:flat_list.extend(unravel(item))
+        else:flat_list.append(item)
+    return flat_list
 
 
 # n_nets=catalog.Network.unique().shape[0]

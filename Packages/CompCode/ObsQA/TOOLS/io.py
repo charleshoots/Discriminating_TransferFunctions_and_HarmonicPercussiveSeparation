@@ -28,6 +28,9 @@ import matplotlib.pyplot as plt
 from NoiseCut.src import *
 from IPython.display import clear_output
 from modules import *
+from scipy import signal
+import local_tools as lt
+octavg=lt.math.octave_average
 # from modules import modules
 import obstools
 from obstools.scripts import comply_calculate, atacr_clean_spectra, atacr_correct_event, atacr_daily_spectra, atacr_download_data, atacr_download_event, atacr_transfer_functions
@@ -54,19 +57,22 @@ def _valid_win_length_samples(win_length_samples, win_length, sampling_rate):
         if win_length_samples != _next_pow2(win_length_samples):raise ValueError('Parameter win_length_samples must be a power of 2.')
     return win_length_samples
 # ====================================================================================
-def spectrogram(trace,fs=None,win_length=163.84,pow2db=True):
+def spectrogram(trace,fs=None,win_length=163.84,pow2db=False,mag=False):
     if fs==None:fs=trace.stats.sampling_rate
     if isinstance(trace,Trace):x=trace.data.astype(float)
     win_length_samples=None
     win_length_samples = _valid_win_length_samples(win_length_samples, win_length, fs)
     hop_length = win_length_samples // 4
     n_fft = win_length_samples
-    S, phase = librosa.magphase(librosa.stft(x,n_fft=n_fft,hop_length=hop_length,win_length=win_length_samples))
+    S = librosa.stft(x,n_fft=n_fft,hop_length=hop_length,win_length=win_length_samples)
+    if mag:S,phase=librosa.magphase(S)
     df = fs/win_length_samples
     f = np.arange(S.shape[0]) * df
     t = np.arange(S.shape[1]) * hop_length
     t = t/fs
     if pow2db:S=librosa.power_to_db(np.abs(S))
+
+
     return S,f,t
 # ====================================================================================
 def plot_spectrogram(S, frequencies, times,ax=None,ymax=1,figsize=(10,4),cmap='magma',vlim=[-98,-18],cbar=True):

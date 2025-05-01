@@ -51,7 +51,8 @@ from obspy.geodetics import locations2degrees
 from obspy.geodetics import degrees2kilometers
 from obspy.core.inventory.inventory import read_inventory
 from obspy import read
-
+from obspy import Catalog
+from obspy import Stream
 
 # ____________________________________________________________________________________
 # ||||||||||||||||||||||| BRANCHED COMMUNITY GITs/PACKAGES |||||||||||||||||||||||||||

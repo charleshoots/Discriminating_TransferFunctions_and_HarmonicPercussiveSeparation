@@ -3,6 +3,14 @@ from local_tools.math import avg_meter
 import local_tools as lt
 import scipy.stats as stats
 from matplotlib.gridspec import GridSpec
+
+octavg=lt.math.octave_average
+from scipy.stats import iqr
+from local_tools.math import cohstats
+from scipy.ndimage import gaussian_filter
+from local_tools.math import fnotch
+
+
 def analyze_distribution(f,fn,data,method):
     """Analyze and visualize the distribution of each column in a numpy array in a single figure."""
     num_columns = data.shape[1]
@@ -710,37 +718,109 @@ def event_record_plot(evstream,evstream_back=None,linewidth=0.2,trim = (None,Non
             fig.suptitle(title,fontweight='bold',fontsize=15)
         return ax
 
+
+def ax_sta_metrics(ax,report,sta,method,event_name=None,flim=[1/500,1],octave_av=False,y_faxis=True,metric='coh'):
+    columns=[['ATaCR',['Coherence','ZZ']],['NoiseCut',['Coherence','ZZ']]]
+    defargs = AttribDict();defargs.bands=[(1,10),(10,30),(30,100)];defargs.vertical_scale=1.2;defargs.figwidth=20;defargs.figaspect=[4,1]
+    defargs.linewidth=[.1,.2];defargs.linecolor=['red','black'];defargs.alpha=[1.0,1.0];defargs.nev=None
+    defargs.phases=('P','S');defargs.shadow_phases=('PKIKP','SKS','SKIKSSKIKS');defargs.phasecolors = {'P':'r','S':'b'}
+    defargs.csd_pairs=[('ZP','blue'),('ZZ','gray')]
+    defargs.Noise=True
+    defargs.columns = [['ATaCR',['Coherence','ZZ']],['NoiseCut',['Coherence','ZZ']]]
+    # [defargs.update({k:args[k]}) for k in list(args.keys())]
+    args = defargs
+    args.csd_pairs = {'Z1':'#0c51a6','ZP':'#2a7e93','ZZ':'#7370cb','Z2':'#4f86c5'}
+    note = 'Corrected ('+args.linecolor[1]+') | Raw ('+args.linecolor[0]+')'
+    stanm = sta.StaName
+    tf=''
+    # stastr = ' | '.join([stanm+tf,sta.Experiment,'Depth: '+str(int(abs(sta.StaDepth)))+'m, Notch: '+str(int(1/fnotch(1000*abs(sta.StaDepth))))+'s',note])
+    alpha=0.4
+    outlierprops={'color':'r','s':10,'alpha':0.09}
+    inlierprops={'color':'dodgerblue','s':13,'alpha':alpha} #'#7370cb' royalblue dodgerblue
+    whiskerprops={'linewidth':0.25,'color':'k','alpha':alpha}
+    whiskerwidth=0.002;margin=1.02
+    midlineprops={'linewidth':0.5,'color':'k','alpha':0.8}
+    event_M_lnie={'linewidth':0.75,'color':'r','alpha':0.8}
+    midscatterprops={'s':1,'color':'k'} #args.csd_pairs[pair]
+    notchprops = {'alpha':0.4,'linewidth':0.5,'color':'k','linestyle':'-.'}
+    labelprops = {'fontsize':5} #'fontweight':'bold'
+    methodlabelprops = {'fontweight':'bold','fontsize':5,'verticalalignment':'bottom','horizontalalignment':'right'}
+    if metric=='coh':metric_label = 'Coherence'
+    if metric=='adm':metric_label = 'Admittance'
+    stastr=f'"Figure: ZZ {metric_label} for {stanm} | {sta.Experiment} | {str(int(abs(sta.StaDepth)))}m"'
+
+    keys=['TF_ZP-21']
+    fn = 1/fnotch(sta.StaDepth)
+    methods=[method]
+    metric=metric.lower()
+    for bi,b in enumerate(methods):
+        method = methods[bi]
+        pair = 'ZZ'
+        f=report.f
+        # ax.set_title(f'i.',**labelprops)
+        # ax.set_title(f'i. {pair} {metric}',**labelprops)
+        ind=(f>0)&(f<=1)
+        f=f[ind]
+        M=report[method][stanm][metric][:,ind]
+        events=report[method][stanm].events[~np.any(np.isnan(M),axis=1)]
+        M = M[~np.any(np.isnan(M),axis=1)]
+        if event_name:event_M=M[np.where(events==event_name)[0],:].reshape(-1)
+        if octave_av:
+            avged=np.atleast_2d(np.squeeze(np.array([octavg(c,f)[1] for c in M])))
+            event_M = octavg(event_M,f)[1]
+            f = octavg(M[0],f)[0]
+            M=avged
+
+        upper,lower,midline,outliers,inliers=cohstats(M,margin=margin) 
+        #midline is currently defined as the MEAN of the statistical inliers within the Q1 to Q3 margin (50% of all observations for a given frequency).
+        y_mid = midline
+        # y_mid = M.mean(axis=0)
+
+        if metric_label.lower()=='phase':ax.set_ylim(0,180)
+        if metric_label.lower()=='coherence':ax.set_ylim(0,1.02)
+        if y_faxis:
+            # [ax.scatter(x,yy,label=':'.join([pair]),s=5,facecolor=args.csd_pairs[pair],alpha=0.01) for yy in M]
+            # ax.set_xlim(f[0],1)
+            # y_mid = gaussian_filter(midline, sigma=1)
+            # y_mid = midline
+            ax.scatter(y_mid,f,label=':'.join([pair]),**midscatterprops)
+            ax.hlines(f,xmin=y_mid,xmax=upper,**{'linewidth':0.3,'color':'k','alpha':alpha})
+            ax.hlines(f,xmin=lower,xmax=y_mid,**{'linewidth':0.3,'color':'k','alpha':alpha})
+            ax.vlines(upper,f-whiskerwidth/2,f+whiskerwidth/2,**whiskerprops)
+            ax.vlines(lower,f-whiskerwidth/2,f+whiskerwidth/2,**whiskerprops)
+            ax.plot(y_mid,f,label=':'.join([pair]),**midlineprops) #args.csd_pairs[pair]
+
+            ax.plot(event_M,f,**event_M_lnie)
+
+            ax.set_ylabel('Frequency, Hz',**labelprops)
+            ax.set_xlabel(metric_label,**labelprops)
+            ax.axhline(1/fn,**notchprops)
+            # ax.set_xticklabels(ax.get_xticklabels(),**labelprops)
+            # ax.set_yticklabels(ax.get_yticklabels(),**labelprops)
+            # if bi==0:ax.set_yticklabels([]);ax.set_ylabel('')
+            ax.set_ylim(flim[0],flim[1])
+            if metric=='coh':ax.set_xlim(0,1)
+            _ = ax.set_yscale('log')
+        else:
+            ax.set_xlim(f[0],1)
+            y_mid = M.mean(axis=0)
+            # y_mid = gaussian_filter(midline, sigma=1)
+            # y_mid = midline
+            ax.scatter(f,y_mid,label=':'.join([pair]),**midscatterprops)
+            ax.vlines(f,ymin=y_mid,ymax=upper,**{'linewidth':0.3,'color':'k'})
+            ax.vlines(f,ymin=lower,ymax=y_mid,**{'linewidth':0.3,'color':'k'})
+            ax.hlines(upper,f-whiskerwidth/2,f+whiskerwidth/2,**whiskerprops)
+            ax.hlines(lower,f-whiskerwidth/2,f+whiskerwidth/2,**whiskerprops)
+            ax.plot(f,y_mid,label=':'.join([pair]),**midlineprops) #args.csd_pairs[pair]
+            ax.set_xlabel('Frequency, Hz',**labelprops)
+            ax.set_ylabel(metric_label,**labelprops)
+            ax.axvline(1/fn,**notchprops)
+
+            _ = [ax.set_xscale('log') for ax in axes]
+            # ax.set_yticklabels(ax.get_yticklabels(),**labelprops)
+            # ax.set_xticklabels(ax.get_xticklabels(),**labelprops)
+    # ax.text(0.001+1/fn,0,str(int(np.round(fn)))+'s',verticalalignment='bottom',horizontalalignment='left',fontweight='bold',fontsize=11)
+    return ax
 # # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # # ++++++++++++++++++++++++++ CONSTRUCTOR AREA ++++++++++++++++++++++++++++++
 # # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# methods = ['PostATACR']
-# atacrdatafolder = archive / 'ATaCR_Data' / 'ATaCR_Python'
-# for correction_method in methods:
-#     coh_comp = correction_method.replace('PostHPS','HPS').replace('PostATACR','ATaCR')
-#     if correction_method=='PostHPS':
-#       return_hps = True
-#     else:
-#       return_hps = False
-#     OutFolder = Path(plotfolder)
-#     SubFolders = Path('EventRecords') / correction_method / 'coherence'
-#     OutFolder = OutFolder / SubFolders
-#     OutFolder.mkdir(parents=True,exist_ok=True)
-#     for station in catalog.iloc:
-#       stations = [station.Station]
-#       networks = [station.Network]
-#       events = station.Events
-#       for i,(net,sta) in enumerate(zip(networks,stations)):
-#         Metrics = []
-#         for evi,event in enumerate(events):
-#           depth = round(station.Metadata[evi].origins[0].depth/1000)
-#           mag = station.Metadata[evi].magnitudes[0].mag
-#           File = '.'.join([net,sta]) + '.m' + str(mag) + '.z' + str(depth) + 'km' + '.' + event + '.' + correction_method.replace('Post','') + '_SPECCOHPHADM.png'
-#           title = File.replace('_',' | ').replace('z','z: ').replace('m','mag: m')
-#           print('[' + str(evi) + '/' + str(len(events)) + '] ' + File)
-#           post_record = Stream()
-#           pre_record = Stream()
-#           M,Comp = get_metrics_comp(net,sta,atacrdatafolder,event,return_hps=return_hps,events_folder='EVENTS')
-#           # M['Noise'] = get_Noise(atacrdatafolder,net,sta,'sta')['Noise']
-#           Metrics.append(M.copy())
-#           fig = plot_spec_coh_adm_ph(M)
-#           save_tight(str(plotfolder / 'MeetingFigs' / 'SPECCOHPHADM' / File),fig,dpi=600)

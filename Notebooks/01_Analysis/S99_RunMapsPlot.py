@@ -34,9 +34,11 @@ elevation_cmap="davos"
 # ----------
 # ----------
 # projection="Cyl_stere/150/-20/25i"
-projection='G210/25/90/20i'
+# projection='G210/25/90/20i'
 # dip=90;scale='20i';projection=f'B{int(lons.mean())}/{int(lats.mean())}/{int(lats.min())}/{int(lats.max())}/{scale}'
 # projection='B-55/-15/-25/0/12c'
+projection = "W180/16c"  # W = Mollweide, centered at 180°, width = 12 cm
+
 # ----------
 # ----------
 # ----------
@@ -45,7 +47,7 @@ resolution='03m'
 ortho_region=[-180, 180, -64, 70];stereo_region=[130, 300, -30, 70]
 # stereo_region=ortho_region=[-131, -122, 39, 50];resolution='15s'
 for file in ['Both']:
-    for proji,projection in enumerate(['Cyl_stere/150/-20/25i','G210/25/90/20i']):
+    for proji,projection in enumerate(['W180/12c']):
         projname = ['Stereo','Ortho'][proji]
         # for quake_cmap in ['romaO','wysiwyg','phase']:
         #     for elevation_cmap in ['davos','imola','lapaz']:
@@ -58,6 +60,7 @@ for file in ['Both']:
             # region=[-180, 180, -64, 70]
             pygmt.config(FONT_ANNOT="40p")
             if (projname=='Stereo') and (file=='Stations'):region=stereo_region;gridregion=region
+            elif (projection=='W180/12c'):region=[-180, 180, -65, 70];gridregion="g"
             else:region=ortho_region;gridregion="g"
 
             grid = pygmt.datasets.load_earth_relief(data_source='synbath',resolution=resolution,region=gridregion)
@@ -68,28 +71,31 @@ for file in ['Both']:
             fig.grdimage(grid=grid, cmap=elevation_cmap)
             fig.coast(land="dimgrey")
             fig.basemap(frame="g15")
-            fig.colorbar(frame=["a2f1", "xaf+lElevation (km)"],position="JMR+o1c/0c+w7c/0.5c+n+mc")
+            # fig.colorbar(frame=["a2f1", "xaf+lElevation (km)"],position="JMR+o1c/0c+w7c/0.5c+n+mc")
             # ---------------------------------------------------------------
             # ---------------------------------------------------------------
             # ---------------------------------------------------------------
             # -----EVENTS
+            magmaxsize=0.75
+            magsizegrowth=2
+            magcapsize=magsizegrowth**8
             if (file=='Events') or (file=='Both'):
                 if file=='Both':alpha=0.30
                 else:alpha=1.0
                 data=evcat
-                sizes = 0.01*2**data.Mag;fills=data.Depth;depths=data.Depth;markers='c'
+                sizes = (magmaxsize)*((magsizegrowth**data.Mag)/magcapsize);fills=data.Depth;depths=data.Depth;markers='c'
                 lons,lats=data.Longitude,data.Latitude
                 pygmt.makecpt(cmap=quake_cmap, series=[data.Depth.min(), data.Depth.max()])
                 fig.plot(x=lons,y=lats,size=sizes,fill=data.Depth,
                 cmap=True,style='cc',pen="1p,black",transparency=100-(alpha*100))
-                fig.colorbar(frame="xaf+lDepth (km)",position="JMR+o1c/10c+w7c/0.5c+n+mc")
+                # fig.colorbar(frame="xaf+lDepth (km)",position="JMR+o1c/10c+w7c/0.5c+n+mc")
             # ---------------------------------------------------------------
             # ---------------------------------------------------------------
             # ---------------------------------------------------------------
             # -----STATIONS
             if (file=='Stations') or (file=='Both'):
                 if projection=='Cyl_stere/150/-20/25i':xmkrscl=.5;markersize=.5
-                else:xmkrscl=2;markersize=2
+                else:xmkrscl=.25;markersize=.25
                 data=cat;alpha=1.0;lons,lats=data.Longitude,data.Latitude
                 TRN=PyGMT_PLT_Scatter_Translator
                 fills=[ColorStandard.instrument[s.Deployment.Instrument_Design] for s in cat.iloc]
@@ -100,10 +106,10 @@ for file in ['Both']:
                     if 'x' in style:
                         fig.plot(x=lon,y=lat,
                         style=style.replace(str(xmkrscl*markersize),str((xmkrscl-0.2)*markersize)),
-                        fill='black',pen='25p,black' if 'x' in style else '0.5p,black')
+                        fill='black',pen='0.5p,black' if 'x' in style else '0.5p,black')
                     fig.plot(x=lon,y=lat,
                     style=f'x{str((xmkrscl-0.5)*markersize)}' if 'x' in style else style,fill=fill,
-                    pen='25p,black' if 'x' in style else '0.5p,black')
+                    pen='0.5p,black' if 'x' in style else '0.5p,black')
             # ---------------------------------------------------------------
             # ---------------------------------------------------------------
             # ---------------------------------------------------------------

@@ -62,13 +62,15 @@ def octave_average(d,f,fmin=1/500,fmax=1.025,fraction=8):
         f_low = fc / 2**(1/(2*fraction))
         f_high = fc * 2**(1/(2*fraction))
         # Find indices within this band
-        indices = np.where((f >= f_low) & (f <= f_high))[0]
-        if len(indices) > 0:out.append(np.mean(d[:,indices]))
-        else:out.append(None)
-    freq_centers=freq_centers[~(np.array(out)==None)]
-    out = np.array(out)[~(np.array(out)==None)]
+        indices = (f >= f_low) & (f <= f_high)
+        if np.sum(indices) > 0:
+             k=1
+        if np.sum(indices) > 0:out.append(np.mean(d[:,indices],axis=1))
+        else:out.append([None for i in range(d.shape[0])])
+    freq_centers=freq_centers[np.any(~(np.array(out)==None),axis=1)]
+    out = np.array(out)[np.any(~(np.array(out)==None),axis=1),:]
     out = np.array(out.tolist())
-    return freq_centers,np.array(out)
+    return np.array(freq_centers),np.array(out)
 
 def cohstats(coh,margin=1,axis=0):
     coh = coh[~np.any(np.isnan(coh),axis=1)]

@@ -395,27 +395,27 @@ def fig_TF(f, day_trfs, day_list, sta_trfs, sta_list, skey='',append_title=''):
         if sta_list[key]:
             ax.loglog(f[faxis],np.abs(sta_trfs[key]['TF_'+key][faxis]),'k', lw=0.5)
         if key == 'ZP':
-            ax.set_ylim(1.e-20, 1.e0)
+            ax.set_ylim(1.e-10, 1.e-5)
             ax.set_xlim(1.e-4, 2.5)
             ax.set_title(append_title + skey+' Transfer Function: ZP',fontdict={'fontsize': 8})
         elif key == 'Z1':
-            ax.set_ylim(1.e-5, 1.e5)
+            ax.set_ylim(1.e-5, 1.e0)
             ax.set_xlim(1.e-4, 2.5)
             ax.set_title(append_title + skey+' Transfer Function: Z1',fontdict={'fontsize': 8})
         elif key == 'Z2-1':
-            ax.set_ylim(1.e-5, 1.e5)
+            ax.set_ylim(1.e-5, 1.e0)
             ax.set_xlim(1.e-4, 2.5)
             ax.set_title(append_title + skey+' Transfer Function: Z2-1',fontdict={'fontsize': 8})
         elif key == 'ZP-21':
-            ax.set_ylim(1.e-20, 1.e0)
+            ax.set_ylim(1.e-10, 1.e-5)
             ax.set_xlim(1.e-4, 2.5)
             ax.set_title(append_title + skey+' Transfer Function: ZP-21',fontdict={'fontsize': 8})
         elif key == 'ZH':
-            ax.set_ylim(1.e-10, 1.e10)
+            ax.set_ylim(1.e-5, 1.e0)
             ax.set_xlim(1.e-4, 2.5)
             ax.set_title(append_title + skey+' Transfer Function: ZH',fontdict={'fontsize': 8})
         elif key == 'ZP-H':
-            ax.set_ylim(1.e-20, 1.e0)
+            ax.set_ylim(1.e-10, 1.e-5)
             ax.set_xlim(1.e-4, 2.5)
             ax.set_title(append_title + skey+' Transfer Function: ZP-H',fontdict={'fontsize': 8})
 
