@@ -9,24 +9,22 @@ import math
 import numpy as np
 import librosa
 from obspy import Trace
+from obspy.core.util.attribdict import AttribDict
 import librosa.display
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
+from pathlib import Path
+import os
 
-
-def _next_pow2(n):
-    return int(round(2**np.ceil(np.log2(n))))
-
-
+def _next_pow2(n):return int(round(2**np.ceil(np.log2(n))))
 def _valid_win_length_samples(win_length_samples, win_length, sampling_rate):
     if win_length_samples is None and win_length is None:
         # fully automatic window length
         win_length_samples = _next_pow2(120*sampling_rate)
-
     elif win_length_samples is None and win_length is not None:
-        win_length_samples = _next_pow2(win_length*sampling_rate)
-
-    elif win_length_samples is not None and win_length_samples is not None:
+        win_length_samples = _next_pow2(win_length*sampling_rate) #<----DEFAULT.
+    elif win_length_samples is not None and win_length is not None:
         raise ValueError(
             'Parameters win_length and win_length_samples are mutually '
             'exclusive.')
@@ -34,24 +32,18 @@ def _valid_win_length_samples(win_length_samples, win_length, sampling_rate):
         # check win_length_samples is a power of 2
         win_length_samples = int(win_length_samples)
         if win_length_samples != _next_pow2(win_length_samples):
-            raise ValueError(
-                'Parameter win_length_samples must be a power of 2.')
-
+            raise ValueError('Parameter win_length_samples must be a power of 2.')
     return win_length_samples
-
 def plot_noisecut_spectrograms(S_full, S_background, S_hps, frequencies, times, fig=None,ymax=1,figsize=(15,9)):
     show = False
     units = ['seconds','minutes','hours']
     while times[-1]>7200:
         times = times/60
         units.pop(0)
-
     if fig is None:
         fig= plt.figure(figsize=figsize)
-
         # PLOT-1::----
         axs=fig.add_subplot(311)
-
         pcm=axs.pcolormesh(times, frequencies, librosa.power_to_db(np.abs(S_full)), cmap = 'magma', shading= 'auto')
         plt.title('Full spectrogram', fontsize=14)
         plt.ylabel('Frequency (Hz)', fontsize=14)
@@ -86,12 +78,48 @@ def plot_noisecut_spectrograms(S_full, S_background, S_hps, frequencies, times, 
         plt.xlabel(units[0])
         # plt.tight_layout()
         fig.savefig ('NoiseCut spectrograms.png', dpi=100)
-
+def QAPlot(S,f,t,clim=None,ttl='No title',stats=None,log=True,cmap=None,pabs=False,usedbS=True):
+    plt.close()
+    if cmap:
+        cmap = mcolors.LinearSegmentedColormap.from_list("CustomDiverging", 
+        list(zip([0, 0.5, 1], [(1, 1, 1), (0.5, 0.5, 0.5),(0, 0, 0)])))
+        cmap = [cmap,[-100,-40]]
+    else:vlim=[None,None]
+    fig,axes=plt.subplots(2,1,figsize=(5.5,9))
+    fig.suptitle(ttl)
+    if clim is not None:clim = librosa.power_to_db(clim)
+    if cmap is None:
+        cmap = 'magma';vlim = clim
+    else:
+        cmap,vlim = cmap;clim = vlim
+    if usedbS: 
+        dbS2 = librosa.power_to_db(np.abs(S));dbS1 = librosa.power_to_db(np.abs(S))
+    else:
+        dbS1=10*np.log10(S);dbS2=10*np.log10(S)
+        vlim = [-100,-30];clim  = vlim
+    for axi,ax in zip(range(2),axes):
+        s = ax.pcolormesh(t, f, dbS2 if (pabs&(axi==1)) else dbS1, cmap = cmap if axi==1 else 'magma', shading= 'auto',clim=vlim if axi==1 else clim)
+        ax.set_xlabel('sec')
+        ax.set_ylabel('Hz')
+        ax.set_xlim([86400-7200,86400])
+        ax.set_yscale('linear')
+        if axi==1:ax.set_yscale('log');ax.set_ylim([f[1],1.0])
+        ax.set_xlim([86400-7200,86400])
+        plt.colorbar(s)
+    ttl = ttl[:ttl.find('\n')]
+    file=ttl.replace(',','').replace('(','').replace(')','').replace('<','_').replace('=','').replace(' ','_').replace('+','')
+    stanm = f'{stats.network}.{stats.station}'
+    evn = f'{stats.starttime.strftime('%Y.%j.%H.%M')}'
+    staevname = f'{stanm}.{evn}.{stats.channel}'
+    file=staevname + '_' + file
+    plotfold = Path(os.getcwd()) / 'QAOutput' / stanm;plotfold.mkdir(exist_ok=True,parents=True)
+    fig.savefig(plotfold/(file+'.png'), dpi=300)
+    return fig
 def noisecut(
         trace,
         ret_spectrograms=False,
         win_length_samples=None,
-        win_length=163.84,resample_factor=1.0,width=None,kernel_size=80,overlap=0.75,verbose=True,margin=5):
+        win_length=163.84,resample_factor=1.0,width=None,kernel_size=80,overlap=0.75,verbose=False,margin=5):
     '''
     Reduce noise from all the components of the OBS data using HPS noise
     reduction algorithms.
@@ -111,7 +139,7 @@ def noisecut(
     :return_type:
         tuple ``(hps_trace, (s_original, s_noise, s_hps, frequencies))``
     '''
-
+    verbose = False
     if resample_factor!=1.0:
         print('Resampling')
         trace.resample(np.ceil(trace.stats.sampling_rate*resample_factor))
@@ -120,7 +148,7 @@ def noisecut(
 
     win_length_samples = _valid_win_length_samples(
         win_length_samples, win_length, trace.stats.sampling_rate)
-    
+
     windows = int(1/(1-overlap))
     hop_length = win_length_samples // windows
     n_fft = win_length_samples
@@ -128,10 +156,11 @@ def noisecut(
         print('Building raw spectrogram from STFT | hop_length={hop_length}, n_fft={n_fft}, win_length_samples={win_length_samples}'.format(hop_length=hop_length,n_fft=n_fft,win_length_samples=win_length_samples))
     # Compute the spectrogram amplitude and phase
     S_full, phase = librosa.magphase(librosa.stft(
-        x,
-        n_fft=n_fft,
-        hop_length=hop_length,
-        win_length=win_length_samples))
+        x,n_fft=n_fft,
+        hop_length=hop_length,win_length=win_length_samples))
+    fq=(np.arange(S_full.shape[0]) * (trace.stats.sampling_rate/win_length_samples))
+    t=((np.arange(S_full.shape[1]) * hop_length)/trace.stats.sampling_rate)
+    clim = [S_full.min(),S_full.max()]
 
     # Concerning win_length:
     # Smaller values improve the temporal resolution of the STFT
@@ -140,75 +169,87 @@ def noisecut(
     # in frequency). This effect is known as the time-frequency localization trade-off and needs to
     # be adjusted according to the properties of the input signal
 
+    if verbose:fig1=QAPlot(S_full,fq,t,clim,'S01 S_full (Original)',trace.stats)
+
     l1 = math.floor((0.1 * win_length_samples) / trace.stats.sampling_rate)
     l2 = math.ceil((1 * win_length_samples) / trace.stats.sampling_rate)
 
     # We consider the frequency range of [0.1-1] Hz for the second step
     S_full2 = np.zeros((S_full.shape[0], S_full.shape[1]))
     S_full2[l1:l2, :] = S_full[l1:l2, :]
-
+    if verbose:fig2=QAPlot(S_full2,fq,t,clim,'S02 S_full2, (0.1<=f<1.0)\n X'' used for MED in Zali''23',trace.stats)
     # We consider the frequency range out of the [0.1-1] Hz for the first step
     S_full1 = np.zeros((S_full.shape[0], S_full.shape[1]))
     S_full1[:l1, :] = S_full[:l1, :]
     S_full1[l2:, :] = S_full[l2:, :]
 
+    if verbose:fig3=QAPlot(S_full1,fq,t,clim,'S03 S_full1, not (0.1<=f<1.0)\n V used for SIM in Zali''23 (eq.1)',trace.stats)
     # We'll compare frames using cosine similarity, and aggregate similar
     # frames by taking their (per-frequency) median value.
-    if width is None:
-        width = ((((S_full1.shape[-1] - 1) // 2) - 1) // 5) - 10 
-        #Was hardcoded at 200. 
-        #This defines the minimum waiting factor, in samples, implimented by the similarity filter.
-        #This sets the width at the largest value possible for the data given to the similarity filter.
-    if verbose:
-        print('Match-Filter | width='+str(width))
+
+    if width is None: # Waiting Factor 
+        wait_factor = 7200 #User defined wait factor, in seconds.
+        # width: 
+        #   The waiting factor (width) is the minimum number of samples between filtered data in the SIM stage of NoiseCut.
+        #   Zali '23 default setting: width=200. Set to produce a 2-hr wait factor for a 100hz trace but it's closer to 2.23 hours.
+
+        # width = ((((S_full1.shape[-1] - 1) // 2) - 1) // 5) - 10 #Hoots: This reproduces Zali's original width=200 for a 100Hz trace and tries to retain the same width for lower rate data.
+        width = np.where(t>=wait_factor)[0].min() #This is a more direct way of giving the wait factor suggested to me by Janiszewski.
+
+    if verbose:print(f'(SIM) Match-Filter | width={width} samples ({int((t[width]/3600))} hours)')
+
     S_filter = librosa.decompose.nn_filter(S_full1,aggregate=np.median,metric='cosine', width=width)
-    # The output of the filter shouldn't be greater than the input
-    S_filter = np.minimum(np.abs(S_full1), np.abs(S_filter))
-    margin_i = 1
-    power = 2
+    
+    S_filter = np.minimum(np.abs(S_full1), np.abs(S_filter)) # The output of the filter shouldn't be greater than the input
+    if verbose:fig4=QAPlot(S_filter,fq,t,clim,'S04 S_filter, not (0.1<=f<1.0) \n W-hat (from W) in Zali''23',trace.stats)
+    margin_i = 1;power = 2
 
     # Once we have the masks, simply multiply them with the input spectrogram
     # to separate the components.
-    mask_i = librosa.util.softmask(
-        S_filter,
-        margin_i * (S_full1 - S_filter),
-        power=power)
+    mask_i = librosa.util.softmask(S_filter,margin_i * (S_full1 - S_filter),power=power)
 
     S_background = mask_i * S_full1
 
+    if verbose:fig5=QAPlot(S_background,fq,t,clim,'S05 S_background, not (0.1<=f<1.0) \n [R] Repeating spectrogram (R, eq.5 in Zali''23)',trace.stats)
     if verbose:print('HPSS Median-Filter | kernel_size='+str(kernel_size) + ', margin=' + str(margin))
     # In the second step we apply a median filter
     D_harmonic, D_percussive = librosa.decompose.hpss(
         S_full2,
         kernel_size=kernel_size,
         margin=margin)
-
+    if verbose:fig6=QAPlot(D_harmonic,fq,t,clim,'S06 D_harmonic, (0.1<=f<1.0) \n [H] Harmonic from MED in Zali''23',trace.stats)
+    if verbose:fig7=QAPlot(D_percussive,fq,t,clim,'S07 D_percussive, (0.1<=f<1.0) \n Percussive component of MED never used in Zali''23',trace.stats)
     S_background = S_background + D_harmonic
-
+    if verbose:fig8=QAPlot(S_background,fq,t,clim=None,ttl='S08 S_background + D_harmonic \n N = R + H in Zali''23',stats=trace.stats,usedbS=False)
+    if verbose:fig_test=QAPlot(S_background,fq,t,clim=None,ttl='STest S_background, N = R + H in Zali''23 \n Testing against residual figures',stats=trace.stats,cmap=True,pabs=True,usedbS=False)
     f = S_background * phase
     L = x.shape[0]
-    new = librosa.istft(
-        f,
-        hop_length=hop_length,
-        win_length=win_length_samples,
-        window='hann',
-        length=L)
+    new = librosa.istft(f,hop_length=hop_length,win_length=win_length_samples,window='hann',length=L) #Noise model returned to time-domain
+    z = x - new #Noise, in the time-domain, subtracted from the original input.
 
-    z = x - new
     stats = trace.stats
     if len(stats.location)>0:stats.location = stats.location + '->HPS'
-    else:stats.location = 'HPS'
+    else:stats.location = 'HPS' #Adds a note to the metadata that this trace was processed in NoiseCut.
 
     hps_trace = Trace(data=z, header=stats)
 
     # hps_trace.write( 'NoiseCut.mseed', format='MSEED', encoding=5, reclen=4096)
-
+    if verbose:fig9=QAPlot(S_full - S_background,fq,t,clim,'S09 Output \n T = V - N = V - (R + H) in Zali''23',trace.stats)
     if ret_spectrograms:
         S_hps = S_full - S_background
         df = trace.stats.sampling_rate/win_length_samples
         frequencies = np.arange(S_hps.shape[0]) * df
         times = np.arange(S_hps.shape[1]) * hop_length
         times = times/trace.stats.sampling_rate #Time axis in samples doesn't translate intuitively in plot_noisecut_spectrograms. Keep in seconds.
-        return hps_trace, (S_full, S_background, S_hps, frequencies, times)
+        specs = AttribDict()
+        specs.Original = trace
+        specs.Full = S_full
+        specs.Phase = phase
+        specs.HPS = S_hps
+        specs.Background = S_background
+        specs.Removed = new
+        specs.f = frequencies
+        specs.t = times
+        return hps_trace,specs
     else:
         return hps_trace
