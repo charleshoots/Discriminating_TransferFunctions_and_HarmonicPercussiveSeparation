@@ -1,4 +1,4 @@
-name: Seismic
+name: Seismic_TF_HPS_Comparison
 channels:
   - conda-forge
   - c4aarch64

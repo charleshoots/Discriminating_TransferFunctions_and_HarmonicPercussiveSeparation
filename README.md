@@ -2,13 +2,18 @@
 
 ## Installation:
 
-`git clone https://github.com/charleshoots/Discriminating_TransferFunctions_and_HarmonicPercussiveSeparation.git`
+```
+git clone https://github.com/charleshoots/Discriminating_TransferFunctions_and_HarmonicPercussiveSeparation.git
+```
 
-```cd Discriminating_TransferFunctions_and_HarmonicPercussiveSeparation```
+```
+cd Discriminating_TransferFunctions_and_HarmonicPercussiveSeparation
+conda env create -f environment.yml
+```
 
-```conda env create -f environment.yml```
-
-```conda activate <env-name-from-environment.yml```
+```
+conda activate Seismic_TF_HPS_Comparison.yml
+```
 
 ## Overview: 
 
