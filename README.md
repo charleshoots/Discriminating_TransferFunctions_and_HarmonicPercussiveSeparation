@@ -25,10 +25,10 @@
 ### Remove noise from all available data organized by the catalog using NoiseCut and ATaCR. A de-noised version using each method is saved seperately from one another.
 
 ### Using the following codes:
-    a. AutoRunATaCR 
+    a. S02_AutoRunATaCR 
 >> - A job master to delegate stations or source-receivers to process through any stage of ATaCR
 
-    b. AutoRunNoiseCut
+    b. S03_AutoRunNoiseCut
 >> - A job master to delegate component data collected from source-receiver pairs through NoiseCut.
 
 # 3. Data Quality Analysis:
