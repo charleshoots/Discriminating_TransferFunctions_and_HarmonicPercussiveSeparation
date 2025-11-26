@@ -12,21 +12,20 @@ def get_inv(snm):
     dirs=lt.io.dir_libraries()
     f=dirs.ATaCR/f'EVENTS/raw/{snm}/{snm}_inventory.xml'
     return read_inventory(f)
-def import_HJan23():
+def import_HJan23(hjanfile):
     # os.chdir(project_path)
     dirs=lt.io.dir_libraries()
-    HJan23=pd.read_pickle(dirs.Catalogs/'Janiszewski_etal_2023_StationList.pkl')
+    HJan23=pd.read_pickle(hjanfile)
     HJan23['Good_Channels']=HJan23.T[-4:].sum().T==4
     return HJan23
-def import_cat():
+def import_cat(catfile,hjanfile,aggregate=False):
     # os.chdir(project_path)
     dirs=lt.io.dir_libraries()
     # ____________________________________________________________________________________
     # |||||||||||||||||||||||||||||||||||| Catalogs ||||||||||||||||||||||||||||||||||||||
-    # HJan23=pd.read_excel(dirs.Catalogs/'Janiszewski_etal_2023_StationList.xlsx')
-    HJan23=pd.read_pickle(dirs.Catalogs/'Janiszewski_etal_2023_StationList.pkl')
-    HJan23['Good_Channels']=HJan23.T[-4:].sum().T==4
-    catalog = pd.read_pickle(dirs.Catalogs / 'Catalog_041425.pkl')
+    catalog = pd.read_pickle(catfile)
+    hjancat=import_HJan23(hjanfile)
+    catalog['Good_Channels']=np.array([hjancat[hjancat.StaName==sn].iloc[0].Good_Channels for sn in catalog.StaName])
     catalog.Experiment.replace('CASCADIA KECK','KECK',inplace=True)
     catalog.Experiment.replace('CASCADIA INITIATIVE','Cascadia',inplace=True)
     catalog.Experiment.replace('ALBACORE','Albacore',inplace=True)
@@ -38,12 +37,13 @@ def import_cat():
     catalog.set_index('StaName', inplace=True,drop=False)
     clear_output(wait=False)
     a=[]
+    dirs=lt.io.dir_libraries()
     for sta in catalog.iloc:
         snm=sta.StaName
-        SpecAVG=lambda file=list((dirs.SpectraAvg/snm).glob('*.avg_sta.pkl'))[0]:load_pickle(file)
-        dayfiles=SpecAVG().day_files[SpecAVG().gooddays]
-        DaySpec=lambda fo=dirs.Spectra/snm,dayfiles=dayfiles: [load_pickle(fo/fi) for fi in dayfiles]
-        TF=lambda file=list((dirs.TransferFunctions/snm).glob('*-*transfunc.pkl'))[0]:load_pickle(file)
+        SpecAVG=lambda file=_get_file(snm,dirs.SpectraAvg,'*.avg_sta.pkl')[0]:load_pickle(file)
+        dayfiles=lambda file=_get_file(snm,dirs.Spectra,'*.spectra.pkl'): SpecAVG(file).day_files[SpecAVG(file).gooddays]
+        DaySpec=lambda fo=dirs.Spectra/snm,dayfiles=dayfiles: [load_pickle(fo/fi) for fi in dayfiles()]
+        TF=lambda file=_get_file(snm,dirs.TransferFunctions,'*-*transfunc.pkl')[0]:load_pickle(file)
         Coherence = lambda snm=snm:get_reports(snm)
         Traces = lambda event,snm=snm,channel='HZ',tf='sta.ZP-21',methods=['Original','NoiseCut','ATaCR'],preproc=True:get_traces(snm,event,channel=channel,tf=tf,methods=methods,preproc=preproc)
         IRIS_EVENT_LINK = lambda s: f'https://ds.iris.edu/ds/nodes/dmc/tools/event/{s.resource_id.id.split('=')[-1]}'
@@ -63,13 +63,13 @@ def import_cat():
         
         a.append(Data)
 
-    catalog['Inventory']=local_tools.cat.update_inventory(catalog,return_list=True)
+    catalog['Inventory']=local_tools.cat.update_inventory(catalog,return_list=True) if aggregate else None
 
     catalog['Data']=a
     catalog=catalog[['StaName', 'Station', 'Network','Data', 'Latitude', 'Longitude', 'Experiment',
     'Environment', 'Pressure_Gauge', 'StaDepth', 'Start', 'End', 'Events','Deployment', 'Inventory']]
 
-    catalog['NoiseAverage'] = [(10*np.log10(s.Data.Noise.Averaged().power.cZZ[s.Data.Noise.Averaged().f>0 & (s.Data.Noise.Averaged().f<=fnotch(s.StaDepth))])).mean() for s in catalog.iloc]
+    catalog['NoiseAverage'] = None if not aggregate else [(10*np.log10(s.Data.Noise.Averaged().power.cZZ[s.Data.Noise.Averaged().f>0 & (s.Data.Noise.Averaged().f<=fnotch(s.StaDepth))])).mean() for s in catalog.iloc]
     catalog['Seismometer']=[i['Seismometer'] for i in catalog.Deployment]
     catalog['Sediment_Thickness_m']=[i['Sediment_Thickness_m'] if np.isin('Sediment_Thickness_m',list(i.keys())) else np.nan for i in catalog.Deployment]
     catalog['Instrument_Design']=[i['Instrument_Design'] for i in catalog.Deployment]
@@ -83,6 +83,9 @@ def import_cat():
 # /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
 # ----------------------------------------------------------------------------------------
 # \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+def _get_file(snm,fold=lt.io.dir_libraries().SpectraAvg,search='*.avg_sta.pkl'):
+    files=np.array(list((fold/snm).glob(search)))
+    return files if len(files)>0 else [None]
 def rcat_to_srcat(cat):
     icat = cat.copy()
     keys=['Distance_from_Land_km',
@@ -162,12 +165,17 @@ def rcat_to_scat(r):
 # \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 class dataspace:
     """Generic container class for signal-related data and metadata."""
-    def __init__(self,sets=['all'],bulk=True,**kwargs):
+    def __init__(self,sets=['all'],aggregate=True,demo=False,catfile=None,hjan=None,**kwargs):
         self.sets=sets
         self.sets=[i.lower().replace('hjan23','Janiszewski23'.lower()) for i in self.sets]
-        self.bulk=bulk
+        self.aggregate=aggregate
+        self.demo=demo
+        self.catfile = lt.io.dir_libraries().Catalogs/'Catalog_041425.pkl' if catfile is None else Path(catfile)
+        self.hjanfile = lt.io.dir_libraries().Catalogs/'Janiszewski_etal_2023_StationList.pkl' if hjan is None else Path(hjan)
         self.load()
         self.index()
+
+        if self.demo:self._restrict_data()
 
         for k, v in kwargs.items():setattr(self, k, v)
     def load(self):
@@ -179,7 +187,7 @@ class dataspace:
             self.__rcat_to_srcat()
         elif 'r' in self.sets:self.__import_cat()
         elif 's' in self.sets:self.__import_cat();self.__rcat_to_scat()
-        elif 'Janiszewski23'.lower() in self.sets:self.__import_HJan23()
+        elif 'Janiszewski23'.lower() in self.sets:self.__import_HJan23(self.hjanfile)
         elif 'sr' in self.sets:self.__import_cat();self.__rcat_to_srcat()
         if 'sr' in self.sets:
             self.sr['Index']=self.sr.Name;self.sr.set_index('Index', inplace=True, drop=True)
@@ -193,26 +201,19 @@ class dataspace:
         if 'Janiszewski23'.lower() in self.sets:
             self.Janiszewski23['Index']=self.Janiszewski23.StaName
             self.Janiszewski23.set_index('Index', inplace=True, drop=True)
-        if (self.bulk)&('sr' in self.sets):
+        if (self.aggregate)&('sr' in self.sets):
             dirs = lt.io.dir_libraries()
-
-            # df=load_pickle(dirs.Analysis/'BulkLoad.SR.Coherences_50125.pkl')
             df=load_pickle(dirs.Analysis/'BulkLoad.SR.Coherences_092625.pkl')
             df=df.iloc[np.where(np.isin(np.array([df.Name + '_' + df.StaName]),np.array([self.sr.Name + '_' + self.sr.StaName])))[1]]
-
-            if self.bulk:
+            if self.aggregate:
                 self.sr['Coherence']=[df.aloc[sr.Name].aloc[sr.StaName].iloc[0].Coherence for sr in self.sr.iloc]
                 assert sum(np.array([d.Coherence.event==d.Name for d in self.sr.iloc])==False)==0
                 assert sum(np.array([d.Coherence.StaName==d.StaName for d in self.sr.iloc])==False)==0
-            
             load_snr=False
-            if load_snr:
-                # df=load_pickle(dirs.SNR/'SNR.Models'/'SNR_acausul.filter_V04.pkl')
-                # df=load_pickle(dirs.SNR/'SNR.Models'/'SNR_acausul.filter_V04_5s_bandwidth_20_bands.pkl')
+            if (self.aggregate)&load_snr:
                 df=load_pickle(dirs.SNR/'SNR.Models'/'SNR_acausul.filter_V04_5s_bandwidth_100_bands.pkl')
                 df=df.iloc[np.where(np.isin(np.array([df.Name + '_' + df.StaName]),np.array([self.sr.Name + '_' + self.sr.StaName])))[1]]
-                
-                if self.bulk:
+                if self.aggregate:
                     self.sr['SNR']=[df.aloc[sr.Name].aloc[sr.StaName].iloc[0].SNR for sr in self.sr.iloc]
                     pk=list(self.sr.iloc[0].SNR.keys())[-1]
                     assert sum(np.array([d.SNR[pk].stnm==d.StaName for d in self.sr.iloc])==False)==0
@@ -231,19 +232,33 @@ class dataspace:
         for src, dst in zip(index_cols, idx_dummy):self.r[dst]=self.r[src]
         self.r.set_index(idx_dummy,drop=True,inplace=True)
 
+    def _restrict_data(self,demo=None):
+        if demo is None:demo=self.demo
+        assert demo is not None, 'demo=None. No station constraint given.'
+        demo=[self.demo] if isinstance(self.demo,str) else self.demo
+        print(f'\nWarning. {demo} set as the demo station{'s' if len(demo)>1 else ''}.\nOnly data for this constraint will be shown.')
+        self.r=self.r[self.r.StaName.isin(demo)]
+        self.sr=self.sr[self.sr.StaName.isin(demo)]
+
+
     def copy(self):
         """Return a shallow copy of the Signal."""
         import copy
         return copy.copy(self)
     # --------------------------hidden supports--------------------------
     def __repr__(self):
-        return 'dataspace: A hyper-dimensional data class. Run self.load() for default datasets.'
-    def __import_cat(self):self.r=import_cat()
+        return '\n'.join(['Dataspace: A highly organized longitudinal data class.',
+        '\nRun self.load() for default datasets.',
+        'demo [string/iterable] | Constrains the catalog to only stations defined by the demo argument. Demo=False (default)',
+        '\n',
+        'aggregate [bool] | Loads all available data into a lambda pipeline for very fast use by the catalog.',
+        'This includes all SNR, coherence, phase, admittance, tilt data, noise and event traces with quick plotting tools for each.',
+        '\n',
+        ])
+    def __import_cat(self,**kwargs):self.r=import_cat(catfile=self.catfile,hjanfile=self.hjanfile,aggregate=False)
     def __rcat_to_srcat(self):self.sr=rcat_to_srcat(self.r)
-    def __import_HJan23(self):self.Janiszewski23=import_HJan23()
+    def __import_HJan23(self):self.Janiszewski23=import_HJan23(self.hjanfile)
     def __rcat_to_scat(self):self.s=rcat_to_scat(self.r)
-
-
 # D = []
 # icat = cat.sr.copy()
 # for sr in icat.iloc:

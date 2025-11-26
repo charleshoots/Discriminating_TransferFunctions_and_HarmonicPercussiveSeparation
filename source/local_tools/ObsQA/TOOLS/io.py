@@ -14,7 +14,6 @@ from scipy import signal
 import local_tools as lt
 octavg=lt.math.octave_average
 from functools import reduce
-
 # from modules import modules
 import obstools
 from obstools.scripts import comply_calculate, atacr_clean_spectra, atacr_correct_event, atacr_daily_spectra, atacr_download_data, atacr_download_event, atacr_transfer_functions
@@ -122,7 +121,7 @@ def reshapedict(c):
 def get_reports(sta=None,
     Archive=None,
     methods=['ATaCR','NoiseCut'],evna=None):
-    if Archive is None:dirs=io.dir_libraries();Archive=dirs.Data
+    if Archive is None:dirs=lt.io.dir_libraries();Archive=dirs.Data
     methods = np.array(methods)
     Report=AttribDict()
     AnalysisFolder = Archive/'Analysis'/'Coherence'
@@ -201,7 +200,7 @@ def basic_preproc(st,tlen=7200,percent=None,lowpass=None):
         return st
 def get_traces(stanm,event,channel='HZ',tf='sta.ZP-21',methods=['Original','NoiseCut','ATaCR'],preproc=True):
         if type(event)==obspy.core.event.event.Event:event=event.Name
-        dirs=dir_libraries()
+        dirs=lt.io.dir_libraries()
         rawdir=dirs.Events/'rmresp'/stanm
         atacr_correcteddir=dirs.Events/'corrected'/stanm
         hps_correcteddir=dirs.Events_HPS/'corrected'/stanm
@@ -356,7 +355,7 @@ def get_event_catalog(eventsfolder,subfolder='CORRECTED',fmt = 'pkl'):
 def getstalist():
         # current_path = os.path.dirname(__file__)
         # excelfile = current_path + '/Janiszewski_etal_2023_StationList.xlsx'
-        dirs=io.dir_libraries()
+        dirs=lt.io.dir_libraries()
         excelfile = dirs.Catalogs/'Janiszewski_etal_2023_StationList.xlsx'
         stations = pd.read_excel(excelfile)
         d = dict()
@@ -961,7 +960,7 @@ def build_staquery(d=None,chan='H',ATaCR_Parent=None,staquery_output='./sta_quer
 def DownloadEvents(catalog=None,ATaCR_Parent=None,netsta_names=None,day_mode=False,Minmag=6.3,Maxmag=6.7,limit=1000,pre_event_min_aperture=1,logoutput_subfolder='',log_prefix = '',staquery_output = './sta_query.pkl',chan='H',event_window=7200,channels='Z,P,12',ovr=False):
         # [exec(f'{k}=args.{k}') for k in list(args.keys())]
         # sys.stdout.flush()
-        dirs=ObsQA.TOOLS.io.dir_libraries()
+        dirs=lt.io.dir_libraries()
         logfilename = '_Step_2_7_EventDownload_logfile.log'
         if logoutput_subfolder is not None:
                 logoutput = logoutput_subfolder + '/' + log_prefix
@@ -1137,9 +1136,9 @@ def run_atacr_daynoise(Station,Starts,Ends,channels='Z,P,12',staquery_output='./
                 # dateformat = '%Y.%j.%H.%M'
                 # jkljk = hjkhkj
                 if not ovr:
-                       fls=len(list((dir_libraries().Noise/'raw'/Station.StaName).rglob(f'{UTCDateTime(NoiseStart).strftime('%Y.%j')}*.SAC')))
+                       fls=len(list((lt.io.dir_libraries().Noise/'raw'/Station.StaName).rglob(f'{UTCDateTime(NoiseStart).strftime('%Y.%j')}*.SAC')))
                        if fls>=len(''.join(channels.split(','))):continue
-                fls=len(list((dir_libraries().Noise/'raw'/'_quarantine'/Station.StaName).rglob(f'{UTCDateTime(NoiseStart).strftime('%Y.%j')}*.SAC')))
+                fls=len(list((lt.io.dir_libraries().Noise/'raw'/'_quarantine'/Station.StaName).rglob(f'{UTCDateTime(NoiseStart).strftime('%Y.%j')}*.SAC')))
                 if fls>0:continue
                 atacr_download_data.main(atacr_download_data.get_daylong_arguments(args))
                 clear_output(wait=False);os.system('cls' if os.name == 'nt' else 'clear')
@@ -1381,9 +1380,8 @@ def Run_ATaCR(args):
         # seed='MESSI_22FIFA_WORLD_CUP!',max_workers=1,event_mode=False,event_dt=None,
         # event_window=7200,channels='Z,P,12',ovr=False):
         # _=unpack(args,fv(CorrectEvents)[1:])
-        dirs = ObsQA.TOOLS.io.dir_libraries(os.getcwd())
-        # jkl = jklj
-        # a = q
+        dirs = lt.io.dir_libraries()
+
         if 1 in args.STEP:
                 print('Step 1/7 - BEGIN: Station Metadata')
                 curargs = dict({k:args[k] for k in fv(build_staquery) if np.isin(k,list(args.keys()))})
@@ -1715,7 +1713,7 @@ def get_reports(sta=None,
     methods=['ATaCR','NoiseCut'],evna=None):
     methods = np.array(methods)
     Report=AttribDict()
-    if Archive is None:dirs=io.dir_libraries();Archive=dirs.Data
+    if Archive is None:dirs=lt.io.dir_libraries();Archive=dirs.Data
     AnalysisFolder = Archive/'Analysis'/'Coherence'
     lp = lambda f:reshapedict(load_pickle(f))
     atacrfile = lambda:AnalysisFolder/f'{m.lower()}'/f'{m.lower()}.{tf}.zz.coherence.pkl'

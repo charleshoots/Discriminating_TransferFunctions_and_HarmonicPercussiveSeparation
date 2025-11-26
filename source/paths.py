@@ -47,4 +47,10 @@ def dir_libraries(project_path=None):
         d.P01.S99 = d.P01.Parent/'S99_Summaries'
         d.Papers=d.Root/'_FigureArchive'/'_Papers'
         d.Ch1=d.Root/'Notebooks'/'_03_Run_Paper.Figures'/'ImageOutputs'
+
+
+        # Generates complete directory structure. Does nothing if it already exists
+        _=[d[fo].mkdir(exist_ok=True,parents=True) for fo in list(d.keys()) if not fo=='P01']
+        _=[d.P01[fo].mkdir(exist_ok=True,parents=True) for fo in list(d.P01.keys())]
+
         return d

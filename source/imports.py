@@ -70,7 +70,23 @@ class AnyLoc:
 
 
 # --------------------Data--------------------
-catalog = ds.dataspace()
+# How to use dataspace
+
+# -- Publication setup
+# catalog = ds.dataspace() 
+#Without any arguments, the dataspace will assume all data for the entire default catalog is present and ready for us.
+#If this is not true, this will return an error.
+
+
+# -- Demo setup
+# Constrains catalog to only one station (demo='7D.M07A' for demonstation purposes) 
+# and does not pipe in any data to the catalog (aggregate=False ,ie noise data, coherence, snr, or traces)
+catalog = ds.dataspace(aggregate=False,demo='7D.M08A')
+# Note: The demo argument can be set to a single station name or a list of station names.
+
+
+
+
 # --------------------Some.useful.constants--------------------
 ColorStandard=AttribDict()
 ColorStandard.instrument = {'B2': '#e31a1c','KE': '#b2df8a','AB': '#a6cee3','BA': '#cab2d6','AR': '#ff7f00','TRM': '#1f78b4','BG': '#33a02c','BD': '#6a3d9a'}
@@ -80,13 +96,3 @@ ColorStandard.components = {'ZP':'#0c51a6','ZZ':'#2d8297','Z1':'#70cbc0','Z2':'#
 ColorStandard.network = {'2D': '#d2ad90','7A': '#94530c','7D': '#64783c','X9': '#c04797','XF': '#893949',
 'XO': '#b25fdf','YL': '#4553b1','YO': '#9797ff','Z6': '#a28463','ZA': '#abc098','ZN': '#4f7a8e'}
 PyGMT_PLT_Scatter_Translator = {'o':'c','x':'x','^':'t','s':'s'}
-net_colors = [['batlowK',6],['imola',0],['bamako',0],['lajolla',5],
-['lajolla',7] ,['nuuk',0],['devon',5],['hawaii',0],['acton',0],['bilbao',1]];rs = 10
-net_colors = [cm.__dict__[k].resampled(rs)(i/rs) for k,i in net_colors]
-net_colors = mcolors.ListedColormap(net_colors, name='Networks')
-net_colors.set_over('w');net_colors.set_under('k')
-mycmaps = AttribDict()
-mycmaps.cmaps = AttribDict()
-mycmaps.categorical = AttribDict()
-mycmaps.cmaps.Networks = net_colors
-mycmaps.categorical.Networks = Networks = {k: mycmaps.cmaps.Networks(i) for i,k in zip(np.linspace(0,1,len(catalog.r.Network.unique())),catalog.r.Network.unique())}
