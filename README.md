@@ -12,7 +12,7 @@ conda env create -f environment.yml
 ```
 
 ```
-conda activate Seismic_TF_HPS_Comparison.yml
+conda activate Seismic_TF_HPS_Comparison
 ```
 
 ## Overview: 
