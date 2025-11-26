@@ -1,27 +1,24 @@
 {
-    "python.pythonPath": "~/opt/anaconda3/envs/Seismic/bin/python",
     "workbench.colorCustomizations": {
-        "titleBar.activeBackground": "#2c6d89",
+        "editor.selectionBackground": "#6e230b",
+        "editor.wordHighlightTextBackground": "#00a577",
+        "editor.selectionHighlightBackground": "#3862b0",
+        "editor.selectionForeground": "#ffffff",
+        "editor.lineHighlightBackground": "#3d3c3c",
+        "editor.wordHighlightBackground": "#8f8585",
+        "titleBar.activeBackground": "#ff709d",
         "titleBar.activeForeground": "#FFFFFF",
-        "titleBar.inactiveBackground": "#2c6d89",
+        "titleBar.inactiveBackground": "#ff709d",
         "titleBar.inactiveForeground": "#FFFFFF",
-        "titleBar.border": "#2c6d89",
-        "activityBar.background": "#2c6d89",
+        "titleBar.border": "#ff709d",
+        "activityBar.background": "#ff709d",
         "activityBar.foreground": "#FFFFFF",
-        "statusBar.background": "#2c6d89",
+        "statusBar.background": "#ff709d",
         "statusBar.foreground": "#FFFFFF",
-        "statusBar.debuggingBackground": "#2c6d89",
+        "statusBar.debuggingBackground": "#ff709d",
         "statusBar.debuggingForeground": "#FFFFFF",
-        "tab.activeBorder": "#2c6d89",
+        "tab.activeBorder": "#ff709d",
         "iLoveWorkSpaceColors": true,
         "iLoveWorkSpaceRandom": false
-    },
-    "python.analysis.extraPaths": [
-        "./Packages/CompCode"
-    ],
-    "launch": {
-        
-        "configurations": [],
-        "compounds": []
     }
 }
