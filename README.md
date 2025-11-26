@@ -1,5 +1,17 @@
 # Comparing noise reduction methods using transfer function or harmonic percussive separation. 
 
+## Installation:
+
+`git clone https://github.com/charleshoots/Discriminating_TransferFunctions_and_HarmonicPercussiveSeparation.git`
+
+```cd Discriminating_TransferFunctions_and_HarmonicPercussiveSeparation```
+
+```conda env create -f environment.yml```
+
+```conda activate <env-name-from-environment.yml```
+
+## Overview: 
+
 #### The code in support of this analysis is broken up into four stages:
 1. Data collection
 2. Remove noise
@@ -10,7 +22,7 @@
 5. Publication Figures
 6. Supplemental Figures
 
-# 1. Data collection:
+## 1. Data collection:
 ### Downloads the raw (SAC) dataset followed by deconvolution of instrument response. The dataset is maintained in both pre- and post- response removal.
 
 ### Using an organized catalog of source-receiver pairs, data is collected in three types: 
@@ -21,7 +33,7 @@
     a. S00_DownloadData
     b. S01_Remove.Instrument.Response.from.Data
 
-# 2. Remove noise:
+## 2. Remove noise:
 ### Remove noise from all available data organized by the catalog using NoiseCut and ATaCR. A de-noised version using each method is saved seperately from one another.
 
 ### Using the following codes:
@@ -31,7 +43,7 @@
     b. S03_AutoRunNoiseCut
 >> - A job master to delegate component data collected from source-receiver pairs through NoiseCut.
 
-# 3. Data Quality Analysis:
+## 3. Data Quality Analysis:
 ### Most data quality is assessed across multiple figures that are built by the following scripts:
 
     a. S04_RunNoiseDataQualityReport -
@@ -65,7 +77,7 @@
 
 <img src="./_docs/S09.Example.png" alt="A" width="1000">
 
-# 3. Run analysis:
+## 3. Run analysis:
 ### Build and organize a database of all relevant metrics. Particularly, SNR and coherence using either method.
 
 ### Using the following codes:
@@ -77,7 +89,7 @@
 
     d. S13_Collect.Event.PH.Metrics (optional)
 
-# 4. Publication Figures
+## 4. Publication Figures
 
     a. Figure1_RunMapsPlot
 
@@ -106,7 +118,7 @@
     m. Table2_Correlograms
 
 
-# 5. Supplemental Figures
+## 5. Supplemental Figures
     a. FigureS1_MetaHistPlots
 
     b. FigureS9_Histograms
