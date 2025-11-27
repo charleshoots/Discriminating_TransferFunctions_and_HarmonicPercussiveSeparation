@@ -24,7 +24,7 @@ import itertools
 from collections.abc import Iterable
 import local_tools.dataspace as ds
 
-dirs=io.dir_libraries()
+dirs=io.dir_libraries(mkdir=True)
 octavg = lt.math.octave_average
 
 # -------------------- Registers a more versatile and intuitive way to --------------------

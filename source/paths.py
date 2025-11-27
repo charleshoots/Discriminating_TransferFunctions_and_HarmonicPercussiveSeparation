@@ -1,6 +1,6 @@
 from pathlib import Path;import shutil,sys,os
 from obspy.core import AttribDict
-def dir_libraries(project_path=None):
+def dir_libraries(project_path=None,mkdir=False):
         if project_path==None:project_path=Path(os.getcwd())
         project_path=Path(project_path)
         ATaCR_Paths = dict()
@@ -48,9 +48,9 @@ def dir_libraries(project_path=None):
         d.Papers=d.Root/'_FigureArchive'/'_Papers'
         d.Ch1=d.Root/'Notebooks'/'_03_Run_Paper.Figures'/'ImageOutputs'
 
-
-        # Generates complete directory structure. Does nothing if it already exists
-        _=[d[fo].mkdir(exist_ok=True,parents=True) for fo in list(d.keys()) if not fo=='P01']
-        _=[d.P01[fo].mkdir(exist_ok=True,parents=True) for fo in list(d.P01.keys())]
+        if mkdir:
+                # Generates complete directory structure. Does nothing if it already exists
+                _=[d[fo].mkdir(exist_ok=True,parents=True) for fo in list(d.keys()) if not fo=='P01']
+                _=[d.P01[fo].mkdir(exist_ok=True,parents=True) for fo in list(d.P01.keys())]
 
         return d

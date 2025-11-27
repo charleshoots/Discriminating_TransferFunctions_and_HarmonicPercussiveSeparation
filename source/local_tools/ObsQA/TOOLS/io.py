@@ -939,7 +939,7 @@ def build_staquery(d=None,chan='H',ATaCR_Parent=None,staquery_output='./sta_quer
                                 staquery_output = str(ATaCR_Parent) + '/' + staquery_output.replace('./','')
         else:
                 if staquery_output is not None:
-                        staquery_output.parent.mkdir(parents=True,exist_ok=True)
+                        # staquery_output.parent.mkdir(parents=True,exist_ok=True)
                         os.chdir(str(staquery_output.parent))
 
         for csta in d.iloc:
@@ -1246,26 +1246,26 @@ def CleanSpectra(catalog=None,ATaCR_Parent=None,netsta_names=None,extra_flags = 
         # [exec(f'{k}=args.{k}') for k in list(args.keys())]
         # sys.stdout.flush()
         #  --figQC --figAverage --save-fig
-        datafolder = './Data/'
-        if logoutput_subfolder is not None:
-                logoutput = logoutput_subfolder + '/' + log_prefix + '_Step_5_7_CleanSpectra_logfile.log'
-                log_fout = logoutput
-        else:
-                logoutput = '_Step_5_7_CleanSpectra_logfile.log'
-                log_fout = datafolder + logoutput
+        # datafolder = './Data/'
+        # if logoutput_subfolder is not None:
+                # logoutput = logoutput_subfolder + '/' + log_prefix + '_Step_5_7_CleanSpectra_logfile.log'
+                # log_fout = logoutput
+        # else:
+                # logoutput = '_Step_5_7_CleanSpectra_logfile.log'
+                # log_fout = datafolder + logoutput
+        # with open(log_fout, 'w') as sys.stdout:
+        # original = sys.stdout
+        # log_fout = Path(log_fout)
+        # log_fout.parent.mkdir(parents=True,exist_ok=True)
+        # sys.stdout = open(str(log_fout),'w+')
+        # logging.basicConfig(stream=log_fout)
+        # print('----Begin Clean Spectra----')
         SpecStart = catalog.Start.min().strftime("%Y-%m-%d, %H:%M:%S")
         SpecEnd = catalog.End.max().strftime("%Y-%m-%d, %H:%M:%S")
         args = [str(staquery_output)]
         [args.append(flg) for flg in extra_flags.split()]
         [args.append(flg) for flg in ['--start={}'.format(SpecStart),'--end={}'.format(SpecEnd)]]
         if ovr:args.append('--overwrite')
-        # with open(log_fout, 'w') as sys.stdout:
-        # original = sys.stdout
-        log_fout = Path(log_fout)
-        log_fout.parent.mkdir(parents=True,exist_ok=True)
-        # sys.stdout = open(str(log_fout),'w+')
-        logging.basicConfig(stream=log_fout)
-        # print('----Begin Clean Spectra----')
         if netsta_names is not None:
                 catalog = catalog[np.in1d((catalog.Network + '.' + catalog.Station),netsta_names)]
         ObsQA.TOOLS.io.build_staquery(d=catalog,staquery_output = staquery_output,chan=chan,ATaCR_Parent = ATaCR_Parent)
