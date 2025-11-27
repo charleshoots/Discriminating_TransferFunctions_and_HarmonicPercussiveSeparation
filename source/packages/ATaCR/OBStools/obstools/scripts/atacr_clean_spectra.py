@@ -533,6 +533,7 @@ def main(args=None):
             else:
                 plot.show()
         # Save to file
+
         status(note=f'Saving: {str(fileavst)}')
         stanoise.save(fileavst)
 

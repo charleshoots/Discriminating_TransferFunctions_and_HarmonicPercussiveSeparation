@@ -1572,6 +1572,9 @@ class StaNoise(object):
         del self.c2Z
         del self.c2P
         del self.cZP
+        del self.cHH
+        del self.cHZ
+        del self.cHP
 
         file = open(filename, 'wb')
         pickle.dump(self, file)
