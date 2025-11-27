@@ -11,53 +11,82 @@ import sys;from pathlib import Path;sys.path.append(str(Path(__file__).parent.pa
 import os,sys;from source.imports import *;from source.modules import *
 
 import sys;from pathlib import Path
+# cat value
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
 
 # Noise Spectra
 f=cat.r.iloc[0].Data.Noise.Averaged().f
+# faxis value
 faxis=(f>0)&(f<=1)
+# f value
 f=f[faxis]
+# noise f value
 noise_f=f
 cat.r['Noise']=[AttribDict({'f':f,
 'Z':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cZZ'][faxis]),
 'P':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cPP'][faxis]),
 'H':np.mean([PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__[c][faxis]) for c in ['c11','c22']],axis=0)
 }) for s in cat.r.iloc]
+# rmse value
 rmse=lambda y:( (  ( abs(y)-abs(y).mean() )**2  ).mean())**.5 
+# rms value
 rms=lambda y:np.mean(y**2)**0.5
+# s value
 s=cat.r.iloc[0];faxis=(s.Noise.f>(1/100) )& (s.Noise.f<=1)
+# f value
 f=s.Noise.f[faxis]
 cat.r['NoiseAverage']=[{f'{b[0]}_{b[1]}':-rms(s.Noise.Z[faxis][(f<=(1/b[0]))&(f>=(1/b[1]))]) for b in [[1,10],[10,30],[30,100]]} for s in cat.r.iloc]
 cat.sr['NoiseAverage']=[cat.r.loc[sr.StaName].NoiseAverage[0] for sr in cat.sr.iloc]
+# function custom cmap
 def custom_cmap(ind=0,nbins=5):
     if ind==0:cmap = cm.cmaps['glasgow'].reversed().resampled(nbins)
     if ind==1:cmap = cm.cmaps['batlow'].reversed().resampled(nbins)
     return cmap
+# figs value
 figs = lambda r=4,c=1,f=(5,6),x='all',y='all',layout='constrained':plt.subplots(r,c,figsize=f,sharex=x,sharey=y,layout=layout)
 from obspy.signal.trigger import classic_sta_lta,carl_sta_trig,recursive_sta_lta
+# stalta methods value
 stalta_methods={'classic':classic_sta_lta,'carl':carl_sta_trig,'recurssive':recursive_sta_lta}
+# darken value
 darken=lambda cmap,frac=0.8:ListedColormap([cmap(i) for i in np.arange(0,frac,0.01)]).resampled(100)
+# luminance value
 luminance=lambda rgb:np.sum([scl*(x / 255.0) for x,scl in zip(rgb[:-1],[0.2126,0.7152,0.0722])])/0.00392156862745098 
+# suspect stations value
 suspect_stations=np.array(['ZA.B02','YL.C09W','7D.G25B','7D.FS08D','7D.G17B','YL.A14W'])
+# baz value
 baz=lambda s:obspy.geodetics.base.gps2dist_azimuth(s.Latitude,s.Longitude,s.LaLo[0],s.LaLo[1])[1]
+# bootstrap value
 bootstrap = lambda y,nruns=10000,nchoose=100,aggregate=np.mean: np.mean([aggregate(np.random.choice(y[~np.isnan(y)],nchoose)) for _ in range(nruns)])
+# centers value
 centers=lambda x:np.array((x[:-1] + x[1:]) / 2)
+# dbin value
 dbin = lambda x:np.array([x[:-1],x[1:]]).T
+# phases value
 phases=['P','S','Rg'];preferred_pbands={'P':'1_10','S':'10_30','Pdiff':'1_10','Sdiff':'10_30','Rg':'30_100'}
+# methods value
 methods=['NoiseCut','ATaCR'];mnames={'NoiseCut':'HPS','ATaCR':'TF'}
+# mnames r value
 mnames_r={mnames[k]:k for k in mnames.keys()};mname_comp={f'HPS_Z':'NoiseCut','TF':'ATaCR','Original':'Original'}
+# mnames comp r value
 mnames_comp_r={mname_comp[k]:k for k in mname_comp.keys()}
+# cohnames2snrnames value
 cohnames2snrnames=c2s={'TF':'TF.Z','HPS_Z':'HPS.Z','HPS_1':'HPS.1','HPS_2':'HPS.2'}
+# c2s value
 c2s={'TF':'TF.Z','HPS_Z':'HPS.Z','HPS_1':'HPS.1','HPS_2':'HPS.2'}
+# c2s r value
 c2s_r={c2s[k]:k for k in c2s.keys()}
+# make bands
 def make_bands(N, width=None,line=np.linspace, lo=1.0, hi=100.0):
     if width is None:width=(hi-lo)/N
     if width<=0 or width>(hi-lo): raise ValueError("width must be in (0, hi-lo]")
+    # s value
     s=line(lo, hi-width, N)
     return np.c_[s, s+width]
 
 
+# icat value
 icat=cat.sr.copy()
 usnr=unpack_metrics(icat)
 

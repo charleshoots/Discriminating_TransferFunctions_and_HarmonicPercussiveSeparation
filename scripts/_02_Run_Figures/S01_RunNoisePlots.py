@@ -14,17 +14,24 @@ import os,sys
 import matplotlib.cm as cm
 from imports import *
 from modules import *
+# cat value
 cat = catalog.copy()
+# plotfold value
 plotfold = dirs.P01.S01
+# fold value
 fold = dirs.Analysis/'Metrics'/'noise'
+# get stanm noise value
 get_stanm_noise = lambda fold,stanm:load_pickle(fold/f'{stanm}.Noise.pkl')
+# load sta atacrnoise value
 load_sta_atacrnoise = lambda stanm: load_pickle(list((dirs.SpectraAvg/stanm).glob('*.pkl'))[0])
 # cat = cat[cat.Network=='2D']
 get_stanoise = lambda stanm: load_pickle(list((dirs.TransferFunctions/stanm).glob('*-*.pkl'))[0])
 
+# variable
 _=[(dirs.P01.S01/i).mkdir(exist_ok=True) for i in ['COH_PSD','PH_ADM','TF']]
 
 for si,sta in enumerate(cat.iloc):
+    # noise value
     noise = get_stanm_noise(dirs.Analysis/'Metrics'/'noise',sta.StaName)
     fo = plotfold/'COH_PSD'/f'{sta.StaName}.Noise_COH_PSD.png'
     save_tight(fo,coh_psd(noise,sta),dpi=300)

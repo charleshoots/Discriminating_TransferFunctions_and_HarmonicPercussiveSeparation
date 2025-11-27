@@ -15,28 +15,38 @@ from scipy.stats import iqr
 from local_tools.quick_class import *
 from local_tools.math import spectra
 from obspy.geodetics import kilometers2degrees
+# cat value
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
 import statsmodels.api as sm
 import local_tools.dataspace as ds
 # Noise Spectra
 f=cat.r.iloc[0].Data.Noise.Averaged().f
+# faxis value
 faxis=(f>0)&(f<=1)
+# f value
 f=f[faxis]
+# noise f value
 noise_f=f
 cat.r['Noise']=[AttribDict({'f':f,
 'Z':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cZZ'][faxis]),
 'P':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cPP'][faxis]),
 'H':np.mean([PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__[c][faxis]) for c in ['c11','c22']],axis=0)
 }) for s in cat.r.iloc]
+# function custom cmap
 def custom_cmap(ind=0,nbins=5):
     if ind==0:cmap = cm.cmaps['glasgow'].reversed().resampled(nbins)
     if ind==1:cmap = cm.cmaps['batlow'].reversed().resampled(nbins)
     return cmap
+# figs value
 figs = lambda r=3,c=1,f=(5,6),x='all',y='all',layout='constrained':plt.subplots(r,c,figsize=f,sharex=x,sharey=y,layout=layout)
 from obspy.signal.trigger import classic_sta_lta,carl_sta_trig,recursive_sta_lta
+# stalta methods value
 stalta_methods={'classic':classic_sta_lta,'carl':carl_sta_trig,'recurssive':recursive_sta_lta}
+# darken value
 darken=lambda cmap,frac=0.8:ListedColormap([cmap(i) for i in np.arange(0,frac,0.01)]).resampled(100)
+# luminance value
 luminance=lambda rgb:np.sum([scl*(x / 255.0) for x,scl in zip(rgb[:-1],[0.2126,0.7152,0.0722])])/0.00392156862745098 
 
 # 7D.J20D: 1 (2.9%)
@@ -59,23 +69,34 @@ luminance=lambda rgb:np.sum([scl*(x / 255.0) for x,scl in zip(rgb[:-1],[0.2126,0
 
 
 
+# function station records
 def station_records(s,b,fold,SR,SNR,srmax=15,methods=['TF.HZ','Original.HZ','HPS.HZ'],prenoise_buffer=.01,filtertype='causul',tmax=7200):
+    # preferred bands value
     preferred_bands={'P':'1_10','S':'10_30','Rg':'30_100'}
+    # preferred phases value
     preferred_phases={preferred_bands[i]:i for i in preferred_bands.keys()}
+    # phases value
     phases=np.unique([preferred_phases[b],'Rg','Noise'])
     # phases=[]
     
+    # msplit value
     msplit = lambda m:m.split('.')[0]
+    # mdict value
     mdict={'TF':'ATaCR','HPS':'NoiseCut','Original':'Original'}
+    # mdict r value
     mdict_r={mdict[k]:k for k in mdict.keys()}
     df=SR[SR.StaName==s].copy()
     df.sort_values(by=['Distance'],inplace=True)
+    # itr df value
     itr_df=SNR[SNR.StaName==s].copy()
     itr_df.sort_values(by=['Distance'],inplace=True)
     assert sum((itr_df.Name==df.Name)&(itr_df.StaName==df.StaName))==len(df)
 
+    # st value
     st=Stream(unravel([sta.Traces() for sta in df.iloc]))
+    # st evs value
     st_evs=np.array(np.repeat(df.Name,3))
+    # band value
     band=[int(i) for i in b.split('_')]
     freqmin,freqmax=1/max(band),1/min(band)
     ret_i=lambda tro,idf:(idf.index.str.startswith(tro.stats.starttime.strftime('%Y.%j.%H')))&(idf.StaName==f'{tro.stats.network}.{tro.stats.station}')

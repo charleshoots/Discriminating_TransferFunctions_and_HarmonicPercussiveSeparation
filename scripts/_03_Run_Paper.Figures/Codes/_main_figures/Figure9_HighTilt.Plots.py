@@ -14,25 +14,36 @@ from scipy.stats import iqr
 from local_tools.quick_class import *
 from local_tools.math import spectra
 from obspy.geodetics import kilometers2degrees
+# yttl value
 yttl = lambda c:fr"$\underset{{{c}}}{{\gamma\;\;\;\;\;\;\;}}$"
+# yttl eta value
 yttl_eta = lambda c:fr"$\underset{{{c}}}{{\eta\;\;\;\;\;\;\;}}$"
+# cat value
 cat = catalog.copy()
+# icat value
 icat = cat.sr.copy()
+# usnr value
 usnr=unpack_metrics(icat)
+# dirs value
 dirs = dir_libraries()
+# OUT CSV value
 OUT_CSV=dirs.Catalogs/'Janiszewski_etal_2023_StationAverages.xlsx'
 df=pd.read_excel(OUT_CSV)
+# theta deg value
 theta_deg=np.array([df[(df.network==stnm.split('.')[0])&((df.station==stnm.split('.')[1]))].iloc[0].orientation for stnm in cat.sr.StaName])
 cat.sr['TiltDirection']=theta_deg
+# oriencohere value
 oriencohere=np.array([df[(df.network==stnm.split('.')[0])&((df.station==stnm.split('.')[1]))].iloc[0].oriencohere for stnm in cat.sr.StaName])
 cat.sr['TiltCoherence']=oriencohere
 
 
 
 
+# plotfolder value
 plotfolder=dirs.Ch1/'_main_figures'/'Figure9_HighTilt.Plots';plotfolder.mkdir(parents=True,exist_ok=True)
 
 
+# octavg value
 octavg=lt.math.octave_average
 # --- Figure: coherence spectra by tilt quantile bins, with stems for IQR variability ---
 tilt_bin_edges = [0.08267542, 0.22943596, 0.50754827, 0.88716358, 0.9808266 ]
@@ -47,8 +58,11 @@ n_tilt_bins = 4
 
 # Frequency range to display (1–100 s)
 period_min, period_max = 1.0, 100.0  # seconds
+# reverse x value
 reverse_x = True   # show long periods on the left (100 → 1 s)
+# n stems value
 n_stems   = 18     # number of stem positions across the band
+# cap scale value
 cap_scale = 1.06   # multiplicative cap width on log-x
 # =======================================================================
 
@@ -61,9 +75,12 @@ cap_scale = 1.06   # multiplicative cap width on log-x
 
 # --- inputs ---
 tilt_coherences = cat.sr.TiltCoherence.to_numpy()
+# mtr value
 mtr='coh'
+# mtr value
 mtr = 'snr'
 if mtr=='coh':
+    # M value
     M = {
         "TF_Z":  usnr.__dict__[mtr].TF_Z,
         "HPS_Z": usnr.__dict__[mtr].HPS_Z,
@@ -71,6 +88,7 @@ if mtr=='coh':
         "HPS_2": usnr.__dict__[mtr].HPS_2,
     }
 else:
+    # M value
     M = {
     "TF_Z":  usnr.__dict__[mtr].TF_Z.R(),
     "HPS_Z": usnr.__dict__[mtr].HPS_Z.R(),
@@ -82,16 +100,21 @@ else:
 P_full = np.asarray(M["TF_Z"].bands, float)  # seconds, shape (Nfreq,)
 if P_full.ndim != 1:
     raise ValueError("bands must be a 1-D period vector in seconds")
+# msk disp value
 msk_disp = (P_full >= period_min) & (P_full <= period_max)
 if not np.any(msk_disp):
     raise ValueError("Display mask empty; check period_min/period_max vs bands")
 
+# P value
 P = P_full[msk_disp]                    # (Nf_disp,)
+# logP value
 logP = np.log(P)
 
 # --- infragravity notch mask per station on FULL axis, then slice to display ---
 f_full = 1.0 / P_full
+# nanidx full value
 nanidx_full = np.array([f_full > fnotch(sr.StaDepth) for sr in cat.sr.iloc], dtype=bool)  # (Npairs × Nfreq)
+# nanidx value
 nanidx = nanidx_full[:, msk_disp]                                                          # (Npairs × Nf_disp)
 
 
@@ -110,6 +133,7 @@ for k in D.keys():
 # ================== tilt quantile bins (to match "qsets" style margins) ==================
 # Compute n_tilt_bins+1 quantiles from 0..1 (e.g., quartiles with 0, .25, .5, .75, 1)
 q = np.linspace(0, 1, n_tilt_bins + 1)
+# raw edges value
 raw_edges = np.nanquantile(tilt_coherences, q)
 
 # Guard against duplicate edges (e.g., many identical tilt values); expand slightly if needed
@@ -119,11 +143,13 @@ for i in range(1, len(edges)):
         edges[i] = np.nextafter(edges[i-1], 1.0)  # bump minimally toward 1.0
 # Build masks and labels per bin
 idx_bins = []
+# tilt labels value
 tilt_labels = []
 for i in range(len(edges) - 1):
     lo, hi = edges[i], edges[i+1]
     # include left, exclude right except the final bin which includes right
     if i < len(edges) - 2:
+        # msk pairs value
         msk_pairs = (tilt_coherences >= lo) & (tilt_coherences < hi)
     else:
         msk_pairs = (tilt_coherences >= lo) & (tilt_coherences <= hi)

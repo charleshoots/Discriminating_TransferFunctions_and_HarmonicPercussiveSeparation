@@ -13,7 +13,9 @@ import os,sys;from source.imports import *;from source.modules import *
 import matplotlib as mpl;from matplotlib.colors import ListedColormap
 import time;start=time.time()
 
+# octavg value
 octavg=lt.math.octave_average;transpose=False
+# opts value
 opts=AttribDict({})
 
 # --------------------------------------------------------------------------------
@@ -22,12 +24,16 @@ opts=AttribDict({})
 plotfolder=dirs.Ch1/'_supplemental_figures'/'FigureS5_CoherenceSpectraAverages';plotfolder.mkdir(parents=True,exist_ok=True)
 
 
+# width value
 width=4;height=4 #Defaults
 # # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # # --------------------------------------------------------------------------------
 req = None #Standard setup
+# figsize value
 figsize=(width,height) #width,height
+# sets value
 sets = [None]
+# transpose value
 transpose=False
 opts.update({req:AttribDict({'req':req,'figsize':figsize,'sets':sets,'transpose':transpose})})
 ######### # --------------------------------------------------------------------------------
@@ -55,29 +61,43 @@ opts.update({req:AttribDict({'req':req,'figsize':figsize,'sets':sets,'transpose'
 # sets=['DPG','APG']
 # opts.update({req:AttribDict({'req':req,'figsize':figsize,'sets':sets,'transpose':transpose})})
 
+# stats value
 stats=[]
+# stat value
 stat=AttribDict();stat.func=np.mean;stat.title='Mu';stats.append(stat)
+# stat value
 stat=AttribDict();stat.func=np.std;stat.title='Sigma';stats.append(stat)
 
+# octave av value
 octave_av=True
+# notched value
 notched=False
+# plot notch value
 plot_notch=False
 # ________________________________________________________________________________________________________________________________________________________________
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 cat=catalog.sr.copy()
+# usnr value
 usnr=unpack_metrics(cat)
 
+# si value
 si=0;s = cat.iloc[si];f=s.Data.Coherence().f;foct=octavg(s.Data.Coherence().ATaCR.zp_21.coh,f)[0]
+# zmin value
 zmin=0;zmax=6000;binspacing=500
+# bins value
 bins = np.array([[i,i+binspacing] for i in np.arange(zmin,zmax,binspacing)])
 # bins = np.flip(bins,axis=0)
 boundaries=np.unique(bins);binedges=np.array([max(b) for b in bins]);nbins=len(bins)
+# function custom cmap
 def custom_cmap(ind=0,nbins=5):
     if ind==0:cmap = cm.cmaps['glasgow'].resampled(nbins+3)
     if ind==1:cmap = cm.cmaps['batlow'].resampled(nbins+3)
     return cmap
+# cmap value
 cmap=custom_cmap(1,nbins).reversed()
+# cmap value
 cmap=custom_cmap(0,nbins).reversed()
+# darker value
 darker=1.25;clrs=cmap(bins.mean(axis=1)/(bins.max()*darker))
 # clrs=np.flip(clrs,axis=0) #colors
 cmap = ListedColormap(clrs)
@@ -85,12 +105,18 @@ cmap = ListedColormap(clrs)
 
 
 
+# reqs value
 reqs=list(opts.keys())
+# status value
 status = lambda:f'R:{ri+1}/{len(reqs)}  |-|  S:{set_i+1}/{len(sets)}  |:|  {req}:{set}'
 for ri,req in enumerate(reqs):
+    # figsize value
     figsize=opts[req].figsize
+    # sets value
     sets=opts[req].sets
+    # transpose value
     transpose=opts[req].transpose
+    # loop over stats
     for stat in stats:
         for set_i,set in enumerate(sets):
             print(status()+' | Start')

@@ -13,52 +13,73 @@ import os,sys;from source.imports import *;from source.modules import *
 from scipy.stats import spearmanr, pearsonr, norm
 # Coherence contour plot
 darken=lambda cmap,frac=0.8:ListedColormap([cmap(i) for i in np.arange(0,frac,0.01)]).resampled(100)
+# luminance value
 luminance=lambda rgb:np.sum([scl*(x / 255.0) for x,scl in zip(rgb[:-1],[0.2126,0.7152,0.0722])])/0.00392156862745098 
+# function dataset averaged coherence plot
 def dataset_averaged_coherence_plot(f,z,coh,ms=35,zconnect=False,figsize=[6,6],cmap='viridis',checkerboard=(40,9),
+    # title value
     title='Station Averaged Coherence',fontsize=4,levels=None,fig=None,ax=None,octav=True,fmin=1/100,fnlinewidth=0.4):
+    # font value
     font = {'weight':'normal','size':fontsize};matplotlib.rc('font', **font)
     z = np.round(z)
     i = np.argsort(z)
     z,coh = z[i],coh[i,:]
     if levels is None:levels=np.linspace(np.min(coh),np.max(coh),20)
     if ax is None:fig,ax=plt.subplots(figsize=figsize)
+    # cp value
     cp = coh
     # cp = np.array([smooth(d,k=3) for d in coh]);cp = gaussian_filter(coh,.5)
 
     checkerdensity,brightness=checkerboard
+    # checkerboard value
     checkerboard = np.indices((checkerdensity, checkerdensity*2)).sum(axis=0) % 2  # 0/1 checker pattern
     from matplotlib.colors import LinearSegmentedColormap
+    # dark greys value
     dark_greys = LinearSegmentedColormap.from_list('dark_greys', ['#777', f'#{str(brightness)*3}'])
     ax.imshow(checkerboard,cmap=dark_greys,interpolation='nearest',aspect='auto',extent=[0,1,0,1],origin='lower',
+    # zorder value
     zorder=-1e3,transform=ax.transAxes,
+    # alpha value
     alpha=1.0)  # Adjust transparency as needed)
 
+    # s value
     s=ms
+    # faxis value
     faxis=(f>=(fmin))&(f<=1)
+    # F value
     F=f.copy()[faxis]
+    # C value
     C=np.asarray(cp[:,faxis])            # same shape
 
     if octav:F,C = octavg(C,F)
+    # C value
     C=np.array([C[z==zi,:].mean(axis=0) for zi in np.unique(z)])
     if zconnect:F, Z = np.meshgrid(F, np.arange(0,len(np.unique(z))))
     else:F, Z = np.meshgrid(F, np.unique(z)) 
 
+    # norm value
     norm = mpl.colors.Normalize(vmin=0, vmax=1.0)
     # F,Z,C=np.flip(F,axis=0),np.flip(Z,axis=0),np.flip(C,axis=0) #Looks better with this off
     sc = ax.scatter(F.ravel(), Z.ravel(), c=C.ravel(), marker='s', s=s, cmap=cmap, norm=norm, edgecolors='none')
     ax.set_xscale('log')
 
+    # fn z value
     fn_z = np.linspace(z.min(),z.max(),len(z)*10)
+    # fn value
     fn = [fnotch(i) for i in fn_z]
     ax.plot(fn,fn_z,linestyle=':',color='k',linewidth=fnlinewidth)
     ax.set_xlim(fmin,1);ax.set_xscale('log')
+    # n value
     n=1 if zconnect else 70;ax.set_ylim(np.min(Z)-n,np.max(Z)+n)
+    # fticks value
     fticks = np.array([1/100,1/50,1/30,1/10,1])
     ax.set_xticks(fticks)
     ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
     ax.set_xticklabels(np.array(1/fticks,dtype=int))
     if zconnect:
+        # zy value
         zy=np.arange(0,6500,1500)
+        # yt value
         yt=np.round(np.interp(zy,np.unique(z),np.arange(0,len(np.unique(z)),1)))
         ax.set_yticks(yt)
         ax.set_yticklabels(zy)
@@ -69,17 +90,21 @@ def dataset_averaged_coherence_plot(f,z,coh,ms=35,zconnect=False,figsize=[6,6],c
     if fig is not None:fig.suptitle(title)
     # plt.colorbar(cnt)
     plt.tight_layout()
+    # norm value
     norm = mpl.colors.TwoSlopeNorm(vmin=0, vcenter=0.5, vmax=1)
+    # cbar value
     cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap),ax=ax,extend=None)
     cbar.set_ticks(np.arange(0, 1.01, 0.25))
     if fig is not None:return fig
     if ax is not None:return ax
 
+# make bands
 def make_bands(N, width=None,line=np.linspace, lo=1.0, hi=100.0):
     if width is None:width=(hi-lo)/N
     # if width<=0 or width>(hi-lo): raise ValueError("width must be in (0, hi-lo]")
     s=line(lo, hi-width, N)
     return np.c_[s, s+width]
+# function local corr
 def local_corr(x,y,N=200,bins=500,quantile=True,kind='pearson',nmin=1):
     x,y=np.asarray(x),np.asarray(y); m=np.isfinite(x)&np.isfinite(y); x,y=x[m],y[m]
     # edges=np.quantile(x,np.linspace(0,1,bins+1)) if quantile else np.linspace(np.min(x),np.max(x),bins+1)
@@ -90,7 +115,9 @@ def local_corr(x,y,N=200,bins=500,quantile=True,kind='pearson',nmin=1):
     edges=make_bands(N,bins,lo=min(x)-bins,hi=max(x)+bins).T
     aa,bb=edges
     for _ in range(50):
+        # idx value
         idx=np.array([np.sum((x>=a)&(x<=b))>0 for a,b in zip(aa,bb)])
+        # edges value
         edges=edges[:,idx]
         aa,bb=edges
 
@@ -98,14 +125,18 @@ def local_corr(x,y,N=200,bins=500,quantile=True,kind='pearson',nmin=1):
         i=(x>=a)&(x<=b); n=i.sum()
         if n<nmin:
             c.append(np.nan); lo.append(np.nan); hi.append(np.nan); xc.append(.5*(a+b)); continue
+        # r value
         r = spearmanr(x[i],y[i]).correlation if kind=='spearman' else pearsonr(x[i],y[i])[0]
         if np.isnan(r):
             j=0
         z=.5*np.log((1+r)/(1-r)) if abs(r)<1 else np.sign(r)*np.inf
+        # se value
         se=1/np.sqrt(max(n-3,1)); zlo,zhi=z-1.96*se,z+1.96*se
+        # rlo value
         rlo=(np.exp(2*zlo)-1)/(np.exp(2*zlo)+1); rhi=(np.exp(2*zhi)-1)/(np.exp(2*zhi)+1)
         c.append(r); lo.append(rlo); hi.append(rhi); xc.append(.5*(a+b))
     return np.array(xc),np.array(c),np.array(lo),np.array(hi)
+# plot local corr
 def plot_local_corr(ax,x,y,clr='blue',ms=3,alpha=.3,**kw):
     xc,c,lo,hi=local_corr(x,y,**kw)
     ax.fill_betweenx(xc,lo,hi,alpha=alpha,linewidth=0,color=clr)
@@ -116,6 +147,7 @@ def plot_local_corr(ax,x,y,clr='blue',ms=3,alpha=.3,**kw):
 
 
 
+# plotfolder value
 plotfolder=dirs.Ch1/'_main_figures'/'Figure5_CoherenceContour';plotfolder.mkdir(parents=True,exist_ok=True)
 
 mpl.rcParams.update({

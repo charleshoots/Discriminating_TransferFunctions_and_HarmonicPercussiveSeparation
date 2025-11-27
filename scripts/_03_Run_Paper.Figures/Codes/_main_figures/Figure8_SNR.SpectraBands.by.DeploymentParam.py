@@ -13,21 +13,29 @@ import os,sys;from source.imports import *;from source.modules import *
 from imports import * #Standard imports for doing anything in this project. Approx. ~19 seconds.
 # Spectra scatters for Deployment Parameters vs SNR and Coherence
 import matplotlib as mpl
+# figs value
 figs = lambda r=4,c=1,f=(5,6),x='all',y='all',layout='constrained':plt.subplots(r,c,figsize=f,sharex=x,sharey=y,layout=layout)
 
 
+# dirs value
 dirs = dir_libraries()
+# OUT CSV value
 OUT_CSV=dirs.Catalogs/'Janiszewski_etal_2023_StationAverages.xlsx' #Tilt orientations and coherence from Janiszewski et al. (2023)
 df=pd.read_excel(OUT_CSV)
+# theta deg value
 theta_deg=np.array([df[(df.network==stnm.split('.')[0])&((df.station==stnm.split('.')[1]))].iloc[0].orientation for stnm in catalog.sr.StaName])
 catalog.sr['TiltDirection']=theta_deg
+# oriencohere value
 oriencohere=np.array([df[(df.network==stnm.split('.')[0])&((df.station==stnm.split('.')[1]))].iloc[0].oriencohere for stnm in catalog.sr.StaName])
 catalog.sr['TiltCoherence']=oriencohere
 
+# icat value
 icat=catalog.sr.copy()
+# usnr value
 usnr=unpack_metrics(icat)
 
 
+# plotfolder value
 plotfolder=dirs.Ch1/'_main_figures'/'Figure8_SNR.SpectraBands.by.DeploymentParam';plotfolder.mkdir(parents=True,exist_ok=True)
 
 
@@ -35,9 +43,12 @@ plotfolder=dirs.Ch1/'_main_figures'/'Figure8_SNR.SpectraBands.by.DeploymentParam
 
 # --- helpers ---
 def _listed_cmap(base_cmap, n):
+    # base value
     base = cm.cmaps[base_cmap] if isinstance(base_cmap, str) else base_cmap
     return mpl.colors.ListedColormap(base(np.linspace(0, 1, n)))
+# function add discrete colorbar
 def add_discrete_colorbar(xcat,ax, fig, labels, cmap='glasgow', edges=None,
+    # orientation value
     orientation='vertical', fraction=0.035, pad=0.04, tickfmt=None):
     """
     If edges is None -> categorical strings in `labels`.
@@ -45,18 +56,30 @@ def add_discrete_colorbar(xcat,ax, fig, labels, cmap='glasgow', edges=None,
     Returns a ScalarMappable you can use to map values to colors consistently.
     """
     if edges is None:
+        # K value
         K = len(labels)
+        # bounds value
         bounds = np.arange(-0.5, K + 0.5, 1.0)
+        # norm value
         norm = mpl.colors.BoundaryNorm(bounds, K)
+        # ticks value
         ticks = np.arange(K)
+        # ticklabels value
         ticklabels = labels
+        # cmap value
         cmap = _listed_cmap(cmap, K)
     else:
+        # edges value
         edges = np.asarray(edges)
+        # K value
         K = len(edges) - 1
+        # centers value
         centers = 0.5 * (edges[:-1] + edges[1:])
+        # bounds value
         bounds = edges
+        # norm value
         norm = mpl.colors.BoundaryNorm(bounds, K)
+        # ticks value
         ticks = centers
         if tickfmt is None:
             # ticklabels = [f"{hi:.2g}" for lo, hi in zip(edges[:-1], edges[1:])]

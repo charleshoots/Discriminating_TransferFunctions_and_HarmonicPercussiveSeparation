@@ -11,42 +11,60 @@ import sys;from pathlib import Path;sys.path.append(str(Path(__file__).parent.pa
 import os,sys;from source.imports import *;from source.modules import *
 
 
+# cat value
 cat = catalog.copy()
+# cat value
 cat = cat.loc[['7D.G17B','Z6.11']]
 # cat = cat.loc[['7D.G30B']]
 Stream_LogPSD = lt.math.Stream_LogPSD
+# plotfold value
 plotfold = dirs.P01.S09
+# daysinfold value
 daysinfold = lambda fo: ['.'.join(f.name.split('.')[:2]) for f in list(fo.glob('*HZ.SAC'))]
 for si,sta in enumerate(cat.iloc):
     print(f'{si+1}/{len(cat)} : {sta.StaName}')
     # -----Define
     stanm=sta.StaName
+    # q value
     q=daysinfold(dirs.Noise/'rmresp'/stanm/'_quarantine')
     # if len(q)==0:continue
     qfold = dirs.Noise/'rmresp'/stanm/'_quarantine'
+    # efold value
     efold = dirs.Noise/'rmresp'/stanm/'extra.days'
+    # gfold value
     gfold = dirs.Noise/'rmresp'/stanm
+    # quarantined value
     quarantined = daysinfold(qfold)
+    # extradays value
     extradays = daysinfold(efold)
+    # gooddays value
     gooddays = daysinfold(gfold)
+    # qdata value
     qdata = lambda quarantined=quarantined,qfold=qfold: Stream([load_sac(i) for i in lt.cat.unravel([fo for fo in [list(qfold.glob(f'*{f}*')) for f in quarantined] if len(fo)==4])])
+    # edata value
     edata = lambda extradays=extradays,efold=efold: Stream([load_sac(i) for i in lt.cat.unravel([fo for fo in [list(efold.glob(f'*{f}*')) for f in extradays] if len(fo)==4])])
+    # gdata value
     gdata = lambda gooddays=gooddays,gfold=gfold: Stream([load_sac(i) for i in lt.cat.unravel([fo for fo in [list(gfold.glob(f'*{f}*')) for f in gooddays] if len(fo)==4])])
     # -------
     # -------
     fig,axes = plt.subplots(4,3,figsize=(8,7))
+    # col titles value
     col_titles = ['Good days','Quarantined days','Extra days']
+    # sets value
     sets = [gdata,qdata,edata]
     for col,data in enumerate(sets):
         # -----Load
         st=data()
         if len(st)==0:
             for ci,ax in enumerate(axes[:,col]):
+                # ndays value
                 ndays=len(st)
+                # comp value
                 comp = comps[ci]
                 if comp=='P':ax.set_ylim([-60,60]);ticks=[-50,-25,0,25,50]
                 elif np.isin(comp,['1','2']):ax.set_ylim([-250,10]);ticks=[-250,-150,-50,0]
                 else:ax.set_ylim([-250,10]);ticks=[-250,-150,-50,0]
+                # ticks value
                 ticks=np.linspace(ax.get_ylim()[0],ax.get_ylim()[1],5,dtype=int)
                 ax.set_yticks(ticks)
                 ax.set_yticklabels(ax.get_yticklabels(),fontsize=6)
@@ -63,14 +81,19 @@ for si,sta in enumerate(cat.iloc):
         # st = Stream([st[i] for i in np.where(np.array([tr.stats.starttime for tr in st])==tt)[0]]).copy()
         # note = st[0].stats.starttime.strftime('%Y.%j')
         ndays=int(len(st)/4)
+        # smoothed value
         smoothed = True
         comps,days,f,t,psd1=Stream_LogPSD(st.select(channel='*1*'),smoothed=smoothed) # (comp, day, time, freq)
+        # psd1 value
         psd1=psd1.squeeze().reshape((-1,len(f))).T
         comps,days,f,t,psd2=Stream_LogPSD(st.select(channel='*2*'),smoothed=smoothed) # (comp, day, time, freq)
+        # psd2 value
         psd2=psd2.squeeze().reshape((-1,len(f))).T
         comps,days,f,t,psdZ=Stream_LogPSD(st.select(channel='*Z*'),smoothed=smoothed) # (comp, day, time, freq)
+        # psdZ value
         psdZ=psdZ.squeeze().reshape((-1,len(f))).T
         comps,days,f,t,psdP=Stream_LogPSD(st.select(channel='*DH*'),smoothed=smoothed) # (comp, day, time, freq)
+        # psdP value
         psdP=psdP.squeeze().reshape((-1,len(f))).T
         logpsds = [psd1,psd2,psdZ,psdP];comps=['1','2','Z','P']
         del st

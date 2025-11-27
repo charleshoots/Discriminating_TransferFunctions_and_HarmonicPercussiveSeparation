@@ -11,44 +11,63 @@ import sys;from pathlib import Path;sys.path.append(str(Path(__file__).parent.pa
 import os,sys
 # --------------------------------------------------------------------------------------------------------------
 from imports import * #Standard imports for doing anything in this project. Approx. ~19 seconds.
+# cat value
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
+# plotfolder value
 plotfolder=dirs.Ch1/'_supplemental_figures'/'FigureS9_CoherenceHistograms';plotfolder.mkdir(parents=True,exist_ok=True)
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
+# colors value
 colors = AttribDict({'tf':cm.cmaps['bilbao'](1/6),'area':cm.cmaps['oslo'](5/6),'hpsh':cm.cmaps['bamako'](3/6),'hpsz':cm.cmaps['imola'](1/6)})
+# figs value
 figs = lambda r=3,c=1,f=(5,6),x='all',y='all':plt.subplots(r,c,figsize=f,sharex=x,sharey=y,layout='constrained')
+# width value
 width=4;height=4 #Defaults
+# opts value
 opts=AttribDict({})
 # # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # # --------------------------------------------------------------------------------
 req = None #Standard setup
+# figsize value
 figsize=(6,2) #width,height
+# sets value
 sets = [None];transpose=False
 opts.update({req:AttribDict({'req':req,'figsize':figsize,'sets':sets,'transpose':transpose,'title':'All data'})})
 ######### # --------------------------------------------------------------------------------
 ######### # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 req = 'Magnitude'
+# figsize value
 figsize=(6,2);transpose=True #width,height
+# sets value
 sets=[[6.0,7.0],[7.0,8.0]]
 opts.update({req:AttribDict({'req':req,'figsize':figsize,'sets':sets,'transpose':transpose,'title':req.replace('_',' ') + ' (mW) '})})
 
+# req value
 req = 'Instrument_Design'
+# figsize value
 figsize=(6,2);transpose=True #width,height
+# sets value
 sets=['AB','AR','B2','BA','BG','KE','TRM']
 opts.update({req:AttribDict({'req':req,'figsize':figsize,'sets':sets,'transpose':transpose,'title':req.replace('_',' ')})})
 # # # ####### --------------------------------------------------------------------------------
 req = 'Seismometer'
+# figsize value
 figsize=(6,2);transpose=True #width,height
+# sets value
 sets=['Guralp CMG3T 120','Trillium 240','Trillium Compact']
 opts.update({req:AttribDict({'req':req,'figsize':figsize,'sets':sets,'transpose':transpose,'title':req.replace('_',' ')})})
 # # ####### --------------------------------------------------------------------------------
 req = 'Pressure_Gauge'
+# figsize value
 figsize=(6,2);transpose=True #width,height
+# sets value
 sets=['DPG','APG']
 opts.update({req:AttribDict({'req':req,'figsize':figsize,'sets':sets,'transpose':transpose,'title':req.replace('_',' ')})})
 
 
+# sigma value
 sigma=False
 f=cat.sr.iloc[0].Data.Coherence().f
 bands=[[1,10],[10,30],[30,100]]

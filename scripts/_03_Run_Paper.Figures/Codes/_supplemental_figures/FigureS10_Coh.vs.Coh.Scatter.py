@@ -13,6 +13,7 @@ import os,sys;from source.imports import *;from source.modules import *
 from local_tools.math import octave_average
 
 
+# function custom cmap
 def custom_cmap(ind=0,nbins=5):
     if ind==0:cmap = cm.cmaps['glasgow'].reversed().resampled(nbins)
     if ind==1:cmap = cm.cmaps['batlow'].reversed().resampled(nbins)
@@ -22,23 +23,35 @@ def custom_cmap(ind=0,nbins=5):
 bins = np.array([[i,i+500] for i in np.arange(0,6000,500)])
 # ----------------------------------------------------------------------------------------------------
 boundaries = np.hstack([0,bins[:,1].reshape(-1)])
+# binedges value
 binedges = np.array([max(b) for b in bins])
 # binedges = np.array([min(b) for b in bins]) #min will put a 0-tick on the colorbar
 nbins = len(bins)
 # ----------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------
 cmap=custom_cmap(1,nbins)
+# cmap value
 cmap=custom_cmap(0,nbins)
 
+# instrument colors value
 instrument_colors = {'B2':[227,26,28], 'KE':[178,223,138], 'AB':[166,206,227], 'BA':[202,178,214], 'AR':[255,127,0], 'TRM':[31,120,180], 'BG':[51,160,44], 'BD':[106,61,154]}
+# variable
 _ = [instrument_colors.update({k:list(np.array(instrument_colors[k])/255)}) for k in list(instrument_colors.keys())]
+# seismometer marker value
 seismometer_marker = {'Guralp CMG3T 120':'o','Trillium 240':'x','Trillium Compact':'^'}
+# colors value
 colors=np.array([instrument_colors[sta.Deployment.Instrument_Design] for sta in catalog.r.iloc])
+# markers value
 markers=np.array([seismometer_marker[sta.Deployment.Seismometer] for sta in catalog.r.iloc])
+# Colors InstrumentDesigns value
 Colors_InstrumentDesigns=np.unique([sta.Deployment.Instrument_Design for sta in catalog.r.iloc])
+# Markers Seismometers value
 Markers_Seismometers=np.unique([sta.Deployment.Seismometer for sta in catalog.r.iloc])
+# legmarkersize value
 legmarkersize=400
+# markersize value
 markersize=40
+# ncols value
 ncols=2
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # ----------------------------------------------------------------------------------------------------------------
@@ -46,20 +59,29 @@ ncols=2
 runs = {}
 ############################################################
 req='Magnitude'
+# sets value
 sets=[[6,6.5],[6.5,7.0],[7.0,7.5],[7.5,8.0]]
+# set ttl value
 set_ttl = lambda set:f'Mw {float(min(set))} - {float(max(set))}'
+# figsize value
 figsize=(6,6)
+# ncols value
 ncols=2
 runs.update({req:[ncols,sets,set_ttl,figsize]})
 ############################################################
 req='StaDepth'
+# sets value
 sets=np.array([[0,500],[500,2500],[2500,4000],[4000,6000]])
+# figsize value
 figsize=(6,6)
+# ncols value
 ncols=2
+# set ttl value
 set_ttl=lambda set:f'{int(min(set))} - {int(max(set))}m'
 runs.update({req:[ncols,sets,set_ttl,figsize]})
 ############################################################
 req='Instrument_Design'
+# sets value
 sets=['AB','AR','BA','TRM','B2','BG','KE']
 figsize=(6,6)
 ncols=3

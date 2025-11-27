@@ -18,40 +18,57 @@ from pathlib import Path
 
 # Options
 MapsToMake = ['global','network']
+# mapfolder value
 mapfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_main_figures'/'Figure1_MapPlots' #Folder maps are saved to.
 
 # Data and variables
 # --- inputs from your codebase ---
 cat = catalog.copy()
+# TRN value
 TRN = PyGMT_PLT_Scatter_Translator
+# plot subarray center value
 plot_subarray_center = True
+# plot stations value
 plot_stations = False
 # plot_stations = True
 # -------- event table (one row per event) --------
 icat = cat.sr.copy()
+# evcat value
 evcat = pd.DataFrame([icat.aloc[evi].iloc[0] for evi in np.unique(icat.Name)])
+# evcat value
 evcat = evcat[["Name","Magnitude","Stations","EvDepth","LaLo"]].copy()
 evcat["Longitude"] = np.array(list(evcat.LaLo))[:,1]
 evcat["Latitude"]  = np.array(list(evcat.LaLo))[:,0]
 evcat["Depth"]     = np.array(list(evcat.EvDepth)).astype(float)
+# evcat value
 evcat = evcat[["Name","Longitude","Latitude","Magnitude","Stations","Depth"]]
 
 # -------- helpers --------
 def wrap_lon_360(lon):lon=np.asarray(lon, float); return np.mod(lon, 360.0)
+# function map width cm
 def map_width_cm(proj, default=12.0):
+    # m value
     m = re.search(r"/([-+]?\d+(?:\.\d+)?)([cip])$", proj)
     if not m: return default
     w,u = float(m.group(1)), m.group(2)
     return w if u=="c" else (w*2.54 if u=="i" else w*0.0352778)
+# function size pt from projection
 def size_pt_from_projection(proj, base_pt_at_12cm=8.0):
     return base_pt_at_12cm * (12.0 / map_width_cm(proj))
+# function mag to points
 def mag_to_points(mag, pmin=3.0, pmax=12.0, mmin=5.0, mmax=8.0):
+    # mag value
     mag = np.asarray(mag, float)
+    # t value
     t = np.clip((mag - mmin) / (mmax - mmin), 0, 1)
     return pmin + t*(pmax - pmin)
+# function wrap lon 360
 def wrap_lon_360(lon):lon = np.asarray(lon, float);return np.mod(lon, 360.0)
+# function wrap lon 180
 def wrap_lon_180(lon):lon = np.asarray(lon, float);return (lon + 180.0) % 360.0 - 180.0
+# function lon span
 def lon_span(lons):lmin, lmax = np.nanmin(lons), np.nanmax(lons);return (lmax - lmin, lmin, lmax)
+# function choose region
 def choose_region(lons_deg, lats_deg, pad_deg=1.2, pad_frac=0.07, min_pad=0.35):
     """
     Build a tight rectangular region around points with less extra map area.
@@ -60,48 +77,66 @@ def choose_region(lons_deg, lats_deg, pad_deg=1.2, pad_frac=0.07, min_pad=0.35):
     - min_pad: minimum extra pad (keeps room for markers/outline)
     Returns: (region [w,e,s,n], wrap_mode '360' or '180')
     """
+    # lons value
     lons = np.asarray(lons_deg, float)
+    # lats value
     lats = np.asarray(lats_deg, float)
     # Compare wraps and pick the one with smaller span
     lons180 = wrap_lon_180(lons)
     span180, min180, max180 = lon_span(lons180)
 
+    # lons360 value
     lons360 = wrap_lon_360(lons)
     span360, min360, max360 = lon_span(lons360)
 
     if span360 < span180:
+        # wrap mode value
         wrap_mode = "360"; lon_min, lon_max = min360, max360; span = span360
     else:
+        # wrap mode value
         wrap_mode = "180"; lon_min, lon_max = min180, max180; span = span180
     # Tighter longitudinal padding: smaller fraction + floor
     lon_pad = max(min_pad, pad_deg, pad_frac * max(span, 1e-6))
     # Tighter latitudinal padding: use pad_deg; also ensure a min margin
     lat_min = np.nanmin(lats) - max(min_pad, pad_deg)
+    # lat max value
     lat_max = np.nanmax(lats) + max(min_pad, pad_deg)
     # Clamp latitude for Mercator
     lat_min = max(lat_min, -80.0)
+    # lat max value
     lat_max = min(lat_max,  80.0)
+    # region value
     region = [lon_min - lon_pad, lon_max + lon_pad, lat_min, lat_max]
     return region, wrap_mode
+# function subset events to region
 def subset_events_to_region(evdf, region, wrap_mode):
     w,e,s,n = region
+    # lon value
     lon = wrap_lon_360(evdf["Longitude"].values) if wrap_mode=="360" else wrap_lon_180(evdf["Longitude"].values)
+    # lat value
     lat = evdf["Latitude"].values
+    # msk value
     msk = (lon>=w)&(lon<=e)&(lat>=s)&(lat<=n)
+    # out value
     out = evdf.loc[msk].copy()
     out["__lon_wrapped__"] = lon[msk]
     return out
+# function wrap series for plot
 def wrap_series_for_plot(lon_series, wrap_mode):
+    # arr value
     arr = lon_series.values if hasattr(lon_series, "values") else np.asarray(lon_series)
     return wrap_lon_360(arr) if wrap_mode=="360" else wrap_lon_180(arr)
+# function station keyframe
 def station_keyframe(df):
     """Return a Series key for de-dup: prefer Station/Name/ID; fallback to rounded lon/lat."""
+    # cols value
     cols = df.columns
     if "Station" in cols: return df["Station"].astype(str)
     if "Name" in cols:    return df["Name"].astype(str)
     if "ID" in cols:      return df["ID"].astype(str)
     # fallback: lon/lat rounding to ~100 m (3 decimals ~ 100 m)
     lon = np.asarray(df["Longitude"], float)
+    # lat value
     lat = np.asarray(df["Latitude"],  float)
     return pd.Series(np.char.add(np.round(lon,3).astype(str), np.round(lat,3).astype(str)), index=df.index)
 
@@ -109,15 +144,22 @@ if 'global' in MapsToMake:
     print('Starting global map..')
     # -------- style / projection --------
     projection = "Ks-160/12c"     # Eckert VI, 160°W center
+    # region value
     region = "g"                   # global 0–360
+    # bathy cmap value
     bathy_cmap = "lapaz"
+    # depth cmap value
     depth_cmap = "romaO"
+    # depth cmap value
     depth_cmap = "seis"
 
     # before any plotting (right after creating `fig` is fine):
     pygmt.config(
+    # MAP LINE STEP value
     MAP_LINE_STEP="0.20p",    # much finer resampling of curves
+    # PS LINE JOIN value
     PS_LINE_JOIN="round",     # rounded joins
+    # PS LINE CAP value
     PS_LINE_CAP="round",      # rounded caps
     COLOR_NAN="dimgrey",
     FONT_ANNOT="7p"

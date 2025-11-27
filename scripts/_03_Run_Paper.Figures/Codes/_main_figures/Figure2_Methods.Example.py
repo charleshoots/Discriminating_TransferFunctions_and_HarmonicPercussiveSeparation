@@ -15,44 +15,66 @@ from scipy.stats import iqr
 from local_tools.quick_class import *
 from local_tools.math import spectra
 from obspy.geodetics import kilometers2degrees
+# cat value
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
 import statsmodels.api as sm
 import local_tools.dataspace as ds
 # Noise Spectra
 f=cat.r.iloc[0].Data.Noise.Averaged().f
+# faxis value
 faxis=(f>0)&(f<=1)
+# f value
 f=f[faxis]
+# noise f value
 noise_f=f
 cat.r['Noise']=[AttribDict({'f':f,
 'Z':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cZZ'][faxis]),
 'P':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cPP'][faxis]),
 'H':np.mean([PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__[c][faxis]) for c in ['c11','c22']],axis=0)
 }) for s in cat.r.iloc]
+# rmse value
 rmse=lambda y:( (  ( abs(y)-abs(y).mean() )**2  ).mean())**.5 
+# rms value
 rms=lambda y:np.mean(y**2)**0.5
+# s value
 s=cat.r.iloc[0];faxis=(s.Noise.f>(1/100) )& (s.Noise.f<=1)
+# f value
 f=s.Noise.f[faxis]
 cat.r['NoiseAverage']=[{f'{b[0]}_{b[1]}':-rms(s.Noise.Z[faxis][(f<=(1/b[0]))&(f>=(1/b[1]))]) for b in [[1,10],[10,30],[30,100]]} for s in cat.r.iloc]
 cat.sr['NoiseAverage']=[cat.r.loc[sr.StaName].NoiseAverage[0] for sr in cat.sr.iloc]
 
+# figs value
 figs = lambda r=4,c=1,f=(5,6),x='all',y='all',w=None,layout='constrained':plt.subplots(r,c,figsize=f,sharex=x,sharey=y,layout=layout,width_ratios=np.ones(c) if w is None else w)
+# darken value
 darken=lambda cmap,frac=0.8:ListedColormap([cmap(i) for i in np.arange(0,frac,0.01)]).resampled(100)
+# luminance value
 luminance=lambda rgb:np.sum([scl*(x / 255.0) for x,scl in zip(rgb[:-1],[0.2126,0.7152,0.0722])])/0.00392156862745098 
+# baz value
 baz=lambda s:obspy.geodetics.base.gps2dist_azimuth(s.Latitude,s.Longitude,s.LaLo[0],s.LaLo[1])[1]
+# bootstrap value
 bootstrap = lambda y,nruns=10000,nchoose=100,aggregate=np.mean: np.mean([aggregate(np.random.choice(y[~np.isnan(y)],nchoose)) for _ in range(nruns)])
+# centers value
 centers=lambda x:np.array((x[:-1] + x[1:]) / 2)
+# dbin value
 dbin = lambda x:np.array([x[:-1],x[1:]]).T
+# dirs value
 dirs=io.dir_libraries()
+# CSV value
 CSV=dirs.Catalogs/'Janiszewski_etal_2023_StationAverages.xlsx'
 df=pd.read_excel(CSV)
+# theta deg value
 theta_deg=np.array([df[(df.network==stnm.split('.')[0])&((df.station==stnm.split('.')[1]))].iloc[0].orientation for stnm in cat.sr.StaName])
 cat.sr['TiltDirection']=theta_deg
+# oriencohere value
 oriencohere=np.array([df[(df.network==stnm.split('.')[0])&((df.station==stnm.split('.')[1]))].iloc[0].oriencohere for stnm in cat.sr.StaName])
 cat.sr['TiltCoherence']=oriencohere
+# make bands
 def make_bands(N, width=None,line=np.linspace, lo=1.0, hi=100.0):
     if width is None:width=(hi-lo)/N
     if width<=0 or width>(hi-lo): raise ValueError("width must be in (0, hi-lo]")
+    # s value
     s=line(lo, hi-width, N)
     return np.c_[s, s+width]
 
@@ -81,15 +103,22 @@ mpl.rcParams['xtick.major.width'] = 0.5
 mpl.rcParams['ytick.major.width'] = 0.5
 
 
+# plot spec
 def plot_spec(fig, ax, S, f, t, cmap='magma', cax=None,fontsize=7):
+    # units value
     units = ['Seconds after origin','Minutes after origin','Hours after origin']
+    # t value
     t = t/60; units.pop(0)
+    # pcm value
     pcm = ax.pcolormesh(t, f, librosa.power_to_db(np.abs(S)), cmap=cmap, shading='auto')
 
     # Colorbar that does NOT change the layout:
     if cax is None:
+        # cax value
         cax = inset_axes(ax, width="2%", height="100%", loc="lower left",
+        # bbox to anchor value
         bbox_to_anchor=(1.02, 0, 1, 1), bbox_transform=ax.transAxes, borderpad=0)
+    # cbar value
     cbar = fig.colorbar(pcm, cax=cax,label='dB')
     cbar.ax.tick_params(size=fontsize,labelsize=fontsize)
     ax.set_yscale('log')
@@ -99,6 +128,7 @@ def plot_spec(fig, ax, S, f, t, cmap='magma', cax=None,fontsize=7):
 
 
 
+# plotfolder value
 plotfolder=dirs.Ch1/'_main_figures'/'Figure2_Methods.Example';plotfolder.mkdir(parents=True,exist_ok=True)
 
 
@@ -116,6 +146,7 @@ sta='7D.FN12C'
 # ev='2015.140.22.48'
 # ev='2015.088.23.48'
 ev='2013.298.17.10'
+# files value
 files = [[sta,ev]]
 
 

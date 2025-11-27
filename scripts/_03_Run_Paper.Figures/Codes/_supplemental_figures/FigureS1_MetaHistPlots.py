@@ -13,11 +13,14 @@ import os,sys;from source.imports import *;from source.modules import *
 
 
 
+# plotfolder value
 plotfolder=dirs.Ch1/'_supplemental_figures'/'FigureS1_meta_plot';plotfolder.mkdir(parents=True,exist_ok=True)
 
 
 
+# cat value
 cat = catalog.copy()
+# icat value
 icat=cat.sr.copy()
 
 # full_event_catalog = lt.cat.unravel_cat(cat)
@@ -32,20 +35,27 @@ MetaHold['Pressure_Gauges'] = cat.r.Pressure_Gauge.to_numpy()
 MetaHold['Experiment'] = '('+cat.r.Network.to_numpy()+')'+cat.r.Experiment.to_numpy()
 MetaHold['Noise_Notch_period'] = 1/fnotch(cat.r.StaDepth)
 MetaHold['Regions'] = icat.Environment
+# deployment metas value
 deployment_metas = [
  'Distance_from_Land_km','Distance_to_Plate_Boundary_km',
  'Sediment_Thickness_m','Surface_Current_ms','Crustal_Age_Myr',
  'Deployment_Length_days','Instrument_Design','Seismometer']
 # _ = [MetaHold.update({m:icat[m]}) for m in deployment_metas]
 _ = [MetaHold.update({m:np.array([icat[icat.StaName==s].iloc[0][m] for s in icat.StaName.unique()])}) for m in deployment_metas]
+# labels value
 labels=list(MetaHold.keys())
+# n ax value
 n_ax=len(list(MetaHold.keys()))
 
+# rows value
 rows=int(np.ceil(n_ax/3))
+# cols value
 cols=3
 
 fig,axes=plt.subplots(ncols=cols,nrows=rows,figsize=(20,8),layout='constrained',squeeze=True)
+# axes value
 axes=axes.reshape(-1)
+# bins value
 bins={'Event_depths_km':[0,100,200,300,400,500,600,700],
  'Stations_per_Event':[0,5,10,15,20,25,30,35,40],
  'Events_per_Station':[20,30,40,50,60,70,80],
@@ -66,7 +76,9 @@ bins={'Event_depths_km':[0,100,200,300,400,500,600,700],
  'Seismometer':3}
 
 
+# centers value
 centers=lambda x:np.array((x[:-1] + x[1:]) / 2)
+# categorical labels value
 categorical_labels=['Seismometer','Instrument_Design', 'Regions','Experiment','Pressure_Gauges']
 txi=0
 for axi,(ax,label) in enumerate(zip(axes,labels)):
@@ -96,4 +108,3 @@ for axi,(ax,label) in enumerate(zip(axes,labels)):
     else:ax.set_xticks(bn[1:]);ax.set_xticklabels(bn[1:])
 [ax.axis('off') for axi,ax in enumerate(axes) if (axi+1)>len(labels)]
 save_tight(plotfolder/'meta_plot.png',fig,dpi=700)
-

@@ -12,11 +12,16 @@ import os,sys;from source.modules import *
 
 import matplotlib.cm as cm
 from modules import *
+# function ph adm
 def ph_adm(noise,sta):
+    # colors value
     colors = [cm.Categorical.__dict__[e].resampled(4).colors for e in ['devonS']][0]
+    # stanm value
     stanm = sta.StaName
     fig = plt.figure(figsize=(25, 20))
+    # gs value
     gs = gridspec.GridSpec(4, 3)
+    # topaxes value
     topaxes=[]
     topaxes.append(fig.add_subplot(gs[0, 0])) 
     topaxes.append(fig.add_subplot(gs[0, 1]))  
@@ -24,6 +29,7 @@ def ph_adm(noise,sta):
     topaxes.append(fig.add_subplot(gs[1, 0])) 
     topaxes.append(fig.add_subplot(gs[1, 1]))  
     topaxes.append(fig.add_subplot(gs[1, 2]))  
+    # bottomaxes value
     bottomaxes=[]
     bottomaxes.append(fig.add_subplot(gs[2, 0])) 
     bottomaxes.append(fig.add_subplot(gs[2, 1]))  
@@ -31,18 +37,31 @@ def ph_adm(noise,sta):
     bottomaxes.append(fig.add_subplot(gs[3, 0])) 
     bottomaxes.append(fig.add_subplot(gs[3, 1]))  
     bottomaxes.append(fig.add_subplot(gs[3, 2]))
+    # f value
     f=noise.f
+    # m value
     m = 'ph';mname = 'Phase'
+    # keys value
     keys = ['ZP','Z1','Z2','P1','P2','21']
+    # daycolor value
     daycolor = 'darkgray';stacolor = 'b'
+    # daysize value
     daysize=.5;stasize=2
+    # gooddays value
     gooddays = load_sta_atacrnoise(stanm).gooddays
+    # dayplot value
     dayplot=[[ax.scatter(f[f>0],e[f>0],s=daysize,color=daycolor if good else 'r',label='Day average') for e,good in zip(noise.day[m][a],gooddays)] for ax,a in zip(topaxes,keys)][4][0]
+    # staplot value
     staplot=[ax.scatter(f[f>0],noise.sta[m][a][f>0],s=stasize,color=colors[0] if m is not 'ph' else 'b',label='Station average') for ax,a in zip(topaxes,keys)][4]
+    # variable
     _=[ax.set_title(f'{a} {mname}',fontweight='bold') for ax,a in zip(topaxes,keys)]
+    # variable
     _=[ax.set_xscale('log')for ax in topaxes]
+    # variable
     _=[ax.set_xlim(1/500,1)for ax in topaxes]
+    # variable
     _=[ax.axvline(fnotch(sta.StaDepth),linewidth=1,color='k',linestyle=':') for ax in topaxes]
+    # variable
     _=topaxes[4].legend(handles=[staplot,dayplot],markerscale=5,ncols=2,fontsize=12,loc='upper center', prop={'weight': 'bold'})
     m = 'adm';mname = 'Admittance'
     keys = ['ZP','Z1','Z2','P1','P2','21']

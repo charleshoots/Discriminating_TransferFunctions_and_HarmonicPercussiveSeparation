@@ -10,10 +10,15 @@
 import sys;from pathlib import Path;sys.path.append(str(Path(__file__).parent.parent.parent))
 import os,sys;from source.imports import *;from source.modules import *
 import time
+# step time value
 step_time = lambda: print(f"{'X'*30}{'\n'}{'X'*30}{'\n'}{'\n'*1}|{ATaCR_Steps[STEP]}|\n|EXECUTION TIME: {(time.time() - start_time)/60 :.2f} minutes{'\n'*2}{'X'*30}{'\n'}{'X'*30}{'\n'}")
+# unpacker value
 unpacker=locals().update;unpack=lambda Args,keys=None:[unpacker({k:Args[k]}) for k in [keys if keys is not None else list(Args.keys())][0]]
+# hps staquery output value
 hps_staquery_output = Path(os.getcwd())/'_DataArchive/HPS_Data/sta_query.pkl'
+# Args value
 Args=AttribDict()
+# ATaCR Steps value
 ATaCR_Steps = {1:'Metadata ',
 2:'Download events',
 3:'Downlosd noise',
@@ -55,8 +60,10 @@ Args.ovr=True #Whether to overwrite existing outputs or not.
 if Args.event_mode:Args.staquery_output = hps_staquery_output
 else:Args.staquery_output = './sta_query.pkl'
 if 1 in Args.STEPS:Args.STEPS.pop(np.where(np.array(Args.STEPS)==1)[0][0])
+# loop over STEPS
 for STEP in Args.STEPS:
     Args.STEP = [STEP]
+    # start time value
     start_time = time.time()
     for ii,Station in enumerate(icat.iloc):
         Args.log_prefix=Station.StaName
@@ -68,4 +75,3 @@ for STEP in Args.STEPS:
         ObsQA.TOOLS.io.Run_ATaCR(Args)
     step_time()
 ## =============================================================================== ##
-

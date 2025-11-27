@@ -11,62 +11,98 @@ import sys;from pathlib import Path;sys.path.append(str(Path(__file__).parent.pa
 import os,sys;from source.imports import *;from source.modules import *
 
 from imports import * #Standard imports for doing anything in this project. Approx. ~19 seconds.
+# figs value
 figs = lambda r=4,c=1,f=(5,6),x='all',y='all',w=None,layout='constrained':plt.subplots(r,c,figsize=f,sharex=x,sharey=y,layout=layout,width_ratios=np.ones(c) if w is None else w)
 
+# cat value
 cat = catalog.copy()
+# dirs value
 dirs=dir_libraries()
 
 
 
+# plotfolder value
 plotfolder=dirs.Ch1/'_main_figures'/'Figure11_MetricComparisons';plotfolder.mkdir(parents=True,exist_ok=True)
 
 
 
 
+# tilt bin edges value
 tilt_bin_edges = [0.08267542, 0.22943596, 0.50754827, 0.88716358, 0.9808266 ]
+# yttl value
 yttl = lambda c:fr"$\underset{{{c}}}{{\gamma\;\;\;\;\;\;\;}}$"
+# yttl eta value
 yttl_eta = lambda c:fr"$\underset{{{c}}}{{\eta\;\;\;\;\;\;\;}}$"
+# mtrs value
 mtrs=['coh','snr']
 magwins,markers=[[6,7],[7,8]],['v','^']
+# scl value
 scl=1.4
+# figheight value
 figheight=5*scl
+# figwidth value
 figwidth=3*scl
 
 
+# phband value
 phband={'P':[1,10],'S':[10,30],'Rg':[30,100]};phband_og=phband.copy()
+# phcolor value
 phcolor={'P':'firebrick','S':'skyblue','Rg':'forestgreen'}
+# phases value
 phases=['Rg','S','P']
 # axes = axes.T
 msize = 20
+# mthd value
 mthd = 'HPS_Z'
+# mthd value
 mthd = 'TF_Z'
+# nonavgalpha value
 nonavgalpha=0.05
+# mthds value
 mthds = ['HPS_Z','TF_Z']
 # mthds = ['HPS_Z']
 icat=cat.sr.copy()
+# usnr value
 usnr=unpack_metrics(icat)
+# loop over mthds
 for mthd in mthds:
     fig,axes=figs(3,1,f=(figwidth,figheight),x=False,y='col')
+    # phband value
     phband={'P':[1,10],'S':[1,10],'Rg':[1,10]}
+    # phband value
     phband={'P':[10,30],'S':[10,30],'Rg':[10,30]}
+    # phband value
     phband={'P':[30,100],'S':[30,100],'Rg':[30,100]}
 
+    # mtrs value
     mtrs = [['LT','ST']]
+    # names value
     names={'LT':'Noise','ST':'Signal','snr':'snr'}
+    # bands value
     bands = [[1,10],[10,30],[30,100]]
+    # resx value
     resx=[];resy=[];rcoh=[]
     # fn='IG'
     fn=None
     for axi,(ax,b) in enumerate(zip(axes,bands)):
+        # prezx value
         prezx=[];prezy=[];pcoh=[]
+        # phband value
         phband={'P':b,'S':b,'Rg':b}
+        # phband og value
         phband_og=phband.copy()
+        # loop over mtrs
         for mtr in mtrs:
+            # mrezx value
             mrezx=[];mrezy=[];mcoh=[]
             for mg,marker in zip(magwins,markers):
+                # idx value
                 idx=icat.Magnitude.between(mg[0],mg[1],inclusive='both')
+                # sn value
                 sn = icat.StaName[idx]
+                # xmtr value
                 xmtr='LT'
+                # ymtr value
                 ymtr='ST'
                 xphaseinvariant,yphaseinvariant=xmtr in ['LT','coh'],ymtr in ['LT','coh']
                 xratiod,yratiod=not (xmtr=='coh'),not (ymtr=='coh')
@@ -78,14 +114,18 @@ for mthd in mthds:
                 else:
                     if yratiod:y=[usnr.__dict__[ymtr].__dict__[mthd].R().Average(phband[ph],fn=fn) for ph in phases]
                     else:y=[usnr.__dict__[ymtr].__dict__[mthd].Average(phband[ph],fn=fn) for ph in phases]
+                # coh value
                 coh=[usnr.__dict__['coh'].__dict__[mthd].Average(phband_og[ph],fn=fn) for ph in phases]
+                # coh value
                 coh=[c[idx] for c in coh]
                 x=[h[idx] for h in x]
                 y=[t[idx] for t in y]
                 for avg,alpha in zip([False,True],[nonavgalpha,.7]):
                     if not avg:continue
                     if avg:
+                        # pl coh value
                         pl_coh = [[np.nanmean(c[sn==s]) for s in np.unique(sn)] for c in coh]
+                        # pl y value
                         pl_y=[[np.nanmean(t[sn==s]) for s in np.unique(sn)] for t in y]
                         pl_x=[[np.nanmean(h[sn==s]) for s in np.unique(sn)] for h in x]
                     else:pl_x=x.copy();pl_y=y.copy();pl_coh=coh.copy()
@@ -319,4 +359,3 @@ for mthd in mthds:
     
     file = f'_05_{mthd}.Correlation.png'
     _=save_tight(fold/file,fig,dpi=700)
-

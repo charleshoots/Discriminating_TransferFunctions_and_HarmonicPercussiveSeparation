@@ -10,20 +10,28 @@
 import sys;from pathlib import Path;sys.path.append(str(Path(__file__).parent.parent.parent))
 import os,sys;from source.imports import *;from source.modules import *
 
+# cat value
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
 from matplotlib.ticker import PercentFormatter
 import time;start=time.time()
+# runtime value
 runtime=lambda:int(time.time()-start)
 
 
+# plotfolder value
 plotfolder=dirs.Ch1/'_supplemental_figures'/'FigureS9_Histograms';plotfolder.mkdir(parents=True,exist_ok=True)
 
 
 
+# icat value
 icat=catalog.sr.copy()
+# usnr value
 usnr=unpack_metrics(icat)
+# yttl value
 yttl = lambda c:fr"$\underset{{{c}}}{{\gamma\;\;\;\;\;\;\;}}$"
+# yttl eta value
 yttl_eta = lambda c:fr"$\underset{{{c}}}{{\eta\;\;\;\;\;\;\;}}$"
 # -------------------------------------------------------------------------------------------------------------------------------------
 meta_wins=AttribDict()
@@ -39,18 +47,27 @@ meta_wins.Pressure_Gauge=['APG', 'DPG']
 # cumulative=1;density=True;outtype='CDF' #Makes a CDF
 # cumulative=-1;density=True;outtype='EDF' #Makes a CDF
 cumulative=False;density=False;outtype='Hist' #Makes a simple Histogram
+# stacked value
 stacked=True
+# orientation value
 orientation='horizontal' #colorbar
 # orientation='vertical' #colorbar
 figsize=[6,3.15]
+# density value
 density = False
+# norm pdf value
 norm_pdf = False
 # -------------------------------------------------------------------------------------------------------------------------------------
 bands = ['1_10','10_30','30_100',]
+# phases value
 phases = ['P','S','Rg']
+# layout value
 layout='tight' if orientation=='horizontal' else 'none'
+# ncols value
 ncols=4;nrows=3
+# methods value
 methods = ['TF Z','HPS Z','HPS 1','HPS 2']
+# mtr value
 mtr = 'coh'
 figlist = phases if mtr=='snr' else ['Coherence']
 greek = yttl_eta if mtr=='snr' else yttl

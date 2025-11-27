@@ -13,25 +13,34 @@ import os,sys;from source.imports import *;from source.modules import *
 import gc
 # report=get_reports('ZZ',catalog,path_library.local.Archive,AVG=False)
 def hps_corrected_list(stanm,catalog):
+    # sta value
     sta=catalog.loc[stanm]
+    # events value
     events=np.array([e.name.replace('.HZ.SAC','') for e in list((dirs.Events_HPS/'rmresp'/stanm).glob('*.HZ.SAC'))])
     c,ia,ib=np.intersect1d([e.Name for e in sta.Events],events,return_indices=True)
+    # events pre value
     events_pre =events[ib]
+    # events value
     events=np.array([e.name.replace('.HZ.SAC','').replace(f'{stanm}.','') for e in list((dirs.Events_HPS/'corrected'/stanm).glob('*.HZ.SAC'))])
     c,ia,ib=np.intersect1d([e.Name for e in sta.Events],events,return_indices=True)
+    # events post value
     events_post=events[ib]
     c,ia,ib=np.intersect1d(events_pre,events_post,return_indices=True)
     c,ia,ib=np.intersect1d([e.Name for e in sta.Events],events_post[ib],return_indices=True)
+    # events value
     events=Catalog([sta.Events[i] for i in ia])
     return events
 
 
+# make plot
 def make_plot(r,c):
     fig,axes = plt.subplots(nrows=len(channels),ncols=(len(fbands)),figsize=(30+5,16));axes=np.atleast_2d(axes)
     for rax,rr,cc in zip(axes,r,c): #component
+        # chan value
         chan=rr.stats.channel
         for ax,band in zip(rax,fbands): #filter
             filt_rr,filt_cc=rr.copy(),cc.copy()
+            # axtitle value
             axtitle = f'{chan} | {band[0]}-{band[1]}s'
             filt_rr.filter('bandpass',freqmin=1/band[1],freqmax=1/band[0],zerophase=True,corners=4)
             filt_cc.filter('bandpass',freqmin=1/band[1],freqmax=1/band[0],zerophase=True,corners=4)
@@ -39,6 +48,7 @@ def make_plot(r,c):
             ax.plot(filt_cc.times(),filt_cc.data,c='k',linewidth=0.4)
             ax.set_title(axtitle,fontweight='bold',fontsize=20)
             ax.set_xlim(filt_rr.times()[0],filt_rr.times()[-1])
+            # yl value
             yl=max([abs(filt_rr.data).max(),abs(filt_rr.data).min()])
             ax.set_ylim(-yl,yl)
             del filt_rr,filt_cc
@@ -47,7 +57,9 @@ def make_plot(r,c):
     return fig
 
 
+# ovr value
 ovr = False
+# channels value
 channels=['HZ','H1','H2','HDH']
 fbands = [[1,10],[10,30],[30,100]]
 for si,stanm in enumerate(catalog.StaName):

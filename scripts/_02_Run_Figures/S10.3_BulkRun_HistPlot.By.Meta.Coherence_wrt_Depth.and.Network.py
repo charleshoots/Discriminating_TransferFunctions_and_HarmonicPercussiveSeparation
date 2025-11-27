@@ -17,10 +17,13 @@ from local_tools.plots import ax_sta_metrics
 import matplotlib.colors as mcolors
 from local_tools.quick_class import *
 from mne_connectivity import spectral_connectivity_time
+# cat value
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
 from matplotlib.ticker import PercentFormatter
 import time;start=time.time()
+# runtime value
 runtime=lambda:int(time.time()-start)
 
 
@@ -28,6 +31,7 @@ runtime=lambda:int(time.time()-start)
 
 
 
+# plotfolder value
 plotfolder=dirs.Ch1/'_supplemental_figures'/'FigureS9_CoherenceHistograms';plotfolder.mkdir(parents=True,exist_ok=True)
 
 
@@ -35,6 +39,7 @@ plotfolder=dirs.Ch1/'_supplemental_figures'/'FigureS9_CoherenceHistograms';plotf
 
 # -------------------------------------------------------------------------------------------------------------------------------------
 SR = cat.sr.copy()
+# usnr value
 usnr=unpack_metrics(SR)
 # -------------------------------------------------------------------------------------------------------------------------------------
 meta_wins=AttribDict()
@@ -54,6 +59,7 @@ cumulative=-1;density=True;outtype='EDF' #Makes a CDF
 # cumulative=False;density=False;outtype='Hist' #Makes a Histogram
 # ---
 run_reduce = False
+# notched value
 notched=True #Band limit to only periods sensitive to infragravity surface waves.
 # ---
 octav=True #Octave averaging. Adds 20s to run time for each category/figure.
@@ -73,12 +79,16 @@ orientation='horizontal' #colorbar
 weighted=True #
 # ---
 norm_pdf=True
+# figsize value
 figsize=[6,3.15]
 # -------------------------------------------------------------------------------------------------------------------------------------
 
 
+# f value
 f = cat.r.Data[0].Coherence().f
+# state value
 state=lambda:f'C{int(cumulative)}.D{int(density)}.T{int(stacked)}.R{int(relative)}.N{int(norm_pdf)}'
+# combinations value
 combinations = list(itertools.product([True, False], repeat=2)) #4**2=16 combinations
 for combi,(density,norm_pdf) in enumerate(combinations):
     print(f'Settings----{combi+1}/{len(combinations)}----')
@@ -99,17 +109,24 @@ for combi,(density,norm_pdf) in enumerate(combinations):
     if (not cumulative) & (not density):outtype='Hist'
 
     for key in meta_wins.keys():
+        # sets value
         sets=meta_wins[key]
+        # Y TF value
         Y_TF={};Y_HPSZ={};Y_HPSH={};weights={}
         for si,set in enumerate(sets):
             print(f'Slicing: [{key}] {si+1}/{len(sets)}')
             else:iSR=SR.copy()
             if isinstance(set,list)or(type(set)==type(np.array([]))):ind=(iSR[key]>=min(set))&(iSR[key]<max(set))
             else:ind=iSR[key]==set
+            # icat value
             icat=iSR[ind].copy()
+            # weights nevents per sta value
             weights_nevents_per_sta = np.array([sum(icat.StaName==s) for s in icat.StaName])/len(icat) #[0-1]#Number of events per station relative to the entire bin size.
+            # weights sr per bin value
             weights_sr_per_bin = np.ones(len(icat))*len(icat)/len(iSR) #[0-1]#Bin size fraction of the entire data set. weights_sr_per_bin is effectively a constant in each bin and has no effect.
+            # weights nfrequencies per sta value
             weights_nfrequencies_per_sta = np.array([sum(f<fnotch(s.StaDepth)) for s in icat.iloc])/sum(f<fnotch(icat.StaDepth.min())) #[0-1]#Fraction of frequencies used in this bin contributed to the average from each pair.
+            # iweights value
             iweights = weights_nevents_per_sta + weights_sr_per_bin + weights_nfrequencies_per_sta
             weights.update({si:iweights})
 
@@ -119,28 +136,40 @@ for combi,(density,norm_pdf) in enumerate(combinations):
 
         # nrows = 1 if key=='StaDepth' else len(sets)
         layout='tight' if orientation=='horizontal' else 'none'
+        # ncol value
         ncol=3;nrows=1
         if relative:
             fig,axes = plt.subplots(nrows=nrows,ncols=1,
+            # figsize value
             figsize=figsize,
+            # sharex value
             sharex='all',sharey='all',
+            # layout value
             layout=layout) #if orientation=='horizontal' else 'none') #if orientation=='horizontal' else 'none'
         else:
             fig,axes = plt.subplots(nrows=nrows,ncols=ncol,
+            # figsize value
             figsize=figsize,
+            # sharex value
             sharex='all',sharey='all',
+            # layout value
             layout=layout) #if orientation=='horizontal' else 'none') #if orientation=='horizontal' else 'none'
+        # cmap value
         cmap=cm.cmaps['glasgow'].reversed().resampled(len(sets))
         if key=='Instrument_Design':cmap=ListedColormap([ColorStandard.instrument[s] for s in sets], name='custom_cmap')
         if key=='Network':cmap=ListedColormap([ColorStandard.network[s] for s in sets], name='custom_cmap')
+        # axes value
         axes=np.atleast_2d(axes)
+        # yttl value
         yttl = lambda lbl:fr"$\underset{{{lbl}}}{{\gamma\;\;\;\;\;\;\;}}$"
         else:ttl=yttl
+        # ylabel value
         ylabel='' #Makes a (non-cumulative) histogram
         if cumulative:ylabel=ylabel+ 'Cumulative'
         if stacked:ylabel='Relative '+ylabel.lower()
         if density:ylabel=ylabel+' density' if len(ylabel)>0 else 'Density'
         else:ylabel=ylabel + ' count' if len(ylabel)>0 else 'Count'
+        # ylabel value
         ylabel=ylabel+'\nof source-receiver pairs' #Makes a (non-cumulative) histogram
         ylabel=ylabel[0].upper()+ylabel[1:]
         dcoh=0.1;bins=np.arange(0,1+dcoh,dcoh)

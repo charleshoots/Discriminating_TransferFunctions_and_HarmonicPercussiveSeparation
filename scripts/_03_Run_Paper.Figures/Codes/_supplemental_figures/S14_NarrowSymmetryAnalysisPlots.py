@@ -12,33 +12,47 @@ import os,sys;from source.imports import *;from source.modules import *
 
 import statsmodels.api as sm
 
+# dirs value
 dirs = io.dir_libraries()
+# icat value
 icat=catalog.sr.copy()
+# usnr value
 usnr=unpack_metrics(icat)
+# cat value
 cat = catalog.copy()
 
 
+# plotfolder value
 plotfolder=dirs.Ch1/'_supplemental_figures'/'FigureS14_NarrowSymmetryAnalysisPlots';plotfolder.mkdir(parents=True,exist_ok=True)
 
 # Noise Spectra
 f=cat.r.iloc[0].Data.Noise.Averaged().f
+# faxis value
 faxis=(f>0)&(f<=1)
+# f value
 f=f[faxis]
+# noise f value
 noise_f=f
 cat.r['Noise']=[AttribDict({'f':f,
 'Z':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cZZ'][faxis]),
 'P':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cPP'][faxis]),
 'H':np.mean([PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__[c][faxis]) for c in ['c11','c22']],axis=0)
 }) for s in cat.r.iloc]
+# function custom cmap
 def custom_cmap(ind=0,nbins=5):
     if ind==0:cmap = cm.cmaps['glasgow'].reversed().resampled(nbins)
     if ind==1:cmap = cm.cmaps['batlow'].reversed().resampled(nbins)
     return cmap
+# figs value
 figs = lambda r=3,c=1,f=(5,6),x='all',y='all',layout='constrained':plt.subplots(r,c,figsize=f,sharex=x,sharey=y,layout=layout)
 from obspy.signal.trigger import classic_sta_lta,carl_sta_trig,recursive_sta_lta
+# stalta methods value
 stalta_methods={'classic':classic_sta_lta,'carl':carl_sta_trig,'recurssive':recursive_sta_lta}
+# darken value
 darken=lambda cmap,frac=0.8:ListedColormap([cmap(i) for i in np.arange(0,frac,0.01)]).resampled(100)
+# luminance value
 luminance=lambda rgb:np.sum([scl*(x / 255.0) for x,scl in zip(rgb[:-1],[0.2126,0.7152,0.0722])])/0.00392156862745098 
+# function color master
 def color_master(key,sets=np.nan):
     if isinstance(sets,int):sets=np.arange(0,sets,1)
     elif (np.shape(np.atleast_1d(np.array(sets)))[0]-1)==0:sets=np.arange(0,100,1)
@@ -46,7 +60,9 @@ def color_master(key,sets=np.nan):
     color_overrides=['Pressure_Gauge','Magnitude','Sediment_Thickness_m']
     #Luminnance model, on a scale from 0 (black) to 1 (white)
     darken=lambda cmap,frac=0.8:ListedColormap([cmap(i) for i in np.arange(0,frac,0.01)],name=cmap.name).resampled(100)
+    # luminance value
     luminance=lambda rgb:np.sum([scl*(x / 255.0) for x,scl in zip(rgb[:-1],[0.2126,0.7152,0.0722])])/0.00392156862745098 
+    # cmap value
     cmap = darken(cm.cmaps['bamako'].copy(),frac=.8)
     if key=='Instrument_Design':cmap=ListedColormap([ColorStandard.instrument[s] for s in sets], name='custom_cmap')
     elif key=='Network':cmap=ListedColormap([ColorStandard.network[s] for s in sets], name='custom_cmap')
@@ -56,29 +72,45 @@ def color_master(key,sets=np.nan):
     elif key=='Sediment_Thickness_m':cmap=darken(cm.cmaps['lapaz'].copy(),.9).reversed()
     elif key=='Coherence':cmap=darken(cm.cmaps['lajolla'].copy(),.9)
     else:cmap=darken(darken(cm.cmaps['glasgow'].resampled(100),0.7).reversed(),0.9)
+    # cmap value
     cmap=cmap.resampled(len(sets))
     if (luminance(cmap(0))<luminance(cmap(1e3)))&(not isinstance(sets[0],str)):cmap=cmap.reversed()
     if key in color_overrides:cmap=cmap.reversed()
+    # color value
     color=[cmap(si/len(sets)) for si,_ in enumerate(sets)]
     #suggested zorder based on luminance, will put the darker colors in the back
     zorder = np.array([luminance(c) for c in color])
     return color,zorder,cmap
+# function gbounds
 def gbounds(ix,iy,xscl=0.04,yscl=0.02):
+    # ix value
     ix=np.array(ix);iy=np.array(iy)
+    # yb value
     yb=iy;yl=np.array([np.min(yb),np.max(yb)])
+    # xb value
     xb=(ix);yl=np.array([np.min(xb),np.max(xb)])
     xl,yl=np.array([np.min(xb),np.max(xb)]),np.array([np.min(yb),np.max(yb)])
+    # xl value
     xl=xl+np.array([-abs(np.diff(xl))*xscl,abs(np.diff(xl))*xscl]).reshape(-1)
+    # yl value
     yl=yl+np.array([-abs(np.diff(yl))*yscl,abs(np.diff(yl))*yscl]).reshape(-1)
     return xl,yl
+# function fig setup
 def fig_setup(figsize=(6, 4),width_ratios=[.4, .5,.5, .4],height_ratios=[.2, .5],debug=False):
     fig=plt.figure(figsize=figsize)
+    # gs value
     gs = gridspec.GridSpec(nrows=2, ncols=4, width_ratios=width_ratios, height_ratios=height_ratios)
+    # ax top center left value
     ax_top_center_left = fig.add_subplot(gs[0, 1])
+    # ax top center right value
     ax_top_center_right = fig.add_subplot(gs[0, 2],sharey=ax_top_center_left)
+    # ax bottom center left value
     ax_bottom_center_left = fig.add_subplot(gs[1, 1],sharex=ax_top_center_left)
+    # ax bottom center right value
     ax_bottom_center_right = fig.add_subplot(gs[1, 2],sharex=ax_top_center_right)#,sharey=ax_bottom_center_left)
+    # ax bottom left value
     ax_bottom_left = fig.add_subplot(gs[1, 0])#,sharey=ax_bottom_center_left)
+    # ax bottom right value
     ax_bottom_right = fig.add_subplot(gs[1, 3])#,sharey=ax_bottom_left)
     if debug:
         for ax, label in zip(
@@ -90,12 +122,16 @@ def fig_setup(figsize=(6, 4),width_ratios=[.4, .5,.5, .4],height_ratios=[.2, .5]
         ax.tick_params(labelbottom=False)
     for ax in [ax_bottom_center_left,ax_top_center_right, ax_bottom_right, ax_bottom_center_right]:
         ax.tick_params(labelleft=False)
+    # left value
     left=AttribDict({});left.top=ax_top_center_left;left.side=ax_bottom_left;left.center=ax_bottom_center_left
+    # right value
     right=AttribDict({});right.top=ax_top_center_right;right.side=ax_bottom_right;right.center=ax_bottom_center_right
     left.name='left';right.name='right'
     fig.subplots_adjust(wspace=.35,hspace=0.1)
     return fig,left,right
+# centers value
 centers=lambda x:np.array((x[:-1] + x[1:]) / 2)
+# dbin value
 dbin=lambda x:np.array([x[:-1],x[1:]]).T
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # ------------------------------------------------------------------------------------------
@@ -286,4 +322,3 @@ for ki,key in enumerate(meta_wins.keys()):
             if key=='StaDepth':file=f'_{file}'
             if scen:file=f'Scenario.{scen}_{file}' 
             save_tight(plotfolder/file,dpi=800)
-

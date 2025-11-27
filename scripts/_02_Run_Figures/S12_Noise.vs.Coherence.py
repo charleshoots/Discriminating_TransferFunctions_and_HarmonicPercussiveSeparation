@@ -11,6 +11,7 @@ import sys;from pathlib import Path;sys.path.append(str(Path(__file__).parent.pa
 import os,sys;from source.imports import *;from source.modules import *
 
 import time;start=time.time()
+# runtime value
 runtime=lambda:int(time.time()-start)
 
 # ======================================================================================================
@@ -19,6 +20,7 @@ runtime=lambda:int(time.time()-start)
 sigma = False
 if sigma:stat=np.std
 else:stat=np.mean
+# oct av value
 oct_av = True # ~3.4 minutes
 # oct_av = False # ~2.19 minutes
 notched = True
@@ -26,7 +28,9 @@ notched = True
 # modes = ['Mag']
 # modes = ['Z','Noise','Mag']
 
+# modes value
 modes = ['Z']
+# modes value
 modes = ['Mag']
 # modes = ['Noise']
 
@@ -35,6 +39,7 @@ noiselims=[-200,-20] #default: noiselims=[-180,-30]
 # tallfigure=False;figsize=(6.5,6)
 tallfigure=True;figsize=(4.5,6.5)
 
+# pairs value
 pairs = False
 # ======================================================================================================
 # ======================================================================================================
@@ -49,40 +54,61 @@ else:
 
 # if len(modes)==1:axes=axes.T
 
+# axes value
 axes=np.atleast_2d(axes);col=-1
+# axes value
 axes=axes.reshape(3,-1)
 
+# fold value
 fold = dirs.P01.S12
 if sigma:fold=fold/'sigma'
 
 # Basic variables
 cat = catalog.copy()
+# SR value
 SR = cat.sr.copy() #Source-receiver pairs
+# s value
 s=cat.r.iloc[0];f=s.Data.Coherence().f
+# foct value
 foct=octavg(s.Data.Coherence().ATaCR.zp_21.coh,f)[0]
+# nets value
 nets = cat.r.Network.unique()
+# snm value
 snm=cat.r.StaName.unique()
 
 # Plot vars
 sz = 80;alpha=.02
+# psd ttl value
 psd_ttl=lambda:rf'10log10$(m^{2}/s^{4}/Hz)$ dB'
+# yttl value
 yttl = lambda c:fr"$\underset{{{c}}}{{\gamma\;\;\;\;\;\;\;}}$"
+# sigma yttl value
 sigma_yttl = lambda c:fr"$\sigma(\underset{{{c}}}{{\gamma\;\;\;\;\;\;\;}})$"
 if sigma:yttl=sigma_yttl
+# lambda fnotch value
 lambda_fnotch = fnotch if notched else lambda z:1
+# opts value
 opts = '.'.join(['octav' if oct_av else '','notched' if notched else '','tall' if tallfigure else 'wide']).replace('..','.')
 # Noise
 s=SR.iloc[0];c='cZZ';f=s.Data.Noise.Averaged().f;faxis=f>0;f=f[faxis]
+# noise f value
 noise_f=f
+# c value
 c='cZZ';Znoise={s.StaName:np.atleast_2d( PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__[c][faxis]) ) for s in cat.r.iloc}
+# c value
 c='H';Hnoise={s.StaName:np.atleast_2d( np.mean([PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__[c][faxis]) for c in ['c11','c22']],axis=0) ) for s in cat.r.iloc}
+# f value
 f=SR.iloc[0].Data.Coherence().f
+# noise xf value
 noise_xf=noise_f;xf=f
 
 if oct_av: #Adds about 1-min more to the run time.
     print('Running octave averaging...')
+    # new noise xf value
     new_noise_xf=octavg(Znoise[list(Znoise.keys())[0]],noise_xf)[0]
+    # new xf value
     new_xf=octavg(SR.iloc[0].Data.Coherence().ATaCR.zp_21.coh,xf)[0]
+    # loop over iloc
     for s in SR.iloc:
         s.Coherence.TF=octavg(s.Coherence.TF,xf)[1]
         s.Coherence.HPS_Z=octavg(s.Coherence.HPS_Z,xf)[1]
@@ -92,10 +118,13 @@ if oct_av: #Adds about 1-min more to the run time.
         Hnoise[k]=octavg(Hnoise[k],noise_xf)[1]
     print(f'...complete ({np.round(start-time.time(),1)}s)')
 if oct_av:
+    # noise xf value
     noise_xf=new_noise_xf
+    # xf value
     xf=new_xf
 
 
+# yl value
 yl=[-0.02,1.02] if not sigma else [-.02,.5]
 if np.isin('Noise',modes):
     col+=1;caxes=axes[:,col]
@@ -108,14 +137,19 @@ if np.isin('Noise',modes):
     print('|| Noise vs Coherence ||' + ' (Octave averaged)' if oct_av else '')
     ax=caxes[0]
     print(f'AXES:{0}')
+    # variable
     _=[ax.scatter(
     Znoise[s.StaName][:,noise_xf<=lambda_fnotch(s.StaDepth)].mean(),
     stat(s.Coherence.TF[:,xf<=lambda_fnotch(s.StaDepth)],axis=1).mean(axis=0),
+    # c value
     c=ColorStandard.instrument[s.Instrument_Design],marker=ColorStandard.seismometer_marker[s.Seismometer],alpha=alpha) for s in SR.iloc]
+    # variable
     _=[ax.scatter(
     Znoise[n][:,noise_xf<=lambda_fnotch(cat.r.loc[n].StaDepth)].mean(),
     stat(np.vstack([i.Coherence.TF[:,xf<=lambda_fnotch(cat.r.loc[n].StaDepth)] for i in SR[SR.StaName==n].iloc]),axis=0).mean(),
+    # c value
     c=ColorStandard.instrument[SR[SR.StaName==n].Instrument_Design[0]],
+    # marker value
     marker=ColorStandard.seismometer_marker[SR[SR.StaName==n].Seismometer[0]],alpha=1,s=sz,edgecolor='k') for n in snm]
     if not tallfigure:ax.set_xlabel('Z',fontweight='bold',fontsize=11)
     ax.set_ylabel(yttl('TF.Z') if not sigma else sigma_yttl('TF.Z'),fontweight='bold',fontsize=11)
@@ -124,16 +158,22 @@ if np.isin('Noise',modes):
     # # # [Noise vs HPS-Z]
     ax=caxes[1]
     print(f'AXES:{1}')
+    # variable
     _=[ax.scatter(
     Znoise[s.StaName][:,noise_xf<=lambda_fnotch(s.StaDepth)].mean(),
     stat(s.Coherence.HPS_Z[:,xf<=lambda_fnotch(s.StaDepth)],axis=1).mean(axis=0),
+    # c value
     c=ColorStandard.instrument[s.Instrument_Design],marker=ColorStandard.seismometer_marker[s.Seismometer],alpha=alpha) for s in SR.iloc]
+    # variable
     _=[ax.scatter(
     Znoise[n][:,noise_xf<=lambda_fnotch(cat.r.loc[n].StaDepth)].mean(),
     stat(np.vstack([i.Coherence.HPS_Z[:,xf<=lambda_fnotch(cat.r.loc[n].StaDepth)] for i in SR[SR.StaName==n].iloc]),axis=0).mean(),
+    # c value
     c=ColorStandard.instrument[SR[SR.StaName==n].Instrument_Design[0]],
+    # marker value
     marker=ColorStandard.seismometer_marker[SR[SR.StaName==n].Seismometer[0]],alpha=1,s=sz,edgecolor='k') for n in snm]
     ax.set_ylabel(yttl('HPS.Z') if not sigma else sigma_yttl('HPS.Z'),fontweight='bold',fontsize=11)
+    # xlbl value
     xlbl = 'Noise Power spectral density,\n'+psd_ttl() if tallfigure else 'Z\nNoise Power spectral density'+psd_ttl()
     if not tallfigure:ax.set_xlabel(xlbl,fontweight='bold',fontsize=11)
     ax.set_xlim(xl);ax.set_ylim(yl)
@@ -141,14 +181,19 @@ if np.isin('Noise',modes):
     # # [Noise vs HPS-H]
     ax=caxes[2]
     print(f'AXES:{2}')
+    # variable
     _=[ax.scatter(
     Hnoise[s.StaName][:,noise_xf<=lambda_fnotch(s.StaDepth)].mean(),
     stat(s.Coherence.HPS_H[:,xf<=lambda_fnotch(s.StaDepth)],axis=1).mean(axis=0),
+    # c value
     c=ColorStandard.instrument[s.Instrument_Design],marker=ColorStandard.seismometer_marker[s.Seismometer],alpha=alpha) for s in SR.iloc]
+    # variable
     _=[ax.scatter(
     Hnoise[n][:,noise_xf<=lambda_fnotch(cat.r.loc[n].StaDepth)].mean(),
     stat(np.vstack([i.Coherence.HPS_H[:,xf<=lambda_fnotch(cat.r.loc[n].StaDepth)] for i in SR[SR.StaName==n].iloc]),axis=0).mean(),
+    # c value
     c=ColorStandard.instrument[SR[SR.StaName==n].Instrument_Design[0]],
+    # marker value
     marker=ColorStandard.seismometer_marker[SR[SR.StaName==n].Seismometer[0]],alpha=1,s=sz,edgecolor='k') for n in snm] 
     if tallfigure:ax.set_xlabel(xlbl,fontweight='bold',fontsize=11)
     else:ax.set_xlabel('H',fontweight='bold',fontsize=11)
@@ -157,6 +202,7 @@ if np.isin('Noise',modes):
 
     print(f'....Done ({(runtime())}s)')
     if len(modes)==1:
+        # file value
         file=fold/f'Noise.vs.Coherence.{opts}.png'
         save_tight(file,fig,dpi=600);print('-Saved-')
 
@@ -168,9 +214,13 @@ if 'Noise.vs.Z' in modes:
     # # ------------------------------------------------------------------------------------------------
     # # [Noise vs TF-Z]
     ylbl='Water depth, m'
+    # xlbl value
     xlbl = 'Noise Power spectral density,\n'+psd_ttl() if tallfigure else 'Z\nNoise Power spectral density'+psd_ttl()
+    # swap axes value
     swap_axes = True
+    # yl value
     yl = [-200,6200]
+    # xl value
     xl=noiselims
     if swap_axes:xl,yl = yl,xl;xlbl,ylbl = ylbl,xlbl
     print('|| Noise vs Z ||' + ' (Octave averaged)' if oct_av else '')

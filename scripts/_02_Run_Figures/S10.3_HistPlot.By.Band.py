@@ -17,10 +17,13 @@ from local_tools.plots import ax_sta_metrics
 import matplotlib.colors as mcolors
 from local_tools.quick_class import *
 from mne_connectivity import spectral_connectivity_time
+# cat value
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
 from matplotlib.ticker import PercentFormatter
 import time;start=time.time()
+# runtime value
 runtime=lambda:int(time.time()-start)
 # -------------------------------------------------------------------------------------------------------------------------------------
 SR = cat.sr.copy()
@@ -38,6 +41,7 @@ bands=np.array([[1,10],[10,30],[30,300]])
 # meta_wins.Environment=['North Atlantic', 'North Pacific', 'Solomon Sea', 'South Pacific']
 # meta_wins.Network=['2D','7A','7D','X9','XF','YL','YO','ZA','ZN']
 
+# M value
 M=AttribDict()
 # M.Magnitude=[[6,7.0],[7,8.0]] # meta_wins.Magnitude=[[i,i+.5] for i in np.arange(6,8,.5)]
 # M.Sediment_Thickness_m=[[i,i+500] for i in np.arange(0,7320+500,500)]
@@ -49,6 +53,7 @@ M=AttribDict()
 M.StaDepth=np.array([[i,i+500] for i in np.arange(0,6000,500)])
 
 
+# nsets value
 nsets = sum([len(i) for i in list(meta_wins.values())])
 # -------------------------------------------------------------------------------------------------------------------------------------
 # ---
@@ -60,38 +65,58 @@ run_reduce = False #
 # Re-compiles all data from the raw-files. 
 # Takes about 1-min. If disabled will load required data from backups.
 notched=True #Band limit to only periods sensitive to infragravity surface waves.
+# octav value
 octav=True #Octave averaging. Adds 20s to run time for each category/figure.
 # If true, justpairs reduces coherence values given to the histogram from single frequency measurements for each source-receiver 
 # to a single average for each source-receiver. Recommended to keep this at True.
 justpairs=True #Recommended to always keep this at True.
+# sigma value
 sigma=True
+# relative value
 relative=False
+# stacked value
 stacked=False
+# unwrapped value
 unwrapped = False
+# transpose value
 transpose = False
+# orientation value
 orientation='horizontal' #colorbar
 # orientation='vertical' #colorbar
 weighted=True #
+# compact value
 compact = False
+# norm pdf value
 norm_pdf=False
+# figsize value
 figsize=[6,3.15]
+# nkeys value
 nkeys=len(meta_wins)>1
 if sigma:justpairs=False
 if nkeys:unwrapped=False
 if not compact:unwrapped=False
+# band keys value
 band_keys=unravel([[f'{k}.{min(b)}to{max(b)}'  for k in ['TF','HPS_Z','HPS_H']] for b in bands])
+# band keys value
 band_keys={k:k.split('.')[-1].split('to') for k in band_keys}
+# band keys value
 band_keys={k:[int(band_keys[k][0]),int(band_keys[k][1])] for k in band_keys.keys()}
 # -------------------------------------------------------------------------------------------------------------------------------------
 f=cat.r.Data[0].Coherence().f
+# foct value
 foct=octavg(cat.sr.Data[0].Coherence().ATaCR.zp_21.coh,f)[0]
+# safekeys value
 safekeys=['Name', 'StaName', 'Station', 'Event', 'Network', 'LaLo', 'Distance',  'Magnitude', 'Stations',
 'Latitude', 'Longitude', 'Experiment', 'Environment', 'Pressure_Gauge','StaDepth', 'Start', 'End', 'NoiseAverage', 'Seismometer',
 'Sediment_Thickness_m', 'Instrument_Design', 'Distance_from_Land_km','Distance_to_Plate_Boundary_km', 'Surface_Current_ms',
 'Crustal_Age_Myr', 'Deployment_Length_days', 'Inventory', 'Coherence','PearsonCC']
+# function reduce data
 def reduce_data(SR,SR_std,band_keys,f):
+    # flim value
     flim = lambda b,f: ((1/f)<=max(b))&((1/f)>min(b)) #Assumes b is period
+    # notch lambda value
     notch_lambda = lambda z,f:f<fnotch(z) if notched else True
+    # lims value
     lims = lambda b,f,k,z:flim(band_keys[k],f)&notch_lambda(s.StaDepth,f)
     for si,(s,s_std) in enumerate(zip(SR.iloc,SR_std.iloc)):
         print(f'Collecting data: {si+1}/{len(SR)}')
@@ -109,7 +134,9 @@ def reduce_data(SR,SR_std,band_keys,f):
 
 
 if run_reduce: #Takes ~2min
+    # SR value
     SR=cat.sr.__deepcopy__()
+    # SR std value
     SR_std=ds.dataspace().sr.copy() #independent load of data for std analysis. Adds 300mb and 20s to the compute, but it's worth the headache.
     SR,SR_std=reduce_data(SR,SR_std,band_keys,f)
     print(f"Reduction elapsed time: {(runtime())/60:.2f} minutes")
@@ -117,28 +144,37 @@ else: #Takes ~2seconds
     # bulk_cat_version='71725'
     bulk_cat_version='50125'
     if not notched:
+        # SR value
         SR=load_pickle(dirs.P01.S10/bulk_cat_version/'SR_NoNotch.pkl')
+        # SR std value
         SR_std=load_pickle(dirs.P01.S10/bulk_cat_version/'SR_std_NoNotch.pkl')
     else:
+        # SR value
         SR=load_pickle(dirs.P01.S10/bulk_cat_version/'SR.pkl')
+        # SR std value
         SR_std=load_pickle(dirs.P01.S10/bulk_cat_version/'SR_std.pkl')
 
+# state value
 state=lambda:f'C{int(cumulative)}.D{int(density)}.S{int(sigma)}.T{int(stacked)}.R{int(relative)}.N{int(norm_pdf)}'
 
 # combinations = list(itertools.product([True, False], repeat=5)) #4**2=16 combinations
 # for combi,(cumulative,density,sigma,relative,norm_pdf) in enumerate(combinations):
 # print(f'Settings----{combi+1}/{len(combinations)}----')
 
+# xf value
 xf = foct if octav else f
 
 
 for mi in M.keys():
+    # meta wins value
     meta_wins = AttribDict()
     meta_wins[mi]=M[mi]
 
 
     for ki,key in enumerate(meta_wins.keys()):
+        # sets value
         sets=meta_wins[key]
+        # Y TF value
         Y_TF={};Y_HPSZ={};Y_HPSH={};weights={}
         for si,set in enumerate(sets):
             print(f'Slicing: [{key}] {si+1}/{len(sets)}')
@@ -147,20 +183,28 @@ for mi in M.keys():
             if not key=='Band':
                 if isinstance(set,list)or(type(set)==type(np.array([]))):ind=(iSR[key]>=min(set))&(iSR[key]<max(set))
                 else:ind=iSR[key]==set
+                # icat value
                 icat=iSR[ind].copy()
+                # weights nevents per sta value
                 weights_nevents_per_sta = np.array([sum(icat.StaName==s) for s in icat.StaName])/len(icat) #[0-1]#Number of events per station relative to the entire bin size.
+                # weights sr per bin value
                 weights_sr_per_bin = np.ones(len(icat))*len(icat)/len(iSR) #[0-1]#Bin size fraction of the entire data set. weights_sr_per_bin is effectively a constant in each bin and has no effect.
+                # weights nfrequencies per sta value
                 weights_nfrequencies_per_sta = np.array([sum(f<fnotch(s.StaDepth)) for s in icat.iloc])/sum(f<fnotch(icat.StaDepth.min())) #[0-1]#Fraction of frequencies used in this bin contributed to the average from each pair.
+                # iweights value
                 iweights = (1/weights_nevents_per_sta) * weights_sr_per_bin * weights_nfrequencies_per_sta # (sta/sr) * (sr/bin) * (samples/sta) = samples/bin
                 weights.update({si:iweights})
                 Y_HPSH.update({f'{k}__{si}':np.array([s.Coherence[k] for s in icat.iloc]) for k in band_keys.keys() if k.split('.')[0]=='HPS_H'})
                 Y_HPSZ.update({f'{k}__{si}':np.array([s.Coherence[k] for s in icat.iloc]) for k in band_keys.keys() if k.split('.')[0]=='HPS_Z'})
                 Y_TF.update({f'{k}__{si}':np.array([s.Coherence[k] for s in icat.iloc]) for k in band_keys.keys() if k.split('.')[0]=='TF'})
             else:
+                # icat value
                 icat=iSR.copy()
 
 
+                # weights nevents per sta value
                 weights_nevents_per_sta = np.array([sum(icat.StaName==s) for s in icat.StaName])/len(icat) #[0-1]#Number of events per station relative to the entire bin size.
+                # weights sr per bin value
                 weights_sr_per_bin = np.ones(len(icat))*len(icat)/len(iSR) #[0-1]#Bin size fraction of the entire data set. weights_sr_per_bin is effectively a constant in each bin and has no effect.
                 # weights_nfrequencies_per_sta = np.array([sum(f<fnotch(s.StaDepth)) for s in icat.iloc])/sum(f<fnotch(icat.StaDepth.min())) #[0-1]#Fraction of frequencies used in this bin contributed to the average from each pair.
                 iweights = weights_nevents_per_sta + weights_sr_per_bin #+ weights_nfrequencies_per_sta
@@ -170,13 +214,18 @@ for mi in M.keys():
                 Y_TF.update({f'{k}.{si}':np.array([s.Coherence[k] for s in icat.iloc]) for k in band_keys.keys() if k.split('.')[0]=='TF'})
 
         if ki==0:  #Initial figure setup
+            # layout value
             layout='tight' if orientation=='horizontal' else 'none'
+            # ncol value
             ncol=3;nrows=3
             # if compact:nrows,ncols=1
             if compact:
                 fig,axes = plt.subplots(nrows=nrows,ncols=1,
+                # figsize value
                 figsize=figsize,
+                # sharex value
                 sharex='all',sharey='all',
+                # layout value
                 layout=layout) #if orientation=='horizontal' else 'none') #if orientation=='horizontal' else 'none'            
                 axes=np.atleast_2d(axes).T
             elif relative:

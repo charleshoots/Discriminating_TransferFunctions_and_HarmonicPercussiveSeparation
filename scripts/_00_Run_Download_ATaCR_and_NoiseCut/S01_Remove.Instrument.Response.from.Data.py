@@ -10,11 +10,16 @@ import sys;from pathlib import Path;sys.path.append(str(Path(__file__).parent.pa
 import os,sys;from source.imports import *;from source.modules import *
 
 
+# update rmresp folder
 def update_rmresp_folder(datafold,reg='*SAC',ovr=False):
+    # rawfold value
     rawfold=Path(datafold)/'raw'
     (Path(datafold)/'rmresp').mkdir(exist_ok=True)
+    # files value
     files=list(rawfold.rglob(reg))
+    # files value
     files=[f for f in files if (not f.parent.name=='_depreciated')]
+    # files value
     files=[f for f in files if (not f.parent.name=='_quarantine')]
     files=[f for f in files if (f.parent.parent.name=='raw')]
     for fi,f in enumerate(files):

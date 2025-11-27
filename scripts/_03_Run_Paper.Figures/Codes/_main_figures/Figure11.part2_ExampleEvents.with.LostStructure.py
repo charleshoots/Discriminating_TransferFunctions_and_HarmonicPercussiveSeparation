@@ -12,15 +12,22 @@ import os,sys;from source.imports import *;from source.modules import *
 
 from imports import * #Standard imports for doing anything in this project. Approx. ~19 seconds.
 from local_tools.quick_class import *
+# octavg value
 octavg=lt.math.octave_average
+# figs value
 figs = lambda r=4,c=1,f=(5,6),x='all',y='all',w=None,layout='constrained':plt.subplots(r,c,figsize=f,sharex=x,sharey=y,layout=layout,width_ratios=np.ones(c) if w is None else w)
 
+# plotfolder value
 plotfolder=dirs.Ch1/'_main_figures'/'Figure11part2_ExampleRecord.of.LostStructure';plotfolder.mkdir(parents=True,exist_ok=True)
 
+# cat value
 cat=catalog.copy()
+# icat value
 icat=cat.sr.copy()
+# usnr value
 usnr=unpack_metrics(icat)
 
+# apparent killed structure value
 apparent_killed_structure=[
 ['ZA.B01', '2012.302.03.04'],
 ['ZA.B24', '2012.302.03.04'],
@@ -30,7 +37,9 @@ apparent_killed_structure=[
 ['7D.FN12C', '2014.108.14.27'],
 ]
 
+# idx value
 idx=[np.where((cat.sr.StaName==i[0]) & (cat.sr.Name==i[1]))[0][0] for i in apparent_killed_structure]
+# icat value
 icat=cat.sr.copy()
 icat=icat.iloc[idx]
 icat.sort_values(by=['StaDepth','Distance'],inplace=True)

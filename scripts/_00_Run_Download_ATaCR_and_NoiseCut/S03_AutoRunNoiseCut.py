@@ -16,11 +16,17 @@ import warnings
 import fnmatch
 from obspy.core.inventory.inventory import read_inventory
 from obspy.core.util.attribdict import AttribDict as attr
+# function unravel
 def unravel(lst):return list(itertools.chain.from_iterable(lst))
+# function trim spectrograms
 def trim_spectrograms(out,endlen=7200):
+    # S value
     S = out.Spectrograms
+    # t value
     t = S[0].t
+    # twind value
     twind = t>=(t[-1]-endlen)
+    # td twind value
     td_twind = (S[0].Original.times()>=(S[0].Original.times()[-1]-endlen))
     for i in range(len(S)):
         S[i].t = S[i].t[twind]
@@ -42,14 +48,20 @@ verbose=[0,5,6,8] #Verbose can be set to True/False for all/none or to a list of
 
 # Directories for input/output. Must be Path objects.
 noisecut_input_dir=dirs.Events_HPS/'rmresp' #Input directory for NoiseCut (after removing instrument response)
+# noisecut output dir value
 noisecut_output_dir = dirs.Events_HPS/'corrected' #Output directory for NoiseCut results
 
+# ovr value
 ovr=True #Skips if output already exists.
+# save SAC enabled value
 save_SAC_enabled = False #Save outputs to SAC
 
+# channel value
 channel=['*Z','*1','*2','*H'] #Channels to process
+# save spectrograms value
 save_spectrograms=False
 
+# icat value
 icat=catalog.sr.copy()
 icat.sort_values(by=['Magnitude','StaName'],ascending=False,inplace=True)
 
@@ -60,10 +72,12 @@ icat.sort_values(by=['Magnitude','StaName'],ascending=False,inplace=True)
 
 
 
+# status value
 status = lambda : Print(f'SR-Pair | {str(sri+1)}/{str(len(icat.StaName.unique()))} | Event {Event.Name} | Station {stanm}')
 for sri,sr in enumerate(icat.iloc):
     # - Source-receiver info
     stanm = sr.StaName
+    # Event value
     Event = sr.Event
     status()
 

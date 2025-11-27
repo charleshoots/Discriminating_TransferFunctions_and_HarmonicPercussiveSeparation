@@ -17,24 +17,33 @@ from local_tools.plots import ax_sta_metrics
 import matplotlib.colors as mcolors
 from local_tools.quick_class import *
 from mne_connectivity import spectral_connectivity_time
+# cat value
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
 
 from matplotlib.ticker import PercentFormatter
 cat.sort_values(by='StaDepth',ascending=True,inplace=True)
 
+# DEPTH WINS value
 DEPTH_WINS = [[cat.StaDepth.min()-1,1500],[1500,3000],[3000,cat.StaDepth.max()+1]]
+# nrows value
 nrows = len(DEPTH_WINS)
+# cols value
 cols = ['TF','HPS','Horizontals']
+# ncols value
 ncols = len(cols)
 
+# f value
 f = cat.Data[0].Coherence().f;f_ind = ((f>0) & (f<1))
+# zslice value
 zslice = lambda cat,win:cat[cat.StaDepth.between(win[0],win[1])].copy()
 
 # --------
 # ---Comment out after running once. Takes ~2-min to run.
 DAT = AttribDict()
 for i,win in enumerate(DEPTH_WINS):
+    # icat value
     icat = zslice(cat,win)
     DAT[i] = AttribDict()
     DAT[i].TF = {si:s.Data.Coherence().ATaCR.zp_21.coh for si,s in enumerate(icat.iloc)}
@@ -43,18 +52,25 @@ for i,win in enumerate(DEPTH_WINS):
 # # --------
 
 
+# xf value
 xf = f;iDAT = DAT.copy();octave_av = False
+# octave av value
 octave_av = True
 if octave_av:
+    # iDAT value
     iDAT = DAT.copy()
+    # foct value
     foct = octavg(iDAT[0].TF[0][0,:],f)[0]
     for i in range(len(iDAT)):
         for si in range(len(iDAT[i].TF)):
             iDAT[i].TF[si] = np.array([octavg(iDAT[i].TF[si][ei,:],f)[1].reshape(-1) for ei in range(iDAT[i].TF[si].shape[0])])
             iDAT[i].HPS_Z[si] = np.array([octavg(iDAT[i].HPS_Z[si][ei,:],f)[1].reshape(-1) for ei in range(iDAT[i].HPS_Z[si].shape[0])])
             iDAT[i].HPS_H[si] = np.array([octavg(iDAT[i].HPS_H[si][ei,:],f)[1].reshape(-1) for ei in range(iDAT[i].HPS_H[si].shape[0])])
+    # xf value
     xf = foct
+    # iDAT oct value
     iDAT_oct = iDAT.copy()
+    # iDAT value
     iDAT = DAT.copy()
 xf = foct
 

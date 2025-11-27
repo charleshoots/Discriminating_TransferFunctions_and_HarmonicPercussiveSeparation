@@ -15,13 +15,19 @@ from obspy.core.util.attribdict import AttribDict as attr
 
 
 
+# dirs value
 dirs=io.dir_libraries()
+# cat value
 cat = catalog.copy()
+# nets value
 nets = cat.Network.unique()
+# savefolder value
 savefolder = dirs.Data/'Analysis'/'NetworkAdmittance'
 
 
+# method ind value
 method_ind=0
+# ovr value
 ovr = True
 
 # ------------------------------------------------------------------------------------------------
@@ -31,9 +37,11 @@ base_pairs=[['HZ','HZ']]#Defaults: ZZ,ZP,Z1,Z2
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
+# log list value
 log_list = []
 # 'hps'
 for method_ind,method in enumerate(['hps','atacr']):
+    # adm sets value
     adm_sets=base_pairs.copy()
     if method=='hps':tf,method = '','hps';CorrectedFold=dirs.Events_HPS/'corrected';UncorrectedFold=dirs.Events_HPS/'rmresp'
     else:tf,method = 'ZP-21','atacr';CorrectedFold = dirs.Events/'corrected';UncorrectedFold = dirs.Events/'rmresp'
@@ -41,14 +49,18 @@ for method_ind,method in enumerate(['hps','atacr']):
     if method.lower()=='hps':adm_sets.extend([['H1','H1'],['H2','H2']]) #COMMENT OUT TO SKIP HORIZONTALS
 
     for set_i,(corrected_comp,raw_comp) in enumerate(adm_sets):
+        # adm report value
         adm_report = attr()
         if method.lower()=='atacr':
             if (corrected_comp=='H2') or (corrected_comp=='H1'):continue
         os.system('clear')
         for ni,n in enumerate(nets):
 
+            # N value
             N = 'n'+n
+            # s corrected comp value
             s_corrected_comp = corrected_comp.replace('HZ','Z').replace('H1','1').replace('H2','2').replace('HDH','P')
+            # s raw comp value
             s_raw_comp=raw_comp.replace('HZ','Z').replace('H1','1').replace('H2','2').replace('HDH','P')
             s_comps=''.join([s_corrected_comp,s_raw_comp])
             file = str(savefolder / method / f'{n}_{method.lower()}.{s_comps}_adm.report.pkl')

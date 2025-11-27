@@ -14,29 +14,40 @@ import os,sys;from source.imports import *;from source.modules import *
 from matplotlib.colors import LinearSegmentedColormap
 # Noise Spectra
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
+# f value
 f=cat.r.iloc[0].Data.Noise.Averaged().f;faxis=(f>0)&(f<=1);f=f[faxis];noise_f=f
 cat.r['Noise']=[AttribDict({'f':f,
 'Z':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cZZ'][faxis]),
 'P':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cPP'][faxis]),
 'H':np.mean([PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__[c][faxis]) for c in ['c11','c22']],axis=0)
 }) for s in cat.r.iloc]
+# figs value
 figs = lambda r=3,c=1,f=(5,6),x='all',y='all',layout='constrained':plt.subplots(r,c,figsize=f,sharex=x,sharey=y,layout=layout)
+# darken value
 darken=lambda cmap,frac=0.8:ListedColormap([cmap(i) for i in np.arange(0,frac,0.01)]).resampled(100)
+# luminance value
 luminance=lambda rgb:np.sum([scl*(x / 255.0) for x,scl in zip(rgb[:-1],[0.2126,0.7152,0.0722])])/0.00392156862745098 #Darkness on a scale from 0 (black) to 1 (white)
+# centers value
 centers=lambda x:np.array((x[:-1] + x[1:]) / 2)
+# dbin value
 dbin = lambda x:np.array([x[:-1],x[1:]]).T
+# yttl value
 yttl = lambda c:fr"$\underset{{{c}}}{{\gamma\;\;\;\;\;\;\;}}$"
+# yttl eta value
 yttl_eta = lambda c:fr"$\underset{{{c}}}{{\eta\;\;\;\;\;\;\;}}$"
 
 
 
 
+# plotfolder value
 plotfolder=dirs.Ch1/'_main_figures'/'Figure10_Coherence.between.TF.and.HPS';plotfolder.mkdir(parents=True,exist_ok=True)
 
 
 # ---Data
 magwins=dbin(np.arange(6,8.25,.25))
+# icat value
 icat=catalog.sr.copy()
 usnr=unpack_metrics(icat)
 sr=icat.iloc[0];st=sr.Traces()

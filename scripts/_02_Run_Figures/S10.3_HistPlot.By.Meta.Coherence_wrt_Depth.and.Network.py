@@ -17,10 +17,13 @@ from local_tools.plots import ax_sta_metrics
 import matplotlib.colors as mcolors
 from local_tools.quick_class import *
 from mne_connectivity import spectral_connectivity_time
+# cat value
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
 from matplotlib.ticker import PercentFormatter
 import time;start=time.time()
+# runtime value
 runtime=lambda:int(time.time()-start)
 
 
@@ -71,17 +74,24 @@ orientation='horizontal' #colorbar
 weighted=True #
 # ---
 norm_pdf=False
+# figsize value
 figsize=[6,3.15]
 if sigma:justpairs=False
 # -------------------------------------------------------------------------------------------------------------------------------------
 
 
+# f value
 f = cat.r.Data[0].Coherence().f
+# foct value
 foct=octavg(cat.sr.Data[0].Coherence().ATaCR.zp_21.coh,f)[0]
+# SR value
 SR = cat.sr.__deepcopy__()
+# SR std value
 SR_std=ds.dataspace().sr.copy() #independent load of data for std analysis. Adds 300mb and 20s to the compute, but it's worth the headache.
 
+# SR std value
 SR_std=SR_std[SR_std.Magnitude<7.0].copy()
+# SR value
 SR=SR[SR.Magnitude<7.0].copy();note='__m6_m7'
 
 # SR_std = SR_std[SR_std.Magnitude>=7.0].copy()
@@ -98,6 +108,7 @@ for si,(s,s_std) in enumerate(zip(SR.iloc,SR_std.iloc)):
         s_std.Coherence.update({k :s_std.Coherence[k].std() for k in ['TF','HPS_Z','HPS_H']})
         s.Coherence.update({k :s.Coherence[k].mean() for k in ['TF','HPS_Z','HPS_H']})
 
+# state value
 state=lambda:f'C{int(cumulative)}.D{int(density)}.S{int(sigma)}.T{int(stacked)}.R{int(relative)}.N{int(norm_pdf)}'
 
 # combinations = list(itertools.product([True, False], repeat=5)) #4**2=16 combinations
@@ -117,9 +128,12 @@ if (cumulative) & (density):outtype='CDF'
 if (not cumulative) & (density):outtype='PDF'
 if (not cumulative) & (not density):outtype='Hist'
 
+# xf value
 xf = foct if octav else f
 for key in meta_wins.keys():
+    # sets value
     sets=meta_wins[key]
+    # Y TF value
     Y_TF={};Y_HPSZ={};Y_HPSH={};weights={}
     for si,set in enumerate(sets):
         print(f'Slicing: [{key}] {si+1}/{len(sets)}')
@@ -128,10 +142,15 @@ for key in meta_wins.keys():
         if not key=='Band':
             if isinstance(set,list)or(type(set)==type(np.array([]))):ind=(iSR[key]>=min(set))&(iSR[key]<max(set))
             else:ind=iSR[key]==set
+            # icat value
             icat=iSR[ind].copy()
+            # weights nevents per sta value
             weights_nevents_per_sta = np.array([sum(icat.StaName==s) for s in icat.StaName])/len(icat) #[0-1]#Number of events per station relative to the entire bin size.
+            # weights sr per bin value
             weights_sr_per_bin = np.ones(len(icat))*len(icat)/len(iSR) #[0-1]#Bin size fraction of the entire data set. weights_sr_per_bin is effectively a constant in each bin and has no effect.
+            # weights nfrequencies per sta value
             weights_nfrequencies_per_sta = np.array([sum(f<fnotch(s.StaDepth)) for s in icat.iloc])/sum(f<fnotch(icat.StaDepth.min())) #[0-1]#Fraction of frequencies used in this bin contributed to the average from each pair.
+            # iweights value
             iweights = weights_nevents_per_sta + weights_sr_per_bin + weights_nfrequencies_per_sta
             weights.update({si:iweights})
             if sigma:
@@ -143,17 +162,23 @@ for key in meta_wins.keys():
                 Y_HPSZ.update({si:np.array([s.Coherence.HPS_Z for s in icat.iloc])})
                 Y_TF.update({si:np.array([s.Coherence.TF for s in icat.iloc])})
         else:
+            # icat value
             icat=iSR.copy()
 
 
 
             [s.Coherence().TF[:,xf<fnotch(s.StaDepth)] for s in icat.iloc]
 
+            # band value
             band=lambda:(xf[xf<fnotch(s.StaDepth)]<=max(1/set))&(xf[xf<fnotch(s.StaDepth)]>=min(1/set))
 
+            # weights nevents per sta value
             weights_nevents_per_sta = np.array([sum(icat.StaName==s) for s in icat.StaName])/len(icat) #[0-1]#Number of events per station relative to the entire bin size.
+            # weights sr per bin value
             weights_sr_per_bin = np.ones(len(icat))*len(icat)/len(iSR) #[0-1]#Bin size fraction of the entire data set. weights_sr_per_bin is effectively a constant in each bin and has no effect.
+            # weights nfrequencies per sta value
             weights_nfrequencies_per_sta = np.array([sum(f<fnotch(s.StaDepth)) for s in icat.iloc])/sum(f<fnotch(icat.StaDepth.min())) #[0-1]#Fraction of frequencies used in this bin contributed to the average from each pair.
+            # iweights value
             iweights = weights_nevents_per_sta + weights_sr_per_bin + weights_nfrequencies_per_sta
             weights.update({si:iweights})
             if sigma:
@@ -167,21 +192,31 @@ for key in meta_wins.keys():
 
     # nrows = 1 if key=='StaDepth' else len(sets)
     layout='tight' if orientation=='horizontal' else 'none'
+    # ncol value
     ncol=3;nrows=1
     if relative:
         fig,axes = plt.subplots(nrows=nrows,ncols=1,
+        # figsize value
         figsize=figsize,
+        # sharex value
         sharex='all',sharey='all',
+        # layout value
         layout=layout) #if orientation=='horizontal' else 'none') #if orientation=='horizontal' else 'none'
     else:
         fig,axes = plt.subplots(nrows=nrows,ncols=ncol,
+        # figsize value
         figsize=figsize,
+        # sharex value
         sharex='all',sharey='all',
+        # layout value
         layout=layout) #if orientation=='horizontal' else 'none') #if orientation=='horizontal' else 'none'
+    # cmap value
     cmap=cm.cmaps['glasgow'].reversed().resampled(len(sets))
     if key=='Instrument_Design':cmap=ListedColormap([ColorStandard.instrument[s] for s in sets], name='custom_cmap')
     if key=='Network':cmap=ListedColormap([ColorStandard.network[s] for s in sets], name='custom_cmap')
+    # axes value
     axes=np.atleast_2d(axes)
+    # yttl value
     yttl = lambda lbl:fr"$\underset{{{lbl}}}{{\gamma\;\;\;\;\;\;\;}}$"
     sigma_yttl = lambda c:fr"$\sigma(\underset{{{c}}}{{\gamma\;\;\;\;\;\;\;}})$"
     if sigma:ttl=sigma_yttl

@@ -10,14 +10,20 @@
 import sys;from pathlib import Path;sys.path.append(str(Path(__file__).parent.parent.parent))
 import os,sys;from source.imports import *;from source.modules import *
 
+# dirs value
 dirs=io.dir_libraries()
+# cat value
 cat = catalog.copy()
 # cat = cat[cat.StaName.isin(['7D.G17B', '7D.G25B'])]
 outfold = dirs.Data/'Analysis'/'Metrics'/'noise'
 
+# comps value
 comps = ['c12', 'c1Z', 'c1P', 'c2Z', 'c2P', 'cZP']
+# PSDs value
 PSDs = lambda d: AttribDict({k[-1]:d.power.__dict__[k] for k in list(d.power.__dict__.keys())})
+# coherences value
 coherences = lambda d:{''.join(sorted(c[1:],reverse=True)):lt.math._calc_coherence(d.cross.__dict__[c],d.power.__dict__[f'c{c[1]}{c[1]}'],d.power.__dict__[f'c{c[2]}{c[2]}']) for c in comps}
+# admittances value
 admittances = lambda d:{''.join(sorted(c[1:],reverse=True)):lt.math._calc_admittance(d.cross.__dict__[c],d.power.__dict__[f'c{c[2]}{c[2]}']) for c in comps}
 phases = lambda d:{''.join(sorted(c[1:],reverse=True)):lt.math._calc_phase(d.cross.__dict__[c]) for c in comps}
 staavg = lambda d:AttribDict({i:m(d) for i,m in zip(['coh','adm','ph','psd'],[coherences,admittances,phases,PSDs])})

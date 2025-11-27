@@ -14,33 +14,46 @@ from scipy.stats import iqr
 from local_tools.quick_class import *
 from local_tools.math import spectra
 from obspy.geodetics import kilometers2degrees
+# cat value
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
 import statsmodels.api as sm
 import local_tools.dataspace as ds
 # Noise Spectra
 f=cat.r.iloc[0].Data.Noise.Averaged().f
+# faxis value
 faxis=(f>0)&(f<=1)
+# f value
 f=f[faxis]
+# noise f value
 noise_f=f
 cat.r['Noise']=[AttribDict({'f':f,
 'Z':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cZZ'][faxis]),
 'P':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cPP'][faxis]),
 'H':np.mean([PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__[c][faxis]) for c in ['c11','c22']],axis=0)
 }) for s in cat.r.iloc]
+# rmse value
 rmse=lambda y:( (  ( abs(y)-abs(y).mean() )**2  ).mean())**.5 
+# rms value
 rms=lambda y:np.mean(y**2)**0.5
+# s value
 s=cat.r.iloc[0];faxis=(s.Noise.f>(1/100) )& (s.Noise.f<=1)
+# f value
 f=s.Noise.f[faxis]
 cat.r['NoiseAverage']=[{f'{b[0]}_{b[1]}':-rms(s.Noise.Z[faxis][(f<=(1/b[0]))&(f>=(1/b[1]))]) for b in [[1,10],[10,30],[30,100]]} for s in cat.r.iloc]
 cat.sr['NoiseAverage']=[cat.r.loc[sr.StaName].NoiseAverage[0] for sr in cat.sr.iloc]
+# function custom cmap
 def custom_cmap(ind=0,nbins=5):
     if ind==0:cmap = cm.cmaps['glasgow'].reversed().resampled(nbins)
     if ind==1:cmap = cm.cmaps['batlow'].reversed().resampled(nbins)
     return cmap
+# figs value
 figs = lambda r=3,c=1,f=(5,6),x='all',y='all',layout='constrained':plt.subplots(r,c,figsize=f,sharex=x,sharey=y,layout=layout)
 from obspy.signal.trigger import classic_sta_lta,carl_sta_trig,recursive_sta_lta
+# stalta methods value
 stalta_methods={'classic':classic_sta_lta,'carl':carl_sta_trig,'recurssive':recursive_sta_lta}
+# darken value
 darken=lambda cmap,frac=0.8:ListedColormap([cmap(i) for i in np.arange(0,frac,0.01)]).resampled(100)
 luminance=lambda rgb:np.sum([scl*(x / 255.0) for x,scl in zip(rgb[:-1],[0.2126,0.7152,0.0722])])/0.00392156862745098 
 suspect_stations=np.array(['ZA.B02','YL.C09W','7D.G25B','7D.FS08D','7D.G17B','YL.A14W'])

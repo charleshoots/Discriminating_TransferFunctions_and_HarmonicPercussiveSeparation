@@ -20,38 +20,55 @@ from obspy.geodetics import locations2degrees
 # ========================================================================================================================================================
 from IPython.display import clear_output
 
+# instrument colors value
 instrument_colors = {'B2':[227,26,28], 'KE':[178,223,138], 'AB':[166,206,227], 'BA':[202,178,214], 'AR':[255,127,0], 'TRM':[31,120,180], 'BG':[51,160,44], 'BD':[106,61,154]}
+# variable
 _ = [instrument_colors.update({k:list(np.array(instrument_colors[k])/255)}) for k in list(instrument_colors.keys())]
+# seismometer marker value
 seismometer_marker = {'Guralp CMG3T 120':'o','Trillium 240':'x','Trillium Compact':'^'}
 
+# dirs value
 dirs = io.dir_libraries()
 
+# write pickle
 def write_pickle(file,var):
     import pickle
     with open(str(file), 'wb') as handle:
         pickle.dump(var, handle, protocol=pickle.HIGHEST_PROTOCOL)
     print('Saved to :' + str(file))
+# load pickle
 def load_pickle(file):
     import pickle
     with open(file, 'rb') as handle:
+        # b value
         b = pickle.load(handle)
     return b
+# function mirror events
 def mirror_events(reports):
+    # nkeys value
     nkeys = [n for n in list(reports[0].__dict__.keys()) if not n=='f']
+    # mirror value
     mirror = dict()
     for ni,n in enumerate(nkeys):
+        # skeys value
         skeys = list(reports[0][n].__dict__.keys())
         for si,s in enumerate(skeys):
+            # stanm value
             stanm = '.'.join([n,s]).replace('n','')
+            # ev0 value
             ev0 = [k.replace('.','') for k in reports[0][n][s].events]
+            # ev1 value
             ev1 = [k.replace('.','') for k in reports[1][n][s].events]
             mirror[stanm] = np.intersect1d(ev0,ev1)
     return mirror
 # ================================================================================================================================
 
 
+# function sta metrics
 def sta_metrics(report,sta,
+    # columns value
     columns=[['ATaCR',['Coherence','ZZ']],['NoiseCut',['Coherence','ZZ']]],**args):
+    # defargs value
     defargs = AttribDict();defargs.bands=[(1,10),(10,30),(30,100)];defargs.vertical_scale=1.2;defargs.figwidth=20;defargs.figaspect=[4,1]
     defargs.linewidth=[.1,.2];defargs.linecolor=['red','black'];defargs.alpha=[1.0,1.0];defargs.nev=None
     defargs.phases=('P','S');defargs.shadow_phases=('PKIKP','SKS','SKIKSSKIKS');defargs.phasecolors = {'P':'r','S':'b'}
@@ -59,15 +76,21 @@ def sta_metrics(report,sta,
     defargs.Noise=True
     defargs.columns = [['ATaCR',['Coherence','ZZ']],['NoiseCut',['Coherence','ZZ']]]
     [defargs.update({k:args[k]}) for k in list(args.keys())]
+    # args value
     args = defargs
     args.csd_pairs = {'Z1':'#0c51a6','ZP':'#2a7e93','ZZ':'#7370cb','Z2':'#4f86c5'}
+    # note value
     note=''
     # note = 'Corrected ('+args.linecolor[1]+') | Raw ('+args.linecolor[0]+') \nVariance (shaded)'
     # else:
     note = '\nVariance (shaded)'
+    # stanm value
     stanm = sta.StaName
+    # tf value
     tf=''
+    # stastr value
     stastr = ' | '.join([stanm+tf,sta.Experiment,'Depth: '+str(int(abs(sta.StaDepth)))+'m, Notch: '+str(int(1/fnotch(1000*abs(sta.StaDepth))))+'s',note])
+    # nrows value
     nrows = 1;ncols=2
     columns=[['ATaCR',['Coherence','ZZ']],['NoiseCut',['Coherence','ZZ']]]
     fig,axes = plt.subplots(nrows=ncols,ncols=nrows,layout='constrained',sharex='all',squeeze=True,figsize=(8,7))

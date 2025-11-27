@@ -11,25 +11,35 @@ import sys;from pathlib import Path;sys.path.append(str(Path(__file__).parent.pa
 import os,sys;from source.imports import *;from source.modules import *
 
 from imports import * #Standard imports for doing anything in this project. Approx. ~19 seconds.
+# cat value
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
 # Noise Spectra
 f=cat.r.iloc[0].Data.Noise.Averaged().f
+# faxis value
 faxis=(f>0)&(f<=1)
+# f value
 f=f[faxis]
+# noise f value
 noise_f=f
+# yttl value
 yttl = lambda lbl:fr"$\underset{{{lbl}}}{{\gamma\;\;\;\;\;\;\;}}$"
 cat.r['Noise']=[AttribDict({'f':f,
 'Z':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cZZ'][faxis]),
 'P':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cPP'][faxis]),
 'H':np.mean([PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__[c][faxis]) for c in ['c11','c22']],axis=0)
 }) for s in cat.r.iloc]
+# function custom cmap
 def custom_cmap(ind=0,nbins=5):
     if ind==0:cmap = cm.cmaps['glasgow'].reversed().resampled(nbins)
     if ind==1:cmap = cm.cmaps['batlow'].reversed().resampled(nbins)
     return cmap
+# figs value
 figs = lambda r=3,c=1,f=(5,6),x='all',y='all':plt.subplots(r,c,figsize=f,sharex='all',sharey='all',layout='constrained')
+# notch lambda value
 notch_lambda = lambda z,b,f=f:((f<(fnotch(z) if notched else 1)))&(((1/f)<max(b)) & ((1/f)>min(b)))
+# SR value
 SR = cat.sr.copy();note='' #Everything
 # SR=SR[SR.Magnitude<7.0];note='Mw6_7' #Only Mw6.0-7.0
 # SR=SR[SR.Magnitude>=7.0];note='Mw7_8' # Only >=Mw7.0
@@ -46,10 +56,15 @@ if True: ## OPTIONS-------------------------------------------------------------
     octav=True #Prepends file name
     # Add experiment names to dots on the scatter plots
     named = False
+    # sta avg value
     sta_avg = True #Huge compute if disabled. Don't run unless you have time to spare.
+    # mean value
     mean=True
+    # deviation value
     deviation=False
+    # save value
     save=True
+    # stats value
     stats=[]
     # stat = AttribDict({'func':np.std,'kw':{'ddof':1},'YL':[0,0.5],'title':'Sigma'});stats.append(stat)
     # stat = AttribDict({'func':np.mean,'kw':{},'YL':[0,1.02],'title':'Mu'});stats.append(stat)
@@ -58,11 +73,16 @@ if True: ## OPTIONS-------------------------------------------------------------
 # -------------------------------####------------------vvvvv CODE vvvvv------------------###-------------------------------
 def scatter(ax,x,y,snm,ColorStandard): #Base plot function for everything below
     for s in np.unique(snm):
+        # ii value
         ii=snm==s
+        # color value
         color=ColorStandard.instrument[cat.r.loc[s].Instrument_Design[0]]
+        # marker value
         marker=ColorStandard.seismometer_marker[cat.r.loc[s].Seismometer[0]]
+        # isx value
         isx=marker=='x'
         ax.scatter(x[ii],y[ii],c=color,marker=marker,
+        # edgecolors value
         edgecolors='k',linewidths=1 if isx else 0.2,
         alpha=1.0 if sta_avg else 0.1)
 

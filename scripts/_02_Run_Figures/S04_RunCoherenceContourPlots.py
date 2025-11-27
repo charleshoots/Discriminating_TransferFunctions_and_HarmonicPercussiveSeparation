@@ -10,15 +10,20 @@
 import sys;from pathlib import Path;sys.path.append(str(Path(__file__).parent.parent.parent))
 import os,sys;from source.imports import *;from source.modules import *
 
+# figs value
 figs = lambda r=3,c=1,f=(5,6),x='all',y='all',layout='constrained':plt.subplots(r,c,figsize=f,sharex=x,sharey=y,layout=layout)
+# yttl value
 yttl = lambda c:fr"$\underset{{{c}}}{{\gamma\;\;\;\;\;\;\;}}$"
+# cohnames2snrnames value
 cohnames2snrnames=c2s={'TF':'TF.Z','HPS_Z':'HPS.Z','HPS_H':'HPS.H'}
 
 
+# icat value
 icat=catalog.sr.copy();note=''
 
 
 
+# plotfold value
 plotfold = dirs.P01.S04
 icat.sort_values(by='StaDepth',inplace=True)
 
@@ -29,7 +34,9 @@ icat.sort_values(by='StaDepth',inplace=True)
 
 fig,axes=figs(f=[6,6])
 
+# usnr value
 usnr=unpack_metrics(icat)
+# f value
 f=1/usnr.coh.__dict__['TF_Z'].bands
 z=np.array(icat.StaDepth.tolist())
 for m,ax in zip(['TF_Z','HPS_Z','HPS_H'],axes):

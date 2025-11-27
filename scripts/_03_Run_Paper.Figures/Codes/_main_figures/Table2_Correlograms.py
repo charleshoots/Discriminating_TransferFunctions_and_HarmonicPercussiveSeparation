@@ -12,77 +12,118 @@ import os,sys;from source.imports import *;from source.modules import *
 
 # sys.path.append(str(Path(__file__).parent.parent))
 from imports import * #Standard imports for doing anything in this project. Approx. ~19 seconds.
+# cat value
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
 # Noise Spectra
 f=cat.r.iloc[0].Data.Noise.Averaged().f
+# faxis value
 faxis=(f>0)&(f<=1)
+# f value
 f=f[faxis]
+# noise f value
 noise_f=f
 cat.r['Noise']=[AttribDict({'f':f,
 'Z':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cZZ'][faxis]),
 'P':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cPP'][faxis]),
 'H':np.mean([PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__[c][faxis]) for c in ['c11','c22']],axis=0)
 }) for s in cat.r.iloc]
+# rmse value
 rmse=lambda y:( (  ( abs(y)-abs(y).mean() )**2  ).mean())**.5 
+# rms value
 rms=lambda y:np.mean(y**2)**0.5
+# s value
 s=cat.r.iloc[0];faxis=(s.Noise.f>(1/100) )& (s.Noise.f<=1)
+# f value
 f=s.Noise.f[faxis]
 cat.r['NoiseAverage']=[{f'{b[0]}_{b[1]}':-rms(s.Noise.Z[faxis][(f<=(1/b[0]))&(f>=(1/b[1]))]) for b in [[1,10],[10,30],[30,100]]} for s in cat.r.iloc]
 cat.sr['NoiseAverage']=[cat.r.loc[sr.StaName].NoiseAverage[0] for sr in cat.sr.iloc]
+# function custom cmap
 def custom_cmap(ind=0,nbins=5):
     if ind==0:cmap = cm.cmaps['glasgow'].reversed().resampled(nbins)
     if ind==1:cmap = cm.cmaps['batlow'].reversed().resampled(nbins)
     return cmap
+# figs value
 figs = lambda r=4,c=1,f=(5,6),x='all',y='all',layout='constrained':plt.subplots(r,c,figsize=f,sharex=x,sharey=y,layout=layout)
 from obspy.signal.trigger import classic_sta_lta,carl_sta_trig,recursive_sta_lta
+# stalta methods value
 stalta_methods={'classic':classic_sta_lta,'carl':carl_sta_trig,'recurssive':recursive_sta_lta}
+# darken value
 darken=lambda cmap,frac=0.8:ListedColormap([cmap(i) for i in np.arange(0,frac,0.01)]).resampled(100)
+# luminance value
 luminance=lambda rgb:np.sum([scl*(x / 255.0) for x,scl in zip(rgb[:-1],[0.2126,0.7152,0.0722])])/0.00392156862745098 
+# suspect stations value
 suspect_stations=np.array(['ZA.B02','YL.C09W','7D.G25B','7D.FS08D','7D.G17B','YL.A14W'])
+# baz value
 baz=lambda s:obspy.geodetics.base.gps2dist_azimuth(s.Latitude,s.Longitude,s.LaLo[0],s.LaLo[1])[1]
+# bootstrap value
 bootstrap = lambda y,nruns=10000,nchoose=100,aggregate=np.mean: np.mean([aggregate(np.random.choice(y[~np.isnan(y)],nchoose)) for _ in range(nruns)])
+# centers value
 centers=lambda x:np.array((x[:-1] + x[1:]) / 2)
+# dbin value
 dbin = lambda x:np.array([x[:-1],x[1:]]).T
+# phases value
 phases=['P','S','Rg'];preferred_pbands={'P':'1_10','S':'10_30','Pdiff':'1_10','Sdiff':'10_30','Rg':'30_100'}
+# methods value
 methods=['NoiseCut','ATaCR'];mnames={'NoiseCut':'HPS','ATaCR':'TF'}
+# mnames r value
 mnames_r={mnames[k]:k for k in mnames.keys()};mname_comp={f'HPS_Z':'NoiseCut','TF':'ATaCR','Original':'Original'}
+# mnames comp r value
 mnames_comp_r={mname_comp[k]:k for k in mname_comp.keys()}
+# cohnames2snrnames value
 cohnames2snrnames=c2s={'TF':'TF.Z','HPS_Z':'HPS.Z','HPS_1':'HPS.1','HPS_2':'HPS.2'}
+# c2s value
 c2s={'TF':'TF.Z','HPS_Z':'HPS.Z','HPS_1':'HPS.1','HPS_2':'HPS.2'}
+# c2s r value
 c2s_r={c2s[k]:k for k in c2s.keys()}
+# make bands
 def make_bands(N, width=None,line=np.linspace, lo=1.0, hi=100.0):
     if width is None:width=(hi-lo)/N
     if width<=0 or width>(hi-lo): raise ValueError("width must be in (0, hi-lo]")
+    # s value
     s=line(lo, hi-width, N)
     return np.c_[s, s+width]
 
 
+# dirs value
 dirs=io.dir_libraries()
 
 
+# plotfolder value
 plotfolder=dirs.Ch1/'_main_figures'/'Table2_Correlograms';plotfolder.mkdir(parents=True,exist_ok=True)
 
+# OUT CSV value
 OUT_CSV=dirs.Catalogs/'Janiszewski_etal_2023_StationAverages.xlsx'
 df=pd.read_excel(OUT_CSV)
+# theta deg value
 theta_deg=np.array([df[(df.network==stnm.split('.')[0])&((df.station==stnm.split('.')[1]))].iloc[0].orientation for stnm in cat.sr.StaName])
 cat.sr['TiltDirection']=theta_deg
+# oriencohere value
 oriencohere=np.array([df[(df.network==stnm.split('.')[0])&((df.station==stnm.split('.')[1]))].iloc[0].oriencohere for stnm in cat.sr.StaName])
 cat.sr['TiltCoherence']=oriencohere
 
 
+# icat value
 icat=cat.sr.copy()
+# usnr value
 usnr=unpack_metrics(icat)
 
+# function argsort luminence
 def argsort_luminence(cc,cmap):
+    # cc value
     cc=np.array(cc).ravel()
+    # luminance value
     luminance=lambda rgb:np.sum([scl*(x / 255.0) for x,scl in zip(rgb[:-1],[0.2126,0.7152,0.0722])])/0.00392156862745098
+    # color value
     color=[cmap(c) for c in enumerate(cc)]
+    # zorder value
     zorder=np.argsort(np.array([luminance(c) for c in color]))
     return zorder
 from matplotlib.colors import LinearSegmentedColormap
 
 df=pd.read_excel(OUT_CSV)
+# theta deg value
 theta_deg=np.array([df[(df.network==stnm.split('.')[0])&((df.station==stnm.split('.')[1]))].iloc[0].orientation for stnm in icat.StaName])
 cat.sr['Tilt']=theta_deg
 
@@ -97,25 +138,35 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 # ---------- categorical helpers ----------
 def _is_multilabel_cell(v): return isinstance(v, (list, tuple, set))
 
+# function to columns categorical
 def _to_columns_categorical(vec, max_levels=None):
+    # v value
     v = np.asarray(vec, dtype=object); N = len(v)
     labels_per_row, all_labels = [], set()
+    # loop over v
     for x in v:
         if x is None or (isinstance(x, float) and np.isnan(x)):
             labels_per_row.append(None); continue
+        # s value
         s = set(map(str, x)) if _is_multilabel_cell(x) else {str(x)}
         labels_per_row.append(s); all_labels |= s
+    # levels value
     levels = sorted(all_labels)
     if (max_levels is not None) and (len(levels) > max_levels): levels = levels[:max_levels]
+    # K value
     K = len(levels)
     if K == 0: return np.full((N,1), np.nan, float)
+    # idx value
     idx = {lab:j for j,lab in enumerate(levels)}
+    # M value
     M = np.full((N,K), np.nan, float)
     for i, s in enumerate(labels_per_row):
         if s is None: continue
+        # row value
         row = np.zeros(K, float)
         # row = np.ones(K, float)
 
+        # loop over s
         for lab in s:
             j = idx.get(lab); 
             if j is not None: row[j] = 1.0
@@ -130,8 +181,10 @@ def _as_columns(X):
         return [X[:, j] for j in range(X.shape[1])]
     return list(X)
 
+# function try float column
 def _try_float_column(col):
     try:
+        # arr value
         arr = np.asarray(col, dtype=float)
         return arr, True
     except Exception:

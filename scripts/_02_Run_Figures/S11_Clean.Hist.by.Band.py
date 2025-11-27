@@ -13,29 +13,37 @@ import os,sys;from source.imports import *;from source.modules import *
 from scipy.stats import iqr
 from local_tools.quick_class import *
 from local_tools.math import spectra
+# cat value
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
 import statsmodels.api as sm
 import local_tools.dataspace as ds
 # Noise Spectra
 f=cat.r.iloc[0].Data.Noise.Averaged().f
+# faxis value
 faxis=(f>0)&(f<=1)
+# f value
 f=f[faxis]
+# noise f value
 noise_f=f
 cat.r['Noise']=[AttribDict({'f':f,
 'Z':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cZZ'][faxis]),
 'P':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cPP'][faxis]),
 'H':np.mean([PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__[c][faxis]) for c in ['c11','c22']],axis=0)
 }) for s in cat.r.iloc]
+# function custom cmap
 def custom_cmap(ind=0,nbins=5):
     if ind==0:cmap = cm.cmaps['glasgow'].reversed().resampled(nbins)
     if ind==1:cmap = cm.cmaps['batlow'].reversed().resampled(nbins)
     return cmap
+# figs value
 figs = lambda r=3,c=1,f=(5,6),x='all',y='all':plt.subplots(r,c,figsize=f,sharex='all',sharey='all',layout='constrained')
 
 
 
 
+# opts value
 opts=AttribDict({})
 
 # --------------------------------------------------------------------------------
@@ -46,53 +54,74 @@ width=4;height=4 #Defaults
 # # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # # --------------------------------------------------------------------------------
 req = None #Standard setup
+# figsize value
 figsize=(width,height) #width,height
+# sets value
 sets = [None]
+# transpose value
 transpose=False
 opts.update({req:AttribDict({'req':req,'figsize':figsize,'sets':sets,'transpose':transpose})})
 ######### # --------------------------------------------------------------------------------
 ######### # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 
+# req value
 req = 'Instrument_Design'
+# figsize value
 figsize=(6,1);transpose=True #width,height
+# sets value
 sets=['AB','AR','B2','BA','BG','KE','TRM']
 opts.update({req:AttribDict({'req':req,'figsize':figsize,'sets':sets,'transpose':transpose})})
 # # ####### --------------------------------------------------------------------------------
 req = 'Seismometer'
+# figsize value
 figsize=(6,1);transpose=True #width,height
+# sets value
 sets=['Guralp CMG3T 120','Trillium 240','Trillium Compact']
 opts.update({req:AttribDict({'req':req,'figsize':figsize,'sets':sets,'transpose':transpose})})
 # ####### --------------------------------------------------------------------------------
 req = 'Magnitude'
+# figsize value
 figsize=(6,1);transpose=True #width,height
+# sets value
 sets=[[6.0,7.0],[7.0,8.01]]
 opts.update({req:AttribDict({'req':req,'figsize':figsize,'sets':sets,'transpose':transpose})})
 # ####### --------------------------------------------------------------------------------
 # ####### --------------------------------------------------------------------------------
 req = 'Pressure_Gauge'
+# figsize value
 figsize=(6,1);transpose=True #width,height
+# sets value
 sets=['DPG','APG']
 opts.update({req:AttribDict({'req':req,'figsize':figsize,'sets':sets,'transpose':transpose})})
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 density=False;notched=False
 
+# justpairs value
 justpairs=True
 
+# octav value
 octav=False #Large compute
 
+# weighted value
 weighted = False
 
+# cumulative value
 cumulative=False;stacked=False
+# bins value
 bins=np.arange(0,1.1,.1)
+# bins value
 bins = [0,1]
 # ls=(5,(3,1))
 # ls=(0,(1,.5))
 ls='-'
+# lw value
 lw=1
+# sigma value
 sigma = False
 
+# reduced value
 reduced = True;run_reduce=True
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -110,7 +139,9 @@ safekeys=['Name', 'StaName', 'Station', 'Event', 'Network', 'LaLo', 'Distance', 
 
 # Data aggregation--------------------------------------------------------
 
+# f value
 f=cat.sr.iloc[0].Data.Coherence().f
+# notch lambda value
 notch_lambda = lambda z,b,f=f:((f<(fnotch(z) if notched else 1)))&(((1/f)<max(b)) & ((1/f)>min(b)))
 bands = [[1,100],[1,10],[10,30],[30,100]];methods = ['TF','HPS_Z','HPS_H'];band_keys=AttribDict()
 def reduce_data(N_SR,SR_std,band_keys,f,notched=True,justpairs=True,octav=False):

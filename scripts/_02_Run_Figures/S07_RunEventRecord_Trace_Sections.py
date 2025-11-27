@@ -21,6 +21,7 @@ from obspy import read
 from obspy.geodetics import locations2degrees
 from IPython.display import clear_output
 from matplotlib.gridspec import GridSpec
+# run sections
 def run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,plotfold):
     # stations=np.array([stanm for stanm in event.Stations if mirror(dirs.Events,dirs.Events_HPS,stanm,event.Name)])
     defargs = AttribDict();defargs.bands=[(1,10),(10,30),(30,100)];defargs.vertical_scale=1.2
@@ -38,20 +39,29 @@ def run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,plotfold):
     args = defargs
     # ___________________________________________________________________________________________________________________
     vertical_scale=1.05
+    # figsize value
     figsize=(8,10) #width x height
+    # bands value
     bands=[(1,10),(30,100)]
+    # colors value
     colors={'Raw':'red','Corrected':'black'}
+    # st raw value
     st_raw = st_hold.select(location='*Raw*')
     if isinstance(mode,str):
         if mode.lower()=='traces':columns=bands
         else:columns=[['Coherence','ZZ'],['Phase','ZZ']]
         args.figwidth=18
     else:
+        # columns value
         columns=mode;mode='Metrics'
         args.figwidth=18
+    # nsta value
     nsta = len(st_raw)
+    # successfully loaded value
     successfully_loaded = [f'{s.stats.network}.{s.stats.station}' for s in st_raw]
+    # stations value
     stations=successfully_loaded
+    # ev distances value
     ev_distances = [distance(cat.loc[sta],event) for sta in stations]
     clear_output(wait=False);os.system('cls' if os.name == 'nt' else 'clear')
     print(' | '.join([event.Name,str(evi+1)+'/'+str(len(evs)),method,str(mthdi+1)+'/'+str(len(methods)),mode,str(mdi+1)+'/'+str(len(modes))]))
@@ -61,18 +71,27 @@ def run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,plotfold):
     # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     # ___________________________________________________________________________________________________________________
 
+    # ncols value
     ncols = len(columns)
+    # figsize value
     figsize=(args.figwidth*args.figaspect[0],args.height_per_sta*nsta*args.figaspect[1])
     fig, axes = plt.subplots(nrows=nsta, ncols=ncols,figsize=figsize,layout='constrained',squeeze=False)
+    # file evstr value
     file_evstr='.'.join([event.Name,str(event.magnitudes[0].mag) + str(event.magnitudes[0].magnitude_type).replace('None','M'),str(int(event.origins[0].depth/1000))+'km'])
     # .__getattribute__(b)(p[0])[1][ind]
     note=None
+    # notches value
     notches=np.array([fnotch(d) for d in [cat.loc[sta].StaDepth for sta in [f'{s.stats.network}.{s.stats.station}' for s in st_hold]]])
+    # notches value
     notches=np.round(notches,4)
+    # file value
     file = file_evstr+'_'+mode.lower()+'.png'
     if mode=='Metrics':file = file.replace('.png','_cohph.'+''.join([c[0][:2]+c[1] for c in columns])+'.png')
+    # file value
     file = file.replace('.png','__'+method.replace('HPS','NoiseCut')+'.png')
+    # file value
     file=plotfold/file
+    # evstr value
     evstr = ' | '.join(([method.replace('HPS','NoiseCut') +' ',event.Name,str(event.magnitudes[0].mag) + str(event.magnitudes[0].magnitude_type).replace('None','M'),str(int(event.origins[0].depth/1000))+'km']))
     if mode.lower()=='traces':evstr = evstr + '\n Sorted by distance'
     else:evstr = evstr + '\n Sorted by depth'
@@ -80,12 +99,17 @@ def run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,plotfold):
     if mode.lower()=='traces':
         for stai in range(nsta):
             net,sta=stations[stai].split('.')
+            # sta value
             sta=cat[cat.StaName==stations[stai]].iloc[0]
+            # arrivals value
             arrivals = [event_stream_arrivals(tr,event) for tr in st_hold.select(network=sta.Network,station=sta.Station,location='*Raw*')][0]
+            # statr value
             statr=st_hold.select(network=sta.Network,station=sta.Station,location='*Raw*')[0]
+            # stastr value
             stastr = f'{sta.StaName} ({sta.Experiment}) |  Depth: {str(int(1000*abs(statr.stats.sac.stel)))}m, Notch: {str(int(1/fnotch(1000*abs(statr.stats.sac.stel))))}s |  {int(np.round(ev_distances[stai]))}°'
 
             for bi in range(len(columns)):
+                # notch filt value
                 notch_filt=['Left','Right'][bi]
                 # -------- Filter and rel. amplitudes
                 sta_tr_filt=st_hold.select(network=sta.Network,station=sta.Station,location='*Raw*').copy()+st_hold.select(network=sta.Network,station=sta.Station,location=f'*{method}*').copy()
@@ -99,12 +123,18 @@ def run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,plotfold):
                 # st_raw=detect_outscale(st_raw,st_corrected,vertical_scale=vertical_scale,suppress=True)
                 # -------- Plotting
                 ax = axes[stai,bi]
+                # tr value
                 tr = sta_tr_filt
                 x=tr.select(network=sta.Network,station=sta.Station,location='*Raw*')[0].times()
+                # ylim value
                 ylim = vertical_scale*abs(tr.select(network=sta.Network,station=sta.Station,location='*Raw*')[0].data).max()
+                # variable
                 _=[ax.plot(x,tr.select(location='*'+m+'*')[0].data,
+                # color value
                 color=args.linecolor[si],
+                # alpha value
                 alpha=args.alpha[si],
+                # linewidth value
                 linewidth=args.linewidth[si]) for si,m in enumerate(['Raw',f'*{method}*'])]
                 # ko = kio
                 ax.set_xlim(x[0],x[-1]);ax.set_ylim(-ylim,ylim)
@@ -117,8 +147,11 @@ def run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,plotfold):
                 if stai==0:ax.set_title(f'{notch_filt} of infragravity limit',fontweight='bold',pad=15,fontsize=16)
                 # ===============================================================
                 if bi==0:
+                    # colors value
                     colors = args.phasecolors
+                    # stallaz value
                     stallaz=[tr[0].stats.sac.stla,tr[0].stats.sac.stlo,tr[0].stats.sac.stel]
+                    # evllaz value
                     evllaz=[event.origins[0].latitude,event.origins[0].longitude,event.origins[0].depth/1000]
                     tr[0].stats.sac.gcarc = locations2degrees(stallaz[0],stallaz[1],evllaz[0],evllaz[1])
                     if tr[0].stats.sac.gcarc<=100:phases=args.phases

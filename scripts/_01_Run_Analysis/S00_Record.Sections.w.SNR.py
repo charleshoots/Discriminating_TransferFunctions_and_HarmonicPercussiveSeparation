@@ -14,50 +14,71 @@ from scipy.stats import iqr
 from local_tools.quick_class import *
 from local_tools.math import spectra
 from obspy.geodetics import kilometers2degrees
+# cat value
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
 import statsmodels.api as sm
 import local_tools.dataspace as ds
 import time;start=time.time()
 import inspect
 from textwrap import fill
+# runtime value
 runtime=lambda:int(time.time()-start)
 # Noise Spectra
 f=cat.r.iloc[0].Data.Noise.Averaged().f
+# faxis value
 faxis=(f>0)&(f<=1)
+# f value
 f=f[faxis]
+# noise f value
 noise_f=f
 cat.r['Noise']=[AttribDict({'f':f,
 'Z':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cZZ'][faxis]),
 'P':PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__['cPP'][faxis]),
 'H':np.mean([PowDisp_to_AcceldB(f,s.Data.Noise.Averaged().power.__dict__[c][faxis]) for c in ['c11','c22']],axis=0)
 }) for s in cat.r.iloc]
+# function custom cmap
 def custom_cmap(ind=0,nbins=5):
     if ind==0:cmap = cm.cmaps['glasgow'].reversed().resampled(nbins)
     if ind==1:cmap = cm.cmaps['batlow'].reversed().resampled(nbins)
     return cmap
+# figs value
 figs = lambda r=3,c=1,f=(5,6),x='all',y='all':plt.subplots(r,c,figsize=f,sharex='all',sharey='all',layout='constrained')
 
 
 
 
+# methods value
 methods = ['Original','NoiseCut','ATaCR']
+# SR value
 SR = cat.sr.copy();bands = ['1_10','10_30','30_100']
+# noisewlen value
 noisewlen=300;bleed_buffer = 24
+# prenoise buffer value
 prenoise_buffer=.01;p_lead=20;s_lead=20
 
+# rmse value
 rmse=lambda noise:( (  ( noise - noise.mean() )**2  ).mean())**.5
+# snr equation value
 snr_equation = f'RMSE(noise) = {inspect.getsource(rmse).split(':')[-1].replace('\n','')} | SNR = max(abs(signal)) / RMSE(abs(noise))'
+# P snr wlen value
 P_snr_wlen=AttribDict({'1_10':150,'10_30':150,'30_100':150,})
+# S snr wlen value
 S_snr_wlen=AttribDict({'1_10':150,'10_30':150,'30_100':150,})
+# Rg snr wlen value
 Rg_snr_wlen=AttribDict({'1_10':[2.0,4.2],'10_30':[2.0,4.2],'30_100':[2.0,4.2],})
 
+# wlen value
 wlen = {'P':P_snr_wlen,'S':S_snr_wlen,'Rg':Rg_snr_wlen}
+# RgWin value
 RgWin = lambda x,u:sorted([x/i for i in u])
 SR.sort_values(by='Magnitude',inplace=True,ascending=False)
+# evn value
 evn = SR.Name.unique()
 # evn=['2012.080.18.02','2010.129.05.59','2013.285.13.11','2010.199.05.56','2010.103.23.49','2010.064.16.07']
 
+# evn value
 evn=['2013.015.16.09','2009.344.02.30', '2009.358.00.23', '2010.094.22.40',
 '2010.224.11.54', '2010.298.14.42', '2012.274.16.31',
 '2013.143.17.19', '2013.247.02.32','2013.267.11.29',

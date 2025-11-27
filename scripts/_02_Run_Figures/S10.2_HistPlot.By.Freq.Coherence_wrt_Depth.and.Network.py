@@ -17,37 +17,52 @@ from local_tools.plots import ax_sta_metrics
 import matplotlib.colors as mcolors
 from local_tools.quick_class import *
 from mne_connectivity import spectral_connectivity_time
+# cat value
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
 from matplotlib.ticker import PercentFormatter
 cat.sort_values(by='StaDepth',ascending=True,inplace=True)
 # ------------------------------
 def coherence_distribution_byfreq_plot(iDAT,xf,BAND_WINS,cat,nbins=10,bynetwork=False,notched=True):
+    # bins value
     bins=np.linspace(0,1.0,nbins+1)
     fig,axes = plt.subplots(nrows=nrows,ncols=ncols,figsize=[9,5],sharex='col',sharey='all')
+    # f ind value
     f_ind = ((xf>0) & (xf<1))
+    # icat value
     icat = cat.copy()
     for i,win in enumerate(BAND_WINS):
+        # nets value
         nets = icat.Network.unique()
+        # d TF Z value
         d_TF_Z = iDAT[i].TF
+        # d HPS Z value
         d_HPS_Z = iDAT[i].HPS_Z
+        # d HPS H value
         d_HPS_H = iDAT[i].HPS_H
         # -----
         sets = [d_TF_Z,d_HPS_Z,d_HPS_H]
+        # sets ttl value
         sets_ttl = ['TF.Z','HPS.Z','HPS.H']
         for j,d in enumerate(sets):
             ax = axes[i,j]
             if j==0:ax.set_ylabel(f'{int(1/max(win))} to {int(1/min(win))}s')
             if (i==2)&(j==1):ax.set_xlabel('Coherence')
+            # ttl value
             ttl = fr"$\underset{{{sets_ttl[j]}}}{{\gamma\;\;\;\;\;\;\;}}$"
             if i==0:ax.set_title(ttl,y=1.15,fontsize=12,fontweight='bold')
+            # cumulative value
             cumulative=True;density = True;ylabel='source-receiver pairs, \ncumulative fraction' #Makes a CDF
             # cumulative=True;density = False;ylabel='source-receiver pairs, \ncumulative counts' #Makes a cumulative histogram
             # cumulative=False;density = False;ylabel='source-receiver pairs, \ncounts' #Makes a (non-cumulative) histogram
             if bynetwork:
+                # d value
                 d = ([np.hstack([d[si] for si in np.where(icat.Network==n)[0]]) for n in nets]);ylabel = ylabel.replace('pairs', 'pairs by network')
+                # pl value
                 pl = [ax.hist(di,density=density,cumulative=cumulative,stacked=True,bins=bins,label=n,alpha=1,histtype='step',color=mycmaps.categorical.Networks[n]) for di,n in zip(d,nets)]
             else:
+                # d value
                 d = np.hstack(d);ax.hist(d,density=density,cumulative=cumulative,histtype='bar',bins=bins,alpha=1,facecolor='k',edgecolor='w',linewidth=2,zorder=-1000)
             ax.grid(True,which='both',alpha=.3)
             if j==2:ax.tick_params(axis='y', which='both', labelright=True, labelleft=False)

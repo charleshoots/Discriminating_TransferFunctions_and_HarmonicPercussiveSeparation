@@ -17,32 +17,45 @@ from obspy.core.inventory.inventory import read_inventory
 import operator
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle
+# dirs value
 dirs=io.dir_libraries()
 # ========================================================================================================================================================
 # ========================================================================================================================================================
 # ========================================================================================================================================================
 # ========================================================================================================================================================
 instrument_colors = {'B2':[227,26,28], 'KE':[178,223,138], 'AB':[166,206,227], 'BA':[202,178,214], 'AR':[255,127,0], 'TRM':[31,120,180], 'BG':[51,160,44], 'BD':[106,61,154]}
+# variable
 _ = [instrument_colors.update({k:list(np.array(instrument_colors[k])/255)}) for k in list(instrument_colors.keys())]
+# seismometer marker value
 seismometer_marker = {'Guralp CMG3T 120':'o','Trillium 240':'x','Trillium Compact':'^'}
+# write pickle
 def write_pickle(file,var):
     import pickle
     with open(str(file), 'wb') as handle:
         pickle.dump(var, handle, protocol=pickle.HIGHEST_PROTOCOL)
     print('Saved to :' + str(file))
+# load pickle
 def load_pickle(file):
     import pickle
     with open(file, 'rb') as handle:
+        # b value
         b = pickle.load(handle)
     return b
+# function mirror events
 def mirror_events(reports):
+    # nkeys value
     nkeys = [n for n in list(reports[0].__dict__.keys()) if not n=='f']
+    # mirror value
     mirror = dict()
     for ni,n in enumerate(nkeys):
+        # skeys value
         skeys = list(reports[0][n].__dict__.keys())
         for si,s in enumerate(skeys):
+            # stanm value
             stanm = '.'.join([n,s]).replace('n','')
+            # ev0 value
             ev0 = [k.replace('.','') for k in reports[0][n][s].events]
+            # ev1 value
             ev1 = [k.replace('.','') for k in reports[1][n][s].events]
             mirror[stanm] = np.intersect1d(ev0,ev1)
     return mirror
@@ -53,13 +66,21 @@ def mirror_events(reports):
 reportfolder = dirs.Data/'Analysis'/'NetworkCoherences'
 # bands = ['1-10','10-30','30-100']
 bands = ['left','right']
+# cat value
 cat = catalog.copy()
+# nets value
 nets = list(cat.Network.unique())
+# method value
 method = 'HPS'
+# file value
 file = str(reportfolder / method.lower() / 'Complete' / ('complete_' + method.lower() + '.ZZ_coh.report.pkl'))
+# hps report value
 hps_report = load_pickle(file)
+# method value
 method = 'ATaCR'
+# file value
 file = str(reportfolder / method.lower() / 'Complete' /('complete_' + 'ATaCR'.lower() + '.ZZ_coh.report.pkl'))
+# atacr report value
 atacr_report = load_pickle(file)
 # reports,methods = [hps_report,atacr_report],['HPS','ATaCR']
 reports,methods = [atacr_report,hps_report],['ATaCR','HPS',]
@@ -85,23 +106,35 @@ mirror = mirror_events(reports)
 # _ = [inst_colormap.update({inst:c}) for c,inst in zip(colors_hex,catalog.Instrument_Design.unique())]
 # inst_colormap
 
+# f ind notch value
 f_ind_notch = lambda f,z,lr: ((f<fnotch(z))&(f<=1)&(f>0)) if lr=='left' else ((f>=fnotch(z))&(f<=1)&(f>0))
+# function report parser
 def report_parser(cat,report,sort='StaDepth',network=None,band=[],average=False,slice=None):
+    # icat value
     icat = cat.copy()
+    # f value
     f = report['f'];f_ind = np.isfinite(f)
+    # ireport value
     ireport = report.copy()
     if network:ireport = ireport['n'+network];icat = icat[icat.Network==network]
     if not isinstance(band,str):
         if len(band)>0:f_ind = (f>=band[0]) & (f<=band[1])
     else:
+        # f ind value
         f_ind = f>-1
     if slice:
+        # slice bools value
         slice_bools = np.array([[d[key]<slice[key] or d[key]==slice[key]for d in icat.Deployment.iloc]for key in list(slice.keys())])
+        # slice filter value
         slice_filter = np.sum(slice_bools,axis=0)==slice_bools.shape[0]
+        # icat value
         icat = icat[slice_filter]
     if network==None:
+        # events value
         events=[ireport['n'+sta.Network][sta.Station].events for sta in icat.iloc]
+        # inds value
         inds = [np.intersect1d([e.Name for e in s.Events],events[si],return_indices=True)[2] for si,s in enumerate(icat.iloc)]
+        # coh value
         coh = [ireport['n'+sta.Network][sta.Station].coh[inds[si],:] for si,sta in enumerate(icat.iloc)]
     else:
         events=[ireport[sta.Station].events for sta in icat.iloc]

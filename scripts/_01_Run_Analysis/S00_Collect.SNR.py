@@ -11,27 +11,39 @@ import sys;from pathlib import Path;sys.path.append(str(Path(__file__).parent.pa
 import os,sys;from source.imports import *;from source.modules import *
 
 
+# get wins
 def get_wins(Ph,p_lead,s_lead,u,noisewin,bn,s,wlen):
+    # start value
     start = lambda k: Ph[k]-(p_lead if k in ['P','Pdiff'] else 0)  - (s_lead if k in ['S','Sdiff'] else 0)
+    # stop value
     stop = lambda k: Ph[k]+wlen[k][bn] - (p_lead if k in ['P','Pdiff'] else 0) - (s_lead if k in ['S','Sdiff'] else 0)
+    # wins value
     wins = {k:[start(k),stop(k)] for k in Ph.keys()}
     wins.update({'Rg':[s.Origin+i for i in RgWin(x,u)],
     'Noise':noisewin})
     if 'P' in Ph.keys():wins['Noise'] = [min(wins['P'])-list(p_lead+abs(np.diff(noisewin)))[0],min(wins['P'])-p_lead]
     if 'Pdiff' in Ph.keys():wins['Noise'] = [min(wins['Pdiff'])-list(p_lead+abs(np.diff(noisewin)))[0],min(wins['Pdiff'])-p_lead]
     return AttribDict(wins)
+# get noise win
 def get_noise_win(iSR,p_lead,s_lead,wlen,prenoise_buffer):
+    # minph value
     minph = iSR[iSR.Distance==iSR.Distance.min()].iloc[0].Phases(phases=('P','S'))
+    # minph value
     minph={k:[minph[k][0]-(p_lead if k in ['P','Pdiff'] else 0)  - (s_lead if k in ['S','Sdiff'] else 0),minph[k][0]+wlen[k]['30_100'] - (p_lead if k in ['P','Pdiff'] else 0) - (s_lead if k in ['S','Sdiff'] else 0)] for k in minph.keys()}
     # if 'P' in minph.keys():noisewin=[iSR.Origin[0] + (prenoise_buffer*7200) , iSR.Origin[0]+(min(minph['P'])-bleed_buffer)]
     # else:
     noisewin=[iSR.Origin[0]  , iSR.Origin[0] + noisewlen]
     return noisewin
+# baz value
 baz=lambda:obspy.geodetics.base.gps2dist_azimuth(s.Latitude,s.Longitude,s.LaLo[0],s.LaLo[1])[1]
+# function zne2lqt
 def zne2lqt(st,baz,inc,rgtime):
     z=st.select(channel='*Z')[0].data
+    # n value
     n=st.select(channel='*1')[0].data
+    # e value
     e=st.select(channel='*2')[0].data
+    # ns value
     ns=min([len(z),len(n),len(e)]) #sometimes its one sample off after trimming
     z,n,e=z[:ns],n[:ns],e[:ns]
     l,q,t=obspy.signal.rotate.rotate_zne_lqt(z,n,e,baz,inc)
@@ -40,30 +52,45 @@ def zne2lqt(st,baz,inc,rgtime):
         i.stats.location=i.stats.location.split('.')[0]+f'.{chan}'
         i.stats.baz=baz;i.stats.inc=inc
     return st
+# collect traces
 def collect_traces(s):
+    # tr value
     tr=s.Traces()
 
+    # h value
     h=s.Traces(channel='H1',methods=['Original','NoiseCut'])
+    # h2 value
     h2=s.Traces(channel='H2',methods=['Original','NoiseCut'])
     [h.append(i) for i in h2]
 
     for m in ['Original','ATaCR']:
+        # tmp value
         tmp=h.select(location='Original').copy()
+        # loop over tmp
         for i in tmp:i.stats.location=m
         [tr.append(i) for i in tmp]
     [tr.append(i) for i in h.select(location='NoiseCut')]
+    # loop over tr
     for i in tr:i.stats.location=f'{i.stats.location}.{i.stats.channel}'
+    # loop over tr
     for i in tr:i.stats.location=i.stats.location.replace('ATaCR','TF').replace('NoiseCut','HPS')
     return tr
+# standardbands value
 standardbands = ['1_10','10_30','30_100']
+# bandmap value
 bandmap=lambda bn:np.array(standardbands)[np.min(np.where(np.min([float(i) for i in bn.split('_')])<=np.array([[float(i) for i in bi.split('_')] for bi in standardbands])[:,1]))]
 # --------------------------------------------------------------------------------
 P_snr_wlen=AttribDict({'1_10':150,'10_30':150,'30_100':150,})
+# S snr wlen value
 S_snr_wlen=AttribDict({'1_10':150,'10_30':150,'30_100':150,})
+# Pdiff snr wlen value
 Pdiff_snr_wlen=AttribDict({'1_10':150,'10_30':150,'30_100':150,})
+# Sdiff snr wlen value
 Sdiff_snr_wlen=AttribDict({'1_10':150,'10_30':150,'30_100':150,})
+# Rg snr wlen value
 Rg_snr_wlen=AttribDict({'1_10':[2.0,4.2],'10_30':[2.0,4.2],'30_100':[2.0,4.2],})
 
+# note value
 note = 'V04'
 fold = dirs.SNR/'SNR.Models'
 cat = catalog.copy()
@@ -108,8 +135,8 @@ methods=['Original','NoiseCut','ATaCR']
 
 
 
-filter_type = 'acausul'
-LQT = False
+filter_type = 'acausul' #Filter type used.
+LQT = False #Experimental. Not finished. Don't use. Designed to calculate SNR after rotation into ray coordinates.
 
 
 # --------------------------------------------------------------------------------
@@ -217,5 +244,4 @@ if LQT:file=file.replace('.pkl','.LQT.pkl')
 
 if len(bands)>3:file=file.replace('.pkl',f'_{len(bands)}_bands.pkl')
 SR[safekeys].to_pickle(fold/file)
-
 

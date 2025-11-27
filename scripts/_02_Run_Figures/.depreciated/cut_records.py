@@ -15,38 +15,56 @@ from scipy.stats import iqr
 from local_tools.quick_class import *
 from local_tools.math import spectra
 from obspy.geodetics import kilometers2degrees
+# cat value
 cat = catalog.copy()
+# octavg value
 octavg=lt.math.octave_average
 import statsmodels.api as sm
 import local_tools.dataspace as ds
 # Noise Spectra
 f=cat.r.iloc[0].Data.Noise.Averaged().f
+# faxis value
 faxis=(f>0)&(f<=1)
+# f value
 f=f[faxis]
+# noise f value
 noise_f=f
+# figs value
 figs = lambda r=3,c=1,f=(5,6),x='all',y='all',layout='constrained':plt.subplots(r,c,figsize=f,sharex=x,sharey=y,layout=layout)
 from obspy.signal.trigger import classic_sta_lta,carl_sta_trig,recursive_sta_lta
+# stalta methods value
 stalta_methods={'classic':classic_sta_lta,'carl':carl_sta_trig,'recurssive':recursive_sta_lta}
+# darken value
 darken=lambda cmap,frac=0.8:ListedColormap([cmap(i) for i in np.arange(0,frac,0.01)]).resampled(100)
+# luminance value
 luminance=lambda rgb:np.sum([scl*(x / 255.0) for x,scl in zip(rgb[:-1],[0.2126,0.7152,0.0722])])/0.00392156862745098 
+# f value
 f=cat.sr.iloc[0].Data.Coherence().f
+# function meancoh
 def meancoh(icat,methods=['TF','HPS_Z','HPS_H'],bands=['1_10','10_30','30_100']):
     #Calculates average coherence for every source-receiver pair in every method and every band defined in bands.
     aggregate=lambda b,method,s,agg=np.mean:agg(s.Coherence[method].reshape(-1)[((1/f)>=min(b))&((1/f)<=max(b))])
+    # coh value
     coh=AttribDict({b:AttribDict({m:np.array([aggregate([int(i) for i in b.split('_')],m,s)
     for s in icat.iloc]) for m in methods}) for b in bands})
     return coh
+# function unpacksnr
 def unpacksnr(icat,bands=['1_10','10_30','30_100'],phases=['P','S','Rg'],methods=['ATaCR','NoiseCut'],ratio=False):
+    # mnames value
     mnames={'ATaCR':'TF','NoiseCut':'HPS_Z','Original':'Original'}
     if ratio:
+        # isnr value
         isnr=AttribDict({b:AttribDict({mnames[m]:AttribDict({p:np.array([s.SNR[b][p][m]/s.SNR[b][p]['Original'] if p in s.SNR[b].keys() else None
         for s in icat.iloc]) for p in phases}) for m in methods}) for b in bands})
     else:
+        # isnr value
         isnr=AttribDict({b:AttribDict({mnames[m]:AttribDict({p:np.array([s.SNR[b][p][m] if p in s.SNR[b].keys() else None
         for s in icat.iloc]) for p in phases}) for m in methods}) for b in bands})
     return isnr
 
+# function preproc
 def preproc(sti,freqmin,freqmax,prenoise_buffer,filtertype,plottend):
+    # nproc value
     nproc=2
     for _ in range(nproc):sti.detrend('simple').detrend('demean').detrend('simple')
     sti.taper(prenoise_buffer)
@@ -56,13 +74,20 @@ def preproc(sti,freqmin,freqmax,prenoise_buffer,filtertype,plottend):
     sti.trim(sti[0].stats.starttime,plottend)
     return sti
 
+# plot cut record
 def plot_cut_record(ev,icutdf,icutsnr,bands=['1_10','10_30','30_100'],methods=['NoiseCut.HZ','Original.HZ','ATaCR.HZ'],h_per_tr=1,width=17,note=''):
+    # phasecolors value
     phasecolors={'P':'lightblue','S':'red','Rg':'green','Noise':'lightgray'}
+    # prenoise buffer value
     prenoise_buffer=.01
+    # evn value
     evn=[ev] if isinstance(ev,str) else ev
     assert len(evn)>0, 'not a string or list of string events'
+    # figs value
     figs=[]
+    # status value
     status=lambda:print(f'{b}s | {ev} | {method}')
+    # forcedf value
     forcedf=lambda df:df if isinstance(df,pd.DataFrame) else pd.DataFrame([df])
     for bi,b in enumerate(bands):
         bn=b
