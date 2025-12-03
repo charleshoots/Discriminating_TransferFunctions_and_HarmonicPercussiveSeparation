@@ -247,3 +247,4 @@ dependencies:
     - zstandard==0.23.0
     - cmcrameri
     - gdown
+    - librosa
