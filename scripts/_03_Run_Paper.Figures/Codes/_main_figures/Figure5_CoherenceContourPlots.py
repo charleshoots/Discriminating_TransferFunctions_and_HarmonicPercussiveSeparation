@@ -13,14 +13,12 @@ import os,sys;from source.imports import *;from source.modules import *
 from scipy.stats import spearmanr, pearsonr, norm
 # Coherence contour plot
 darken=lambda cmap,frac=0.8:ListedColormap([cmap(i) for i in np.arange(0,frac,0.01)]).resampled(100)
-# luminance value
+# luminance value 
 luminance=lambda rgb:np.sum([scl*(x / 255.0) for x,scl in zip(rgb[:-1],[0.2126,0.7152,0.0722])])/0.00392156862745098 
 # function dataset averaged coherence plot
 def dataset_averaged_coherence_plot(f,z,coh,ms=35,zconnect=False,figsize=[6,6],cmap='viridis',checkerboard=(40,9),
     # title value
-    title='Station Averaged Coherence',fontsize=4,levels=None,fig=None,ax=None,octav=True,fmin=1/100,fnlinewidth=0.4):
-    # font value
-    font = {'weight':'normal','size':fontsize};matplotlib.rc('font', **font)
+    title='Station Averaged Coherence',levels=None,fig=None,ax=None,octav=True,fmin=1/100,fnlinewidth=0.4):
     z = np.round(z)
     i = np.argsort(z)
     z,coh = z[i],coh[i,:]
@@ -83,20 +81,26 @@ def dataset_averaged_coherence_plot(f,z,coh,ms=35,zconnect=False,figsize=[6,6],c
         yt=np.round(np.interp(zy,np.unique(z),np.arange(0,len(np.unique(z)),1)))
         ax.set_yticks(yt)
         ax.set_yticklabels(zy)
-    ax.set_ylabel('Water depth, m',fontweight='bold')
-    ax.set_xlabel('Period, s',fontweight='bold')
+    ax.set_ylabel('water depth, m',fontweight='bold')
+    ax.set_xlabel('period, s',fontweight='bold')
     # ax.set_title(f'{coh.shape[0]} {title}')
     ax.set_facecolor('k')
     if fig is not None:fig.suptitle(title)
+    else:fig=plt.gcf()
     # plt.colorbar(cnt)
-    plt.tight_layout()
+    # plt.tight_layout()
     # norm value
     norm = mpl.colors.TwoSlopeNorm(vmin=0, vcenter=0.5, vmax=1)
     # cbar value
-    cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap),ax=ax,extend=None)
+    sm=plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+
+    # cax = fig.add_axes([0.14252260981912146, 0.9005333333333334, 0.7738372093023256, 0.9108000000000002])
+    cbar = plt.colorbar(sm,ax=ax,extend=None)
+
     cbar.set_ticks(np.arange(0, 1.01, 0.25))
-    if fig is not None:return fig
-    if ax is not None:return ax
+    # if fig is not None:return fig
+    # if ax is not None:return ax
+    return sc
 
 # make bands
 def make_bands(N, width=None,line=np.linspace, lo=1.0, hi=100.0):
@@ -142,27 +146,16 @@ def plot_local_corr(ax,x,y,clr='blue',ms=3,alpha=.3,**kw):
     ax.fill_betweenx(xc,lo,hi,alpha=alpha,linewidth=0,color=clr)
     ax.plot(c,xc,'-o',ms=ms, lw=1,color=clr,alpha=alpha)
     ax.axvline(0,color='k',ls=':',lw=1)
+    ax.set_xlim([-.8,.8])
     return c
 
 
 
 
 # plotfolder value
-plotfolder=dirs.Ch1/'_main_figures'/'Figure5_CoherenceContour';plotfolder.mkdir(parents=True,exist_ok=True)
+plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_main_figures'/'Figure5_CoherenceContour';plotfolder.mkdir(parents=True,exist_ok=True)
+save_format = 'pdf'
 
-mpl.rcParams.update({
-"font.size": 4,              # base text size (fallback for everything)
-"axes.titlesize": 4,         # axes titles
-"axes.labelsize": 4,         # x/y labels (also used by colorbar label)
-"xtick.labelsize": 4,        # x tick labels (affects horizontal colorbar ticks)
-"ytick.labelsize": 4,        # y tick labels (affects vertical colorbar ticks)
-"legend.fontsize": 4,        # legend text
-"legend.title_fontsize": 4,  # legend title
-"figure.titlesize":4,    # suptitle
-'ytick.major.width':0.5,
-'xtick.major.width':0.5,
-'axes.edgecolor':'k',
-'axes.linewidth':0.5})
 
 # COHERENCE CONTOURS
 
@@ -245,10 +238,10 @@ for m,ax in zip(methods,cohaxes.reshape(-1)):
     cmap=darken(mpl.colormaps.get_cmap('viridis'),.95)
     cmap=cm.lipari
     pz,pcoh=np.unique(z),np.array([stat(pcoh[pz==zi,:],axis=0) for zi in np.unique(pz)])
-    dataset_averaged_coherence_plot(pf,pz,pcoh,ax=ax,ms=ms,figsize=[6,6],octav=False,
+    sc=dataset_averaged_coherence_plot(pf,pz,pcoh,ax=ax,ms=ms,figsize=[6,6],octav=False,
     cmap=cmap)
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-[ax.set_xlabel(None) for ax in cohaxes]
+[ax.set_xlabel(None) for ax in cohaxes[:2]]
 [ax.set_ylabel(None) for ax in [cohaxes[1],cohaxes[3]]]
 [ax.set_ylim(min(z),max(z)) for ax in axes.reshape(-1)]
 [ax.set_yticks([]) for ax in [cohaxes[1],cohaxes[3]]]
@@ -256,19 +249,51 @@ cbar_axes=[a for a in fig.axes if a.get_label() == '<colorbar>']
 [a.remove() for a in cbar_axes]
 ax=cohaxes[0]
 norm = mpl.colors.TwoSlopeNorm(vmin=0, vcenter=0.5, vmax=1)
-cax=inset_axes(ax, width='260%', height='3%',
-loc="lower left", bbox_to_anchor=(.07,1.06, .97, 1.0), #[x0, y0, width, height] in axes coordinated
-bbox_transform=ax.transAxes, borderpad=0)
+
+bboxL=axes[0,0].get_position()
+bboxR=axes[0,2].get_position()
+left = bboxL.x0
+right = bboxR.x1
+width = right-left
+height = 0.01 # figure fraction
+pad = 0.01 # gap above/below axes
+top = max(bboxL.y1, bboxR.y1)
+bottom = top+pad
+cax = fig.add_axes([left, bottom, width, height])
+
+# Not a pdf friendly axis (inset)
+# cax = fig.add_axes(bbox_to_anchor=(.07,1.06, .97, 1.0),bbox_transform=ax.transAxes,) #[x0, y0, width, height] in axes coordinated
+# cax = fig.add_axes(rect=(.07,1.06, .97, 1.0),transform=ax.transAxes,)
+# cax=inset_axes(ax,
+# # width='260%', height='3%',
+# loc="lower left", 
+# bbox_to_anchor=[0.14252260981912146, 0.9005333333333334, 0.7738372093023256, 0.9108000000000002],
+# # bbox_to_anchor=(.07,1.06, .97, 1.0),bbox_transform=ax.transAxes, #[x0, y0, width, height] in axes coordinated
+# borderpad=0)
+# cax.set_position([0.14252260981912146, 0.9005333333333334, 0.7738372093023256, 0.9108000000000002])
+
 cbar=plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap),cax=cax,extend=None,orientation='horizontal')
 cbar.ax.xaxis.set_ticks_position('top')
 cbar.ax.xaxis.set_label_position('top')
 cbar.ax.tick_params(top=True, bottom=False, labeltop=True, labelbottom=False)
-cbar.set_label('Coherence')
+cbar.set_label('coherence')
 # _=[ax.yaxis.set_label_position('right') for ax in scatteraxes]
 _=[ax.yaxis.set_ticks_position('none') for ax in scatteraxes]
 [ax.tick_params(left=False, right=False, labelright=False, labelleft=False) for ax in scatteraxes]
 # [ax.set_yticks([]) for ax in scatteraxes]
 cbar.set_ticks(np.arange(0, 1.01, 0.25))
+
+# Vector-backend fix:
+try:
+    cbar.solids.set_edgecolor("face")
+except Exception:
+    for col in cbar.ax.collections:
+        col.set_edgecolor("face")
+
+pos=cbar.ax.get_position()
+cbar.ax.set_rasterized(True)
+# sc.set_rasterized(True)
+from matplotlib.transforms import Bbox
 
 alpha=0.5
 fns=['IG','MS',None]
@@ -287,7 +312,11 @@ for fn in fns:
         y2=usnr.coh.__dict__[mthd].Average(band,fn=fn,agg='median')
         c1=plot_local_corr(ax,x,y1,clr='orangered',bins=bins,quantile=True,kind='pearson',N=N,ms=ms,alpha=alpha)
         c2=plot_local_corr(ax,x,y2,clr='skyblue',bins=bins,quantile=True,kind='pearson',N=N,ms=ms,alpha=alpha)
+        if axi>=2:ax.set_xlabel('PCC')
         ax.set_ylim(x.min(),x.max())
-
-    file=f'Contours.{fn if (fn is not None) else 'Full'}.png'
-    save_tight(plotfolder/file,fig,dpi=800)
+    fig.canvas.draw()
+    file=f'Contours.{fn if (fn is not None) else 'Full'}.{save_format}'
+    # cbar.ax.set_position([0.14252260981912146, 0.9005333333333334, 0.7738372093023256, 0.9108000000000002])
+    # save_tight(plotfolder/file,fig,dpi=800)
+    fig.savefig(str(plotfolder/file), pad_inches = 0.05,dpi=800,format=save_format) #Saving this as a pdf is making the colorbar bug out.
+    m=0

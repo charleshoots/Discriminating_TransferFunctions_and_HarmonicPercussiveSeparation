@@ -13,10 +13,10 @@ import os,sys;from source.imports import *;from source.modules import *
 
 
 
+
 # plotfolder value
-plotfolder=dirs.Ch1/'_supplemental_figures'/'FigureS1_meta_plot';plotfolder.mkdir(parents=True,exist_ok=True)
-
-
+plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_supplemental_figures'/'FigureS1_meta_plot';plotfolder.mkdir(parents=True,exist_ok=True)
+save_format = 'pdf'
 
 # cat value
 cat = catalog.copy()
@@ -100,11 +100,12 @@ for axi,(ax,label) in enumerate(zip(axes,labels)):
         if label=='Surface_Current_ms':ax.set_xticklabels([f for f in [tx._text for tx in ax.get_xticklabels()]])
         elif not label=='Event_Magnitude_M':ax.set_xticklabels([f for f in [tx._text for tx in ax.get_xticklabels()]])
     else:ax.set_xticklabels(ax.get_xticklabels(),rotation=[0,32,15,0,0,0][txi]);txi+=1
-    ax.set_xlabel(xlabel,fontweight='bold')
-    if np.any(np.array(['Event_Magnitude_M','Event_Distances','Event_depths_km'])==label):ax.set_ylabel('Events')
-    else:ax.set_ylabel(ylabel)
+    ax.set_xlabel(xlabel.lower().replace('mw','Mw'),fontweight='bold')
+    if np.any(np.array(['Event_Magnitude_M','Event_Distances','Event_depths_km'])==label):ax.set_ylabel('Events'.lower())
+    else:ax.set_ylabel(ylabel.lower())
 
     if label in categorical_labels:ax.set_xticks(centers(b))
     else:ax.set_xticks(bn[1:]);ax.set_xticklabels(bn[1:])
 [ax.axis('off') for axi,ax in enumerate(axes) if (axi+1)>len(labels)]
-save_tight(plotfolder/'meta_plot.png',fig,dpi=700)
+file=f'meta_plot.{save_format}'
+save_tight(plotfolder/file,fig,dpi=700)

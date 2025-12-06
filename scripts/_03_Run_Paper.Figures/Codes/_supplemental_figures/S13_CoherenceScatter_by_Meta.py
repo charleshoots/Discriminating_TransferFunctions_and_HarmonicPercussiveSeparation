@@ -46,8 +46,8 @@ SR = cat.sr.copy();note='' #Everything
 tfzax,hpszax,hpshax = 0,1,2
 if True: ## OPTIONS------------------------------------------------------------------------
     # plotfolder = dirs.P01.Parent
-    plotfolder=dirs.Ch1/'_supplemental_figures'/'FigureS13_CoherenceScatter_by_Meta';plotfolder.mkdir(parents=True,exist_ok=True)
-
+    plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_supplemental_figures'/'FigureS13_CoherenceScatter_by_Meta';plotfolder.mkdir(parents=True,exist_ok=True)
+    save_format = 'pdf'
 
     # Subsets to only periods longer than the IGP
     notched=False
@@ -152,13 +152,13 @@ for fn in [None,'IG']:
                 ax=axes[hpshax,bi]
                 x=vals;y=H
                 scatter(ax,x,y,snm,ColorStandard)
-                if named:[ax.text(xx,yy,cat.r.loc[n].Experiment,fontsize=3) for xx,yy,n in zip(x,y,snm)]
+                if named:[ax.text(xx,yy,cat.r.loc[n].Experiment,) for xx,yy,n in zip(x,y,snm)]
                 if bi==0:ax.set_ylabel(yttl('HPS.H'))
                 # ------------------------
                 ax=axes[hpszax,bi]
                 x=vals;y=ZHPS
                 scatter(ax,x,y,snm,ColorStandard)
-                if named:[ax.text(xx,yy,cat.r.loc[n].Experiment,fontsize=3) for xx,yy,n in zip(x,y,snm)]
+                if named:[ax.text(xx,yy,cat.r.loc[n].Experiment,) for xx,yy,n in zip(x,y,snm)]
                 if bi==0:ax.set_ylabel(yttl('HPS.Z'))
                 # ------------------------
                 ax=axes[tfzax,bi]
@@ -167,20 +167,20 @@ for fn in [None,'IG']:
                 if bi==0:ax.set_ylabel(yttl('TF.Z'))
                 if stat.YL is None:ax.set_ylim(auto=True)
                 else:ax.set_ylim(stat.YL)
-                # if named:[ax.text(xx,yy,cat.r.loc[n].Experiment,fontsize=3) for xx,yy,n in zip(x,y,snm)]
+                # if named:[ax.text(xx,yy,cat.r.loc[n].Experiment,) for xx,yy,n in zip(x,y,snm)]
                 # fig.suptitle('Coherence Average',y=1.05)
                 # ------------------------------------------------------------------------
                 ax=axes[0,bi];ax.set_title(f'{min(b)} to {max(b)}s')
                 if stat.title=='Sigma':ax.set_ylim(0,.4)
                 if stat.title=='Sigma':
                     for ax in axes.reshape(-1):ax.yaxis.tick_right();ax.yaxis.set_label_position("right")
-                ax=axes.reshape(-1)[-1];ax.set_xlabel(title)
+                ax=axes.reshape(-1)[-2];ax.set_xlabel(title.lower().replace('mw','Mw'))
             # if key=='StaDepth':
             #     partitions=np.arange(0,6500,500);alpha=0.25;nbins=100
             #     for ax in axes.reshape(-1):[ax.axvspan(i, i+500, color=custom_cmap(0,nbins=nbins)(i/6000), alpha=alpha, zorder=-10) for i in partitions]
         if save: 
             ##SAVING------------------------------------------------------------------------
-            file=f'{key}.{'IG_Sensitive.' if fn=='IG' else 'Regardless.of.IG.'}.{stat.title}.{note}png'
+            file=f'{key}.{'IG_Sensitive.' if fn=='IG' else 'Regardless.of.IG.'}.{stat.title}.{note}{save_format}'
             if named:file='Named.'+file
             save_tight(plotfolder/file,fig,dpi=800)
             plt.close()

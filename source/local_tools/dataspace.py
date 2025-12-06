@@ -177,8 +177,10 @@ class dataspace:
         self.index()
 
         if self.demo:self._restrict_data()
-
         for k, v in kwargs.items():setattr(self, k, v)
+
+        self._remove_depreciated_sr_pairs()
+
     def load(self):
         if 'all' in self.sets:
             self.sets=['sr','r','s','Janiszewski23'.lower()]
@@ -260,6 +262,19 @@ class dataspace:
     def __rcat_to_srcat(self):self.sr=rcat_to_srcat(self.r)
     def __import_HJan23(self):self.Janiszewski23=import_HJan23(self.hjanfile)
     def __rcat_to_scat(self):self.s=rcat_to_scat(self.r)
+
+    def _remove_depreciated_sr_pairs(self):
+        #The following SR pairs were quarantined on April 2nd, 2025 for extreme outlier SNR reduction (negative)
+        depreciated_ = np.array(['2014.109.13.28', '2010.222.05.23', '2011.175.03.09',
+            '2014.101.07.07', '2011.097.14.32', '2013.242.16.25',
+            '2015.142.21.45', '2015.208.21.41', '2011.232.18.19',
+            '2011.236.17.46', '2011.246.22.55', '2014.144.09.25',
+            '2010.216.22.01', '2013.033.14.17', '2015.208.04.49',
+            '2013.134.00.32', '2013.289.10.31', '2014.215.00.22',
+            '2011.130.08.55', '2014.320.22.33', '2013.274.03.38',
+            '2013.144.14.56', '2015.116.07.09', '2015.191.04.12'])
+        self.sr = self.sr[~self.sr.Name.isin(depreciated_)]
+    
 # D = []
 # icat = cat.sr.copy()
 # for sr in icat.iloc:

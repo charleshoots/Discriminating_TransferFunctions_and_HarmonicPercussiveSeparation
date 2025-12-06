@@ -23,8 +23,8 @@ cat = catalog.copy()
 
 
 # plotfolder value
-plotfolder=dirs.Ch1/'_supplemental_figures'/'FigureS14_NarrowSymmetryAnalysisPlots';plotfolder.mkdir(parents=True,exist_ok=True)
-
+plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_supplemental_figures'/'FigureS14_NarrowSymmetryAnalysisPlots';plotfolder.mkdir(parents=True,exist_ok=True)
+save_format = 'pdf'
 # Noise Spectra
 f=cat.r.iloc[0].Data.Noise.Averaged().f
 # faxis value
@@ -187,6 +187,7 @@ filtertype='acausul';note='V04';fold=dirs.Data/'SNR_Models';file =f'SNR_{filtert
 SNR=load_pickle(fold/file)
 SR=catalog.sr.copy();SR.sort_values(by=['Name','StaName'],inplace=True)
 SNR.sort_values(by=['Name','StaName'],inplace=True)
+SNR = SNR[np.isin(np.array(SNR.Name + '-' + SNR.StaName),np.array(SR.Name + '-' + SR.StaName))]
 assert sum((SR.Name==SNR.Name)&(SR.StaName==SNR.StaName))==len(SNR), 'failed start sets'
 # snr=unpacksnr(SNR.copy(),methods=['ATaCR','NoiseCut','Original'])
 usnr=unpack_metrics(icat)
@@ -253,8 +254,8 @@ for ki,key in enumerate(meta_wins.keys()):
             ax_right=ax.twinx()
             ax_right.tick_params(axis='y', which='both', left=False, right=True, labelleft=False, labelright=True)
             ysides.append(ax_right)
-            for ax in [right.side,left.side]:ax.set_xlabel('Counts')
-            for ax in [left.top]:ax.set_ylabel('Counts')         
+            for ax in [right.side,left.side]:ax.set_xlabel('counts')
+            for ax in [left.top]:ax.set_ylabel('counts')         
             fig.suptitle(f'{p}, {b.replace('_',' to ')}s',y=.94)
             if scen:fig.suptitle(f'Scenario  {scen.replace('_','.').upper()} | {fig.get_suptitle()}',y=.94)
             cbar_ax=fig.add_axes([.125, -.1, 0.8-.025, 0.03])
@@ -280,7 +281,7 @@ for ki,key in enumerate(meta_wins.keys()):
             sm=mpl.cm.ScalarMappable(cmap=cmap, norm=norm);sm.set_array([])
             cbar_ticks=cbar_ticks if not (key in ['StaDepth','Sediment_Thickness_m','Distance']) else cbar_ticks[::2]
             cbar_ticklabels=cbar_ticklabels if not (key in ['StaDepth','Sediment_Thickness_m','Distance']) else cbar_ticklabels[::2]
-            cbar=fig.colorbar(sm, cax=cbar_ax, boundaries=boundaries, orientation='horizontal', label=label,shrink=0.7, aspect=30)
+            cbar=fig.colorbar(sm, cax=cbar_ax, boundaries=boundaries, orientation='horizontal', label=label.lower().replace('mw','Mw'),shrink=0.7, aspect=30)
             cbar.set_ticks(cbar_ticks)
             cbar.set_ticklabels(cbar_ticklabels)
             if True:
@@ -316,7 +317,7 @@ for ki,key in enumerate(meta_wins.keys()):
             phasename=f'{p}.wave'
             keyname=key
 
-            file=f'{'_'.join([phasename,keyname,bandname])}.png';file=file.replace('StaDepth','WaterDepth')
+            file=f'{'_'.join([phasename,keyname,bandname])}.{save_format}';file=file.replace('StaDepth','WaterDepth')
             file=f'{str(pi).zfill(2)}.{str(bi).zfill(2)}_{file}'
             if ratio:file=f'Ratio.w.Orig_{file}'
             if key=='StaDepth':file=f'_{file}'

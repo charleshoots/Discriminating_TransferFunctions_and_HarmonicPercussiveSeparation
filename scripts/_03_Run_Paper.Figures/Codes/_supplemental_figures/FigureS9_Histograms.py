@@ -21,8 +21,8 @@ runtime=lambda:int(time.time()-start)
 
 
 # plotfolder value
-plotfolder=dirs.Ch1/'_supplemental_figures'/'FigureS9_Histograms';plotfolder.mkdir(parents=True,exist_ok=True)
-
+plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_supplemental_figures'/'FigureS9_Histograms';plotfolder.mkdir(parents=True,exist_ok=True)
+save_format = 'pdf'
 
 
 # icat value
@@ -115,7 +115,7 @@ for key in meta_wins.keys():
                         rightlabel=f'{b.replace('_',' to ')}s'
                         ax_right=ax.twinx()
                         ax_right.tick_params(axis='y', which='both', left=False, right=False, labelleft=False, labelright=True)
-                        ax_right.set_ylabel(f'{rightlabel}',fontweight='bold',fontsize=9,rotation=-90,labelpad=15)
+                        ax_right.set_ylabel(f'{rightlabel}',fontweight='bold',rotation=-90,labelpad=15)
                         ax_right.set_yticks([])
 
             if orientation=='vertical':fig.subplots_adjust(left=0, right=0.75) 
@@ -140,15 +140,15 @@ for key in meta_wins.keys():
             if key == 'Sediment_Thickness_m':label = 'Sediment thickness, m'
         cbar_ticks=cbar_ticks if not (key in ['StaDepth','Sediment_Thickness_m']) else cbar_ticks[::2]
         cbar_ticklabels=cbar_ticklabels if not (key in ['StaDepth','Sediment_Thickness_m']) else cbar_ticklabels[::2]
-        cbar=fig.colorbar(sm, cax=cbar_ax, boundaries=boundaries, orientation=orientation, label=label,shrink=0.7, aspect=30)
+        cbar=fig.colorbar(sm, cax=cbar_ax, boundaries=boundaries, orientation=orientation, label=label.lower().replace('mw','Mw'),shrink=0.7, aspect=30)
         cbar.set_ticks(cbar_ticks)
         cbar.set_ticklabels(cbar_ticklabels)
         
-        file=f'{outtype}.{key}.{mtr.upper()}.png'
+        file=f'{outtype}.{key}.{mtr.upper()}'
         if stacked:file=file+'.Stacked'
         else:file=file+'.Mu'
         if norm_pdf:file=file+'.Normed'
-        file=file+'.png'
+        file=file+f'.{save_format}'
         save_tight(plotfolder/file,fig,dpi=700)
         print(f'{key} - Saved')
         plt.close()

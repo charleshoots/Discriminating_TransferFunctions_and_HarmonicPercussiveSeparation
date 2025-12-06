@@ -91,7 +91,8 @@ dirs=io.dir_libraries()
 
 
 # plotfolder value
-plotfolder=dirs.Ch1/'_main_figures'/'Table2_Correlograms';plotfolder.mkdir(parents=True,exist_ok=True)
+plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_main_figures'/'Table2_Correlograms';plotfolder.mkdir(parents=True,exist_ok=True)
+save_format = 'png'
 
 # OUT CSV value
 OUT_CSV=dirs.Catalogs/'Janiszewski_etal_2023_StationAverages.xlsx'
@@ -351,8 +352,8 @@ def tri_correlogram(X, names=None, method="spearman", bins=24,
 
             ax.set_xticks([]); ax.set_yticks([])
             if names is not None:
-                if i == n-1: ax.set_xlabel(names[j], ha='center', va='center', labelpad=45, fontsize=fnt)
-                if j == 0:   ax.set_ylabel(names[i], ha='center', va='center', labelpad=30, fontsize=fnt)
+                if i == n-1: ax.set_xlabel(names[j], ha='center', va='center', labelpad=45, )
+                if j == 0:   ax.set_ylabel(names[i], ha='center', va='center', labelpad=30, )
             if i >= j and np.any(m):
                 xmn,xmx = np.nanmin(xi[m]), np.nanmax(xi[m])
                 ymn,ymx = np.nanmin(yi[m]), np.nanmax(yi[m])
@@ -366,7 +367,7 @@ def tri_correlogram(X, names=None, method="spearman", bins=24,
                          loc="lower left", bbox_to_anchor=(1.08, 0.0, 1, 1.0),
                          bbox_transform=ax.transAxes, borderpad=0)
         cb = fig.colorbar(im_for_cb, cax=cax, cmap=cmap)
-        cb.set_label({"pearson":"Pearson r","spearman":"Spearman ρ","kendall":"Kendall τ"}[method], fontsize=fnt)
+        cb.set_label({"pearson":"Pearson r","spearman":"Spearman ρ","kendall":"Kendall τ"}[method], )
         cb.ax.tick_params(labelsize=fnt)
     fig.tight_layout(rect=[0,0,1.0,1])
     return C, fig
@@ -456,9 +457,9 @@ for fn in fns:
             Xin = [xi() for xi in X]
             C,fig = tri_correlogram(Xin, names, method=corrmethod, figscaling=2.2)
 
-            if fn=='IG':fig.suptitle(f'{b[0]} to {b[1]}s below the notch',y=1.01,fontsize=70,fontweight='bold')
-            elif fn=='MS':fig.suptitle(f'{b[0]} to {b[1]}s above the notch',y=1.01,fontsize=70,fontweight='bold')
-            else:fig.suptitle(f'{b[0]} to {b[1]}s regardless of notch',y=1.1,fontsize=20,fontweight='bold')
+            if fn=='IG':fig.suptitle(f'{b[0]} to {b[1]}s below the notch',y=1.01,fontweight='bold')
+            elif fn=='MS':fig.suptitle(f'{b[0]} to {b[1]}s above the notch',y=1.01,fontweight='bold')
+            else:fig.suptitle(f'{b[0]} to {b[1]}s regardless of notch',y=1.1,fontweight='bold')
 
             xcnames = names.copy()
             for i,j in enumerate(xcnames):
@@ -477,7 +478,7 @@ for fn in fns:
             (fold/'_xls').mkdir(parents=True,exist_ok=True)
 
             prefix = (fn or "").replace("IG","Notched.").replace("MS","MS.")
-            file = f"_Example_{prefix}{corrmethod}.correlogram.{len(X)}x{len(X)}.{bn}.png"
-            df.to_excel(fold/'_xls'/file.replace('.png','.xlsx'))
+            file = f"_Example_{prefix}{corrmethod}.correlogram.{len(X)}x{len(X)}.{bn}.{save_format}"
+            df.to_excel(fold/'_xls'/file.replace(f'.{save_format}','.xlsx'))
             _=save_tight(fold/file,dpi=50)
             plt.close('all')

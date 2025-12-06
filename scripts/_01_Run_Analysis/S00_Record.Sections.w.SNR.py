@@ -181,7 +181,7 @@ for bi,b in enumerate(bands):
                         text=lambda k:f'{k}: {metrics[bn][k][method]:.2f}\nST:{metrics[bn].ST[k][method]:.2e}\nLT:{metrics[bn].LT[method]:.2e})'
                         PSwingap = (min(wins['S'])-max(wins['P'])) if ('P' in wins.keys())&('S' in wins.keys()) else 0
                         [ax.text(xpos(k)/xmx,.1*ymx,text(k),zorder=1e5,ha=texth(k),fontweight=fontweight,
-                        bbox=dict(facecolor='white', edgecolor='black',boxstyle='square,pad=0.2'),va='bottom',fontsize=7,transform=ax.transAxes) for ki,k in enumerate(wins.keys()) if k in ['P','S','Rg']]
+                        bbox=dict(facecolor='white', edgecolor='black',boxstyle='square,pad=0.2'),va='bottom',transform=ax.transAxes) for ki,k in enumerate(wins.keys()) if k in ['P','S','Rg']]
             fig.suptitle(fig.get_suptitle()+ f' |  {method} | Mw {iSR.iloc[0].Magnitude} ' + f'({int(iSR.Distance.min())}-{int(iSR.Distance.max())}°)' + f' | {1/freqmax} to {1/freqmin}s\n' + snr_equation,y=1.06)
             fig.set_figheight(10);fig.set_figwidth(17)
             fold = dirs.SNR/'Plots'/f'{note}_{filtertype}'

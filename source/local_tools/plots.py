@@ -1114,7 +1114,7 @@ def dataset_averaged_coherence_plot(f,z,coh,ms=35,zconnect=False,figsize=[6,6],c
 
     norm = mpl.colors.Normalize(vmin=0, vmax=1.0)
     # F,Z,C=np.flip(F,axis=0),np.flip(Z,axis=0),np.flip(C,axis=0) #Looks better with this off
-    sc = ax.scatter(F.ravel(), Z.ravel(), c=C.ravel(), marker='s', s=s, cmap=cmap, norm=norm, edgecolors='none')
+    sc = ax.scatter(F.ravel(), Z.ravel(), c=C.ravel(), marker='s', s=s, cmap=cmap, norm=norm, edgecolors='none',linewidths=0)
     ax.set_xscale('log')
 
     fn_z = np.linspace(z.min(),z.max(),len(z)*10)

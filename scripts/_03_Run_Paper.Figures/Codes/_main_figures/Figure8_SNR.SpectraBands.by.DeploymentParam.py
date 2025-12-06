@@ -36,9 +36,8 @@ usnr=unpack_metrics(icat)
 
 
 # plotfolder value
-plotfolder=dirs.Ch1/'_main_figures'/'Figure8_SNR.SpectraBands.by.DeploymentParam';plotfolder.mkdir(parents=True,exist_ok=True)
-
-
+plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_main_figures'/'Figure8_SNR.SpectraBands.by.DeploymentParam';plotfolder.mkdir(parents=True,exist_ok=True)
+save_format = 'pdf'
 
 
 # --- helpers ---
@@ -90,14 +89,14 @@ def add_discrete_colorbar(xcat,ax, fig, labels, cmap='glasgow', edges=None,
     sm = mpl.cm.ScalarMappable(cmap=cmap, norm=norm); sm.set_array([])
     cbar = fig.colorbar(sm, ax=ax, orientation=orientation, fraction=fraction, pad=pad)
     cbar.set_ticks(ticks)
-    cbar.set_ticklabels(ticklabels,fontsize=8,rotation=90 if xcat=='Seismometer' else 0,ha='center')
+    cbar.set_ticklabels(ticklabels,rotation=90 if xcat=='Seismometer' else 0,ha='center')
     cbar.ax.tick_params(pad=12)  # try 4–8
-    if xcat=='TiltCoherence':cbar.set_label('ZH coherence (tilt)')
-    elif xcat=='StaDepth':cbar.set_label('Water depth, m')
-    elif xcat=='EvDepth':cbar.set_label('Earthquake depth, km')
+    if xcat=='TiltCoherence':cbar.set_label('ZH coherence (tilt)'.lower())
+    elif xcat=='StaDepth':cbar.set_label('Water depth, m'.lower())
+    elif xcat=='EvDepth':cbar.set_label('Earthquake depth, km'.lower())
     else:
         ttl=xcat.replace('TiltCoherence','ZH coherence (Tilt)').replace('_',' ').lower()
-        cbar.set_label(f'{ttl[0].upper()}{ttl[1:]}')
+        cbar.set_label(f'{ttl[0].upper()}{ttl[1:]}'.lower().replace('mw','Mw'))
     return sm, norm
 def cbarlam(axes,fig,cmap=cm.cmaps['glasgow'],vmin=0,vmax=1,orientation='vertical',fraction=0.025,pad=0.04):
     # (kept for compatibility if you still want a continuous bar somewhere)
@@ -199,14 +198,14 @@ for mtr in ['snr']:
         ttl=xcat.replace('TiltCoherence','Tilt').replace('_',' ').lower()
         # ax.set_title(f'{ttl[0].upper()}{ttl[1:]}')
         ax.grid(True, zorder=0, alpha=0.25)
-        ax.set_ylabel(r'$\eta$' if mtr=='snr' else r'$\gamma$',fontsize=11)
+        ax.set_ylabel(r'$\eta$' if mtr=='snr' else r'$\gamma$')
 
     if axi==3:
-        ax=axes[0,0];ax.scatter(np.nan,0,label=yttl(mthds_mkr[0][0]) if mtr=='coh' else yttl_eta(mthds_mkr[0][0]),marker='s',c='None',ec='r',lw=2,s=12);ax.scatter(np.nan,0,label=yttl(mthds_mkr[1][0]) if mtr=='coh' else yttl_eta(mthds_mkr[1][0]),c='None',marker='s',ec='k',lw=2,s=12)
-        lg=ax.legend(fancybox=False,frameon=False,ncols=2,labelspacing=0.0,columnspacing=0.5,fontsize=9)
+        ax=axes[0,0];ax.scatter(np.nan,0,label=yttl(mthds_mkr[0][0]) if mtr=='coh' else yttl_eta(mthds_mkr[0][0]),marker='s',c='None',ec='r',lw=.5,s=12);ax.scatter(np.nan,0,label=yttl(mthds_mkr[1][0]) if mtr=='coh' else yttl_eta(mthds_mkr[1][0]),c='None',marker='s',ec='k',lw=2,s=12)
+        lg=ax.legend(fancybox=False,frameon=False,ncols=2,labelspacing=0.0,columnspacing=0.5)
 
     ax=axes[1,0];ax.set_xlabel(r'$\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;$frequency, Hz',x=.5,ha='left')
     fig.subplots_adjust(wspace=0)
-    file = f'{mthd}.{mtr}.by.DeploymentParameters.png'
-    if Horiz:file = f'Horiz.{mtr.upper()}.{'.'.join(sets)}.png'
+    file = f'{mthd}.{mtr}.by.DeploymentParameters.{save_format}'
+    if Horiz:file = f'Horiz.{mtr.upper()}.{'.'.join(sets)}.{save_format}'
     save_tight(plotfolder/file,fig,dpi=700)

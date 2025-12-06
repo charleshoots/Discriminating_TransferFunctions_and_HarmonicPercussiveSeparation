@@ -40,8 +40,8 @@ cat.sr['TiltCoherence']=oriencohere
 
 
 # plotfolder value
-plotfolder=dirs.Ch1/'_main_figures'/'Figure9_HighTilt.Plots';plotfolder.mkdir(parents=True,exist_ok=True)
-
+plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_main_figures'/'Figure9_HighTilt.Plots';plotfolder.mkdir(parents=True,exist_ok=True)
+save_format = 'pdf'
 
 # octavg value
 octavg=lt.math.octave_average
@@ -218,11 +218,11 @@ for axi,( ax, m )in enumerate(zip(axes, methods)):
         lo, hi = ax.get_xlim()
         ax.set_xlim(hi, lo)
     if mtr=='coh':ax.set_ylim(0, 1)
-    ax.set_title(yttl(m.replace('_',' ')) if mtr=='coh' else yttl_eta(m.replace('_',' ')), fontsize=9, pad=12)
+    ax.set_title(yttl(m.replace('_',' ')) if mtr=='coh' else yttl_eta(m.replace('_',' ')), pad=12)
     ax.grid(True, which='both', ls=':', lw=0.4, alpha=0.6)
     if ax is axes[0]:
-        ax.set_ylabel(r'$\gamma$' if mtr=='coh' else r'$\eta$', fontsize=9)
-    if axi==1:spaces='\;'*19;ax.set_xlabel(f'${spaces}$Period, s', fontsize=9,ha='left')
+        ax.set_ylabel(r'$\gamma$' if mtr=='coh' else r'$\eta$')
+    if axi==1:spaces='\;'*19;ax.set_xlabel(f'${spaces}$period, s',ha='left')
 
 for ax in axes:_=ax.set_xlim(100,8)
 
@@ -230,9 +230,9 @@ for ax in axes:_=ax.set_xlim(100,8)
 _=fig.tight_layout(rect=1.3*np.array([0, .3, 1,1]))
 handles, labels = axes[0].get_legend_handles_labels()
 lg=fig.legend(handles, labels, ncol=min(len(idx_bins), 4), loc='upper center',
-bbox_to_anchor=(0.69, 1.34), frameon=False, fontsize=9)
+bbox_to_anchor=(0.69, 1.34), frameon=False)
 for h in lg.legend_handles:h.set_linewidth(2)
 
 
-file=f'{mtr.upper()}.HighTiltPlot.png'
+file=f'{mtr.upper()}.HighTiltPlot.{save_format}'
 _=save_tight(plotfolder/file,fig,dpi=800)

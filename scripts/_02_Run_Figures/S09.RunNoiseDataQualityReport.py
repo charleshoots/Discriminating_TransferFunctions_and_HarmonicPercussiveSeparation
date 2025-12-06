@@ -67,10 +67,10 @@ for si,sta in enumerate(cat.iloc):
                 # ticks value
                 ticks=np.linspace(ax.get_ylim()[0],ax.get_ylim()[1],5,dtype=int)
                 ax.set_yticks(ticks)
-                ax.set_yticklabels(ax.get_yticklabels(),fontsize=6)
-                if ci==0:ax.set_title(f'{col_titles[col]} ({ndays})', fontdict={'fontsize': 9})
+                ax.set_yticklabels(ax.get_yticklabels())
+                if ci==0:ax.set_title(f'{col_titles[col]} ({ndays})')
                 if ci<3:ax.set_xticks([])
-                if ci==3:ax.set_xlabel('Frequency (Hz)', fontdict={'fontsize': 9})
+                if ci==3:ax.set_xlabel('Frequency (Hz)')
                 if (col==0)&(ci==1):ax.set_ylabel('dB Power Density 10log10 $m^{2}/s^{4}$ / Hz')
                 if (col==0)&(ci==3):ax.set_ylabel('dB Power Density \n 10log10 $Pa^{2}$ / Hz')
             continue
@@ -103,13 +103,13 @@ for si,sta in enumerate(cat.iloc):
             else:ax.set_ylim([-250,10]);ticks=[-250,-150,-50,0]
             # ticks=np.linspace(ax.get_ylim()[0],ax.get_ylim()[1],5,dtype=int)
             ax.set_yticks(ticks)
-            ax.set_yticklabels(ax.get_yticklabels(),fontsize=6)
-            if ci==0:ax.set_title(f'{col_titles[col]} ({ndays})', fontdict={'fontsize': 9})
+            ax.set_yticklabels(ax.get_yticklabels())
+            if ci==0:ax.set_title(f'{col_titles[col]} ({ndays})')
             if ci<3:ax.set_xticks([])
-            if ci==3:ax.set_xlabel('Frequency (Hz)', fontdict={'fontsize': 9})
+            if ci==3:ax.set_xlabel('Frequency (Hz)')
             if (col==0)&(ci==1):ax.set_ylabel('dB Power Density 10log10 $m^{2}/s^{4}$ / Hz')
             if (col==0)&(ci==3):ax.set_ylabel('dB Power Density \n 10log10 $Pa^{2}$ / Hz')
-        if col==0:[ax.text(min(ax.get_xlim())+.001,min(ax.get_ylim()),c,verticalalignment='bottom',horizontalalignment='left',fontsize=11) for c,ax in zip(comps,axes[:,col])]
+        if col==0:[ax.text(min(ax.get_xlim())+.001,min(ax.get_ylim()),c,verticalalignment='bottom',horizontalalignment='left') for c,ax in zip(comps,axes[:,col])]
         fig.suptitle(f'{sta.Experiment} {sta.StaName},{int(sta.StaDepth)}m ({np.round(fnotch(sta.StaDepth),2)}Hz)',y=0.94)
         file = f'{stanm}.Noise.QC.png'
         # file = file.replace('.png',f'.{note}.png')

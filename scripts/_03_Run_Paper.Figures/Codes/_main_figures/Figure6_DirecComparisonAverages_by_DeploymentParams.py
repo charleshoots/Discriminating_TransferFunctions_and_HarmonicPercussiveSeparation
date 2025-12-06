@@ -99,27 +99,13 @@ def make_bands(N, width=None,line=np.linspace, lo=1.0, hi=100.0):
 
 
 
-plotfolder=dirs.Ch1/'_main_figures'/'Figure6_DirectMetricComparison.byDeployment';plotfolder.mkdir(parents=True,exist_ok=True)
+plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_main_figures'/'Figure6_DirectMetricComparison.byDeployment';plotfolder.mkdir(parents=True,exist_ok=True)
+save_format = 'pdf'
 
 
 
 
 
-
-# ColorStandard.instrument.update({'B2':'silver'})
-mpl.rcParams.update({
-"font.size": 4,              # base text size (fallback for everything)
-"axes.titlesize": 4,         # axes titles
-"axes.labelsize": 4,         # x/y labels (also used by colorbar label)
-"xtick.labelsize": 4,        # x tick labels (affects horizontal colorbar ticks)
-"ytick.labelsize": 4,        # y tick labels (affects vertical colorbar ticks)
-"legend.fontsize": 4,        # legend text
-"legend.title_fontsize": 4,  # legend title
-"figure.titlesize":4,    # suptitle
-'ytick.major.width':0.5,
-'xtick.major.width':0.5,
-'axes.edgecolor':'k',
-'axes.linewidth':0.5})
 
 icat=cat.sr.copy()
 usnr=unpack_metrics(icat)
@@ -150,32 +136,33 @@ def band_xy(mtr,band,ph,fn=None,octave=True):
         g=(y<0)&(y>bar); x[g]=np.nan;y[g]=np.nan
     return x,y
 
-icat=cat.sr.copy()
-usnr=unpack_metrics(icat)
+
+
+color_by_band=True #If True, replace instrument design color with band color (1-10,10-30,30-100).
+# color_by_band=False
 
 
 inst_color=ColorStandard.instrument
 seis_marker=ColorStandard.seismometer_marker
 u=np.unique(np.array(list(icat.StaName)))
 cols=[inst_color[cat.r.loc[s].iloc[0].Instrument_Design] for s in u]
-mks =[seis_marker[cat.r.loc[s].iloc[0].Seismometer]       for s in u]
+mks =[seis_marker[cat.r.loc[s].iloc[0].Seismometer] for s in u]
 
 phases=np.array(['P','S','Rg'])
 # pref={tuple(b):ph for b,ph in zip(bands,phases)}
-pcol={'P':'red','S':'royalblue','Rg':'violet'}
-pcol={'P':'lightsteelblue','S':'slategrey','Rg':'black'}
+pcol={'P':'red','S':'royalblue','Rg':'violet'} if color_by_band else {'P':'lightsteelblue','S':'slategrey','Rg':'black'}
 # bands=[tuple(b) for b in bands]
 bands=np.array([(1,10),(10,30),(30,100)])
 # bands=np.array([(1,100),(1,100),(1,100)])
 yttl = lambda c:fr"$\underset{{{c}}}{{\gamma\;\;\;\;\;\;\;}}$"
-msize=10
+msize=15
 msizes=cscale(np.array(bands).mean(axis=1),smin=msize*.4,smax=msize*.7,sgamma=2)[:,0]
 msizes = msizes*0+msize
 figsize=(5,2)
 cmap=mpl.colormaps.get_cmap('viridis')
 xcat='Magnitude';lw=1.5;cmap=mpl.colormaps.get_cmap('viridis')
 # xcat='StaDepth';lw=1.5;cmap=cm.cmaps['glasgow']
-xcat='Seismometer';lw=.5
+xcat='Seismometer';lw=.1
 octave=True #Enable octave averaging
 pref = ['P','S','Rg']
 
@@ -200,16 +187,17 @@ for fn in [None]:
             ax.set_ylabel(yttl('TF Z')); ax.set_xlabel(yttl('HPS Z'))
         else:
             lim=[1e-6,.8]
-            lim=[-.05,.8]
+            lim=[-.02,.8]
             ax.set_xlim(lim[::-1]); ax.set_ylim(lim[::-1]); 
             # ax.set_xscale('symlog'); ax.set_yscale('symlog')
             ax.yaxis.set_label_position('right'); ax.yaxis.tick_right()
             ax.set_ylabel(r'$\eta_{\;TF Z}$'); ax.set_xlabel(r'$\eta_{\;HPS Z}$')
-        ax.plot(lim,lim,c='k',zorder=1e3,lw=1,ls=':')
+        ax.plot(lim,lim,c='k',zorder=-1e3,lw=.7,ls=':')
         for bi,b in enumerate(bands[::-1]):
             alpha=1.0 if bi<2 else 1.0
             # ph=pref[tuple(b)]
             ph = pref[bi]
+            bandcolor = pcol[ph]
             ec=pcol[ph]; size=msizes[bi] if bi<2 else msizes[bi]*.5
             x,y=data[mtr][tuple(b)]
             g=np.ones(len(x),dtype=bool)
@@ -223,24 +211,26 @@ for fn in [None]:
                     if not np.any(i): continue
                     if m=='x':
                         instcolor=list(cA[i])
-                        [(ax.scatter(xx,yy,ec=ec,c=ec,marker=m,s=size*1.00,lw=2.0*lw,alpha=alpha),
-                        ax.scatter(xx,yy,ec=ec,c=c,marker=m,s=size*.8,alpha=alpha,lw=lw)) for xx,yy,c in zip(xn[i],yn[i],instcolor)]
+                        markercolor=[bandcolor for _ in range(len(instcolor))] if color_by_band else instcolor
+                        [(ax.scatter(xx,yy,ec='k',c=c,marker=m,s=size*1.00,lw=3*lw if color_by_band else 4*lw,alpha=alpha),
+                        ax.scatter(xx,yy,ec='k' if color_by_band else bandcolor,c=c,marker=m,s=size*.8,alpha=alpha,lw=3*lw if color_by_band else 4*lw)) for xx,yy,c in zip(xn[i],yn[i],markercolor)]
                     else:
                         instcolor=list(cA[i])
-                        ax.scatter(xn[i],yn[i],ec=ec,c=instcolor,marker=m,s=size*.5 if m=='^' else size*.5,lw=lw,alpha=alpha)
+                        markercolor=[bandcolor for _ in range(len(instcolor))] if color_by_band else instcolor
+                        ax.scatter(xn[i],yn[i],ec='k' if color_by_band else bandcolor,c=markercolor,marker=m,s=size*.5 if m=='^' else size*.5,lw=lw if color_by_band else 2*lw,alpha=alpha)
             if xcat=='Magnitude':
                 jj=np.array(list(icat.Magnitude))[g]
                 dx=0.1;u=dbin(np.arange(6,8+dx,dx))
                 xn=np.array([stat(x[(jj>=s[0])&(jj<=s[1])]) for s in u])
                 yn=np.array([stat(y[(jj>=s[0])&(jj<=s[1])]) for s in u])
-                ax.scatter(xn,yn,ec=ec,c=u.mean(axis=1),cmap=cmap,marker='o',s=20,lw=lw,alpha=alpha)
+                ax.scatter(xn,yn,ec=ec,c=u.mean(axis=1),cmap=cmap,marker='o',s=20,lw=lw if color_by_band else 2*lw,alpha=alpha)
 
             if xcat=='StaDepth':
                 jj=np.array(list(icat[xcat]))[g]
                 dx=500;u=dbin(np.arange(0,6000+dx,dx))
                 xn=np.array([stat(x[(jj>=s[0])&(jj<=s[1])]) for s in u])
                 yn=np.array([stat(y[(jj>=s[0])&(jj<=s[1])]) for s in u])
-                ax.scatter(xn,yn,ec=ec,c=u.mean(axis=1),cmap=cmap,marker='o',s=20,lw=lw,alpha=alpha)
+                ax.scatter(xn,yn,ec=ec,c=u.mean(axis=1),cmap=cmap,marker='o',s=20,lw=lw if color_by_band else 2*lw,alpha=alpha)
 
             if (mtr=='snr')&(bi==0)&(not (xcat=='Seismometer')):
                 cbar=cbarlam(ax,fig,cmap=cmap,vmin=np.min(u),vmax=np.max(u),orientation='vertical',fraction=0.025,pad=0.02)
@@ -251,7 +241,7 @@ for fn in [None]:
             # lw=2
             # ax.yaxis.set_label_position('right');ax.yaxis.tick_right()
             hdls=[ax.scatter(np.nan,0,marker='s',c='w',ec=pcol[ph],label={'P':'1-10s','S':'10-30s','Rg':'30-100s'}[ph],lw=2,s=20) for ph in ['P','S','Rg']]
-            leg=ax.legend(handles=hdls,frameon=False, ncols=1, fontsize=5,loc='upper left',markerscale=1)
+            leg=ax.legend(handles=hdls,frameon=False, ncols=1,loc='upper left',markerscale=1)
             for h in leg.legend_handles:h.set_linewidth(2)
-    file=f"{xcat}.SNR.and.COH.Comparisons{f'.{fn}' if fn is not None else ''}.png"
+    file=f"{xcat}.{'colored.by.band' if color_by_band else 'colored.by.instrument'}.SNR.and.COH.Comparisons{f'.{fn}' if fn is not None else ''}.{save_format}"
     _=save_tight(plotfolder/file,fig,dpi=900)

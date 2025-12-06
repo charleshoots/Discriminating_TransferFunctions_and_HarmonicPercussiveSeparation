@@ -47,14 +47,14 @@ def make_plot(r,c):
             filt_cc.filter('bandpass',freqmin=1/band[1],freqmax=1/band[0],zerophase=True,corners=4)
             ax.plot(filt_rr.times(),filt_rr.data,c='r',linewidth=0.4)
             ax.plot(filt_cc.times(),filt_cc.data,c='k',linewidth=0.4)
-            ax.set_title(axtitle,fontweight='bold',fontsize=20)
+            ax.set_title(axtitle,fontweight='bold')
             ax.set_xlim(filt_rr.times()[0],filt_rr.times()[-1])
             # yl value
             yl=max([abs(filt_rr.data).max(),abs(filt_rr.data).min()])
             ax.set_ylim(-yl,yl)
             del filt_rr,filt_cc
         del rr,cc
-    fig.suptitle(f'{ev}| Mw{srstats.Magnitude}',fontweight='bold',fontsize=24,y=0.93)
+    fig.suptitle(f'{ev}| Mw{srstats.Magnitude}',fontweight='bold',y=0.93)
     return fig
 
 

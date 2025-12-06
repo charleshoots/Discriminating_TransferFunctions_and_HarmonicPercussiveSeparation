@@ -22,9 +22,8 @@ dirs=dir_libraries()
 
 
 # plotfolder value
-plotfolder=dirs.Ch1/'_main_figures'/'Figure11_MetricComparisons';plotfolder.mkdir(parents=True,exist_ok=True)
-
-
+plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_main_figures'/'Figure11_MetricComparisons';plotfolder.mkdir(parents=True,exist_ok=True)
+save_format = 'pdf'
 
 
 # tilt bin edges value
@@ -77,7 +76,7 @@ for mthd in mthds:
     # mtrs value
     mtrs = [['LT','ST']]
     # names value
-    names={'LT':'Noise','ST':'Signal','snr':'snr'}
+    names={'LT':'Noise'.lower(),'ST':'Signal'.lower(),'snr':'snr'}
     # bands value
     bands = [[1,10],[10,30],[30,100]]
     # resx value
@@ -135,8 +134,8 @@ for mthd in mthds:
                     pl_y=[yy.clip(0,1) for yy in pl_y]
                     [ax.scatter(xx,yy,marker=marker,s=msize,ec='k',lw=0.2,c=phcolor[ph],alpha=alpha) for xx,yy,ph in zip(pl_x,pl_y,phases)]
                     xlabel=rf'$\Delta$ {names[xmtr]}';ylabel=rf'$\Delta$ {names[ymtr]}'
-                    if axi==2:ax.set_xlabel(f'{xlabel} ({mthd.split('_')[0]})',fontsize=9)
-                    if axi==1:ax.set_ylabel(f'{ylabel} ({mthd.split('_')[0]})',fontsize=9)
+                    if axi==2:ax.set_xlabel(f'{xlabel} ({mthd.split('_')[0]})')
+                    if axi==1:ax.set_ylabel(f'{ylabel} ({mthd.split('_')[0]})')
                     # ax.axhline(0,alpha=0.4,ls=':',c='k',zorder=-1e3,lw=0.9);ax.axvline(0,alpha=0.4,ls=':',c='k',zorder=-1e3,lw=0.9)
                 mrezx.append(pl_x);mrezy.append(pl_y);mcoh.append(pl_coh)
             prezx.append(mrezx);prezy.append(mrezy);pcoh.append(mcoh)
@@ -160,13 +159,13 @@ for mthd in mthds:
         ax.plot(lims,lims,color='k',ls='-',lw=0.5,alpha=0.5,zorder=-1e4)
         # ax.tick_params(size=7,labelsize=7)
         hdls=[ax.scatter(np.nan,np.nan,marker='s',ec='k',c=phcolor[ph],label=f'{ph.replace('Rg','Rayleigh')} ({b[0]}-{b[1]}s)',lw=0.2) for ph in ['P','S','Rg']]
-        ax.legend(handles=hdls,loc='lower right',borderaxespad=0,frameon=False,fontsize=6)
+        ax.legend(handles=hdls,loc='lower right',borderaxespad=0,frameon=False)
 
 
 
     fold = plotfolder
     
-    file = f'_01_{mthd}.Signal.Nose.Reduction.png'
+    file = f'_01_{mthd}.Signal.Nose.Reduction.{save_format}'
     _=save_tight(fold/file,fig,dpi=700)
 
 
@@ -195,18 +194,18 @@ for mthd in mthds:
                 x=np.array(ppy)/np.array(ppx);y=np.array(py)
                 ax.scatter(x,y,c=phcolor[ph],marker='^' if max(mg)==8.0 else 'v',ec='k',lw=0.5)
         ax.axvline(1.0,ls=':',c='k',lw=0.9)
-    axes[1].set_ylabel(yttl(mthd.replace('_',' ')),fontsize=9)
-    axes[-1].set_xlabel(f'{ylabel} / {xlabel} ({mthd.split('_')[0]})',fontsize=9)
+    axes[1].set_ylabel(yttl(mthd.replace('_',' ')))
+    axes[-1].set_xlabel(f'{ylabel} / {xlabel} ({mthd.split('_')[0]})')
     for ax,b in zip(axes,bands):
         ax.grid(alpha=0.3,zorder=-1e3)
         ax.tick_params(size=7,labelsize=7)
         hdls=[ax.scatter(np.nan,np.nan,marker='s',ec='k',c=phcolor[ph],label=f'{ph.replace('Rg','Rayleigh')} ({b[0]}-{b[1]}s)',lw=0.2) for ph in ['P','S','Rg']]
-        ax.legend(handles=hdls,loc='best',borderaxespad=0,frameon=False,fontsize=6)
+        ax.legend(handles=hdls,loc='best',borderaxespad=0,frameon=False)
 
 
     fold = plotfolder
     
-    file = f'_02_{mthd}.Coherence.with.Delta.Ratio.png'
+    file = f'_02_{mthd}.Coherence.with.Delta.Ratio.{save_format}'
     _=save_tight(fold/file,fig,dpi=700)
 
     waterdepth=np.array([cat.r.aloc[s].iloc[0].StaDepth for s in np.unique(sn)])
@@ -221,23 +220,23 @@ for mthd in mthds:
                 y=waterdepth
                 ax.scatter(x,y,c=phcolor[ph],marker='^' if max(mg)==8.0 else 'v',ec='k',lw=0.5)
         ax.axvline(1.0,ls=':',c='k',lw=0.9)
-    axes[1].set_ylabel('Water depth, m',fontsize=9)
-    axes[-1].set_xlabel(f'{ylabel} / {xlabel} ({mthd.split('_')[0]})',fontsize=9)
+    axes[1].set_ylabel('Water depth, m')
+    axes[-1].set_xlabel(f'{ylabel} / {xlabel} ({mthd.split('_')[0]})')
     for ax,b in zip(axes,bands):
         ax.grid(alpha=0.3,zorder=-1e3)
         ax.tick_params(size=7,labelsize=7)
         hdls=[ax.scatter(np.nan,np.nan,marker='s',ec='k',c=phcolor[ph],label=f'{ph.replace('Rg','Rayleigh')} ({b[0]}-{b[1]}s)',lw=0.2) for ph in ['P','S','Rg']]
-        ax.legend(handles=hdls,loc='best',borderaxespad=0,frameon=False,fontsize=6)
+        ax.legend(handles=hdls,loc='best',borderaxespad=0,frameon=False)
 
 
     fold = plotfolder
     
-    file = f'_06_{mthd}.WaterDepth.with.Delta.Ratio.png'
+    file = f'_06_{mthd}.WaterDepth.with.Delta.Ratio.{save_format}'
     _=save_tight(fold/file,fig,dpi=700)
 
 
 
-    for wi,w in enumerate(['Noise','Signal']):
+    for wi,w in enumerate(['Noise'.lower(),'Signal'.lower()]):
         magwins=[[6,7],[7,8]]
         phases=['Rg','S','P']
         phband={'P':[1,10],'S':[10,30],'Rg':[30,100]}
@@ -252,28 +251,28 @@ for mthd in mthds:
                     # x=np.nanmean(b)
                     # x=bi+1
                     # y=pearson(py,px)
-                    if w=='Signal':x=np.array(ppy)
+                    if w=='Signal'.lower():x=np.array(ppy)
                     else:x=np.array(ppx)
                     y=np.array(py)
-                    ax.scatter(x,y,c=phcolor[ph] if w=='Signal' else 'gainsboro',marker='^' if max(mg)==8.0 else 'v',ec='k',lw=0.5)
+                    ax.scatter(x,y,c=phcolor[ph] if w=='Signal'.lower() else 'gainsboro',marker='^' if max(mg)==8.0 else 'v',ec='k',lw=0.5)
             ax.axvline(1.0,ls=':',c='k',lw=0.9)
             ax.grid(alpha=0.3,zorder=-1e3);ax.tick_params(size=7,labelsize=7)
-        axes[1].set_ylabel(yttl(mthd.replace('_',' ')),fontsize=9)
-        axes[-1].set_xlabel(f'{ylabel if w=='Signal' else xlabel} ({mthd.split('_')[0]})',fontsize=9)
+        axes[1].set_ylabel(yttl(mthd.replace('_',' ')))
+        axes[-1].set_xlabel(f'{ylabel if w=='Signal'.lower() else xlabel} ({mthd.split('_')[0]})')
         ax.tick_params(size=7,labelsize=7)
         for ax,b in zip(axes,bands):
-            if w=='Signal':hdls=[ax.scatter(np.nan,np.nan,marker='s',ec='k',c=phcolor[ph],label=f'{ph.replace('Rg','Rayleigh')} ({b[0]}-{b[1]}s)',lw=0.2) for ph in ['P','S','Rg']]
+            if w=='Signal'.lower():hdls=[ax.scatter(np.nan,np.nan,marker='s',ec='k',c=phcolor[ph],label=f'{ph.replace('Rg','Rayleigh')} ({b[0]}-{b[1]}s)',lw=0.2) for ph in ['P','S','Rg']]
             else:hdls=[ax.scatter(np.nan,np.nan,marker='s',ec='k',c='gainsboro',label=f'{b[0]}-{b[1]}s',lw=0.2)]
-            ax.legend(handles=hdls,loc='best',borderaxespad=0,frameon=False,fontsize=6)
+            ax.legend(handles=hdls,loc='best',borderaxespad=0,frameon=False)
 
 
         fold = plotfolder
         
-        file = f'_{str(3+wi).zfill(2)}_{mthd}.Coherence.with.Delta.{w}.png'
+        file = f'_{str(3+wi).zfill(2)}_{mthd}.Coherence.with.Delta.{w}.{save_format}'
         _=save_tight(fold/file,fig,dpi=700)
 
 
-    for wi,w in enumerate(['Noise','Signal']):
+    for wi,w in enumerate(['Noise'.lower(),'Signal'.lower()]):
         magwins=[[6,7],[7,8]]
         phases=['Rg','S','P']
         phband={'P':[1,10],'S':[10,30],'Rg':[30,100]}
@@ -288,25 +287,25 @@ for mthd in mthds:
                     # x=np.nanmean(b)
                     # x=bi+1
                     # y=pearson(py,px)
-                    if w=='Signal':x=np.array(ppy)
+                    if w=='Signal'.lower():x=np.array(ppy)
                     else:x=np.array(ppx)
                     # y=np.array(py)
                     y=waterdepth
-                    ax.scatter(x,y,c=phcolor[ph] if w=='Signal' else 'gainsboro',marker='^' if max(mg)==8.0 else 'v',ec='k',lw=0.5)
+                    ax.scatter(x,y,c=phcolor[ph] if w=='Signal'.lower() else 'gainsboro',marker='^' if max(mg)==8.0 else 'v',ec='k',lw=0.5)
             ax.axvline(1.0,ls=':',c='k',lw=0.9)
             ax.grid(alpha=0.3,zorder=-1e3);ax.tick_params(size=7,labelsize=7)
-        axes[1].set_ylabel('Water depth, m',fontsize=9)
-        axes[-1].set_xlabel(f'{ylabel if w=='Signal' else xlabel} ({mthd.split('_')[0]})',fontsize=9)
+        axes[1].set_ylabel('Water depth, m')
+        axes[-1].set_xlabel(f'{ylabel if w=='Signal'.lower() else xlabel} ({mthd.split('_')[0]})')
         ax.tick_params(size=7,labelsize=7)
         for ax,b in zip(axes,bands):
-            if w=='Signal':hdls=[ax.scatter(np.nan,np.nan,marker='s',ec='k',c=phcolor[ph],label=f'{ph.replace('Rg','Rayleigh')} ({b[0]}-{b[1]}s)',lw=0.2) for ph in ['P','S','Rg']]
+            if w=='Signal'.lower():hdls=[ax.scatter(np.nan,np.nan,marker='s',ec='k',c=phcolor[ph],label=f'{ph.replace('Rg','Rayleigh')} ({b[0]}-{b[1]}s)',lw=0.2) for ph in ['P','S','Rg']]
             else:hdls=[ax.scatter(np.nan,np.nan,marker='s',ec='k',c='gainsboro',label=f'{b[0]}-{b[1]}s',lw=0.2)]
-            ax.legend(handles=hdls,loc='best',borderaxespad=0,frameon=False,fontsize=6)
+            ax.legend(handles=hdls,loc='best',borderaxespad=0,frameon=False)
 
 
         fold = plotfolder
         
-        file = f'_{str(7+wi).zfill(2)}_{mthd}.WaterDepth.with.Delta.{w}.png'
+        file = f'_{str(7+wi).zfill(2)}_{mthd}.WaterDepth.with.Delta.{w}.{save_format}'
         _=save_tight(fold/file,fig,dpi=700)
 
 
@@ -330,32 +329,32 @@ for mthd in mthds:
         if axi==1:
             ax.tick_params(axis='y', which='both', labelright=True, labelleft=False,
             right=True, left=False)
-            ax.set_ylabel(yttl(mthd.replace('_',' ')),fontsize=9)
+            ax.set_ylabel(yttl(mthd.replace('_',' ')))
             ax.tick_params(size=7,labelsize=7)
             ax.set_xlim(0.5,3.5)
             ax.set_xticks([1.5,2.5])
             ax.set_xticklabels([10,30])
             ax.axhline(0,ls=':',c='k')
             ax.yaxis.set_label_position('right')   # then ax.set_ylabel('Your label')
-            ax.set_ylabel(rf'{yttl(mthd.replace('_',' '))} correlation with $\Delta$ Signal',fontsize=8)
-            # ax.set_ylabel('Correlation coefficient',fontsize=8)
-            # ax.set_xlabel('Period band',fontsize=8)
+            ax.set_ylabel(rf'{yttl(mthd.replace('_',' '))} correlation with $\Delta$ Signal')
+            # ax.set_ylabel('Correlation coefficient')
+            # ax.set_xlabel('Period band')
         else:
             # ax.tick_params(axis='y', which='both', labelright=True, labelleft=False,
             # right=True, left=False)
-            ax.set_ylabel(yttl(mthd.replace('_',' ')),fontsize=9)
+            ax.set_ylabel(yttl(mthd.replace('_',' ')))
             ax.tick_params(size=7,labelsize=7)
             ax.set_xlim(0.5,3.5)
             ax.set_xticks([1.5,2.5])
             ax.set_xticklabels([10,30])
             ax.axhline(0,ls=':',c='k')
             # ax.yaxis.set_label_position('right')   # then ax.set_ylabel('Your label')
-            ax.set_ylabel(rf'{yttl(mthd.replace('_',' '))} correlation with $\Delta$ Noise',fontsize=8)
-            # ax.set_ylabel('Correlation coefficient',fontsize=8)
+            ax.set_ylabel(rf'{yttl(mthd.replace('_',' '))} correlation with $\Delta$ Noise')
+            # ax.set_ylabel('Correlation coefficient')
             spaces='\;'*7
-            ax.set_xlabel(rf'${spaces}$Period band, s',fontsize=8,ha='left')
+            ax.set_xlabel(rf'${spaces}$Period band, s',ha='left')
 
     fold = plotfolder
     
-    file = f'_05_{mthd}.Correlation.png'
+    file = f'_05_{mthd}.Correlation.{save_format}'
     _=save_tight(fold/file,fig,dpi=700)

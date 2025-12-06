@@ -23,6 +23,11 @@ mapfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_main_figures'/'Figure1_MapPlot
 
 # Data and variables
 # --- inputs from your codebase ---
+
+
+# save_format='png'
+save_format='pdf' #plot save save_format
+
 cat = catalog.copy()
 # TRN value
 TRN = PyGMT_PLT_Scatter_Translator
@@ -248,11 +253,10 @@ if 'global' in MapsToMake:
     # -------- save/show --------
     outdir=mapfolder
     outdir.mkdir(parents=True,exist_ok=True)
-    # fmt='pdf'
-    fmt='png'
 
-    outfile = outdir / f"Both_PacificCentered.romaO.lapaz{'.with.Stations' if plot_stations else '.without.Stations'}.{fmt}"
-    fig.savefig(str(outfile), dpi=900)
+    outfile = outdir / f"Both_PacificCentered.romaO.lapaz{'.with.Stations' if plot_stations else '.without.Stations'}.{save_format}"
+    if save_format=='png':fig.savefig(str(outfile), dpi=900)
+    else:fig.savefig(str(outfile))
     fig.show()
     print(f"Global map done - Saved: {outfile}")
     plt.close();del fig
@@ -373,8 +377,13 @@ if 'network' in MapsToMake:
         fig.basemap(frame=f"+t{net}")
         outdir=mapfolder
         outdir.mkdir(parents=True, exist_ok=True)
-        pngfile = outdir / f"network_{net}.png"
-        fig.savefig(str(pngfile), dpi=900)
+        outfile = outdir / f"network_{net}.{save_format}"
+
+
+        if save_format=='png':fig.savefig(str(outfile), dpi=900)
+        else:fig.savefig(str(outfile))
+
+
         # pdffile = outdir / f"network_{net}.pdf"
         # fig.savefig(str(pdffile))
         fig.show()

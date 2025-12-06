@@ -117,14 +117,13 @@ cat=catalog.sr.copy()
 usnr=unpack_metrics(cat)
 f=1/usnr.coh.bands
 
-plotfolder=dirs.Ch1/'_supplemental_figures'/'FigureS10_Coh.vs.Coh.Scatter';plotfolder.mkdir(parents=True,exist_ok=True)
-
-
+plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_supplemental_figures'/'FigureS10_Coh.vs.Coh.Scatter';plotfolder.mkdir(parents=True,exist_ok=True)
+save_format = 'pdf'
 
 
 ttl=lambda tl:fr"$\underset{{{tl}}}{{\gamma{'\;\;'*len(tl)}}}$"
 f_ind=(f>0)&(f<=1);xf=f[f_ind]
-y=0.95;fontsize=14;fontweight='bold'
+y=0.95;fontweight='bold'
 oct_av=True
 plot_individual_pairs=False
 
@@ -182,8 +181,8 @@ for req in runs.keys():
             else:ax.set_title(set_ttl(set),fontweight=fontweight,y=0.99)
 
 
-            if np.isin(axi,leftinds):ax.set_ylabel(ttl(ymethod.replace('_','.')) if not sigma else (f'{ttl(ymethod.replace('_','.'))} variance'),fontweight=fontweight,fontsize=fontsize)
-            if np.isin(axi,bottominds):ax.set_xlabel(ttl(xmethod.replace('_','.')) if not sigma else (f'{ttl(xmethod.replace('_','.'))} variance'),fontweight=fontweight,fontsize=fontsize)
+            if np.isin(axi,leftinds):ax.set_ylabel(ttl(ymethod.replace('_','.')) if not sigma else (f'{ttl(ymethod.replace('_','.'))} variance'),fontweight=fontweight)
+            if np.isin(axi,bottominds):ax.set_xlabel(ttl(xmethod.replace('_','.')) if not sigma else (f'{ttl(xmethod.replace('_','.'))} variance'),fontweight=fontweight)
 
             if not sigma:ax.set_xlim(0,1);ax.set_ylim(0,1);ax.set_xticks([0,0.5,1.0]);ax.set_yticks([0,0.5,1.0])
             else:ax.set_xlim(0,.5);ax.set_ylim(0,.5);ax.set_xticks([0,0.25,.5]);ax.set_yticks([0,0.25,.5])
@@ -193,7 +192,7 @@ for req in runs.keys():
         plt.subplots_adjust(wspace=0.2, hspace=0.2)
         plt.tight_layout()
         # -----Save
-        fname=f'S10.cohVcoh_{xmethod.replace('_','')}_{ymethod.replace('_','')}{'_OctaveAv' if oct_av else None}_by{req}.png'
+        fname=f'S10.cohVcoh_{xmethod.replace('_','')}_{ymethod.replace('_','')}{'_OctaveAv' if oct_av else None}_by{req}.{save_format}'
         if sigma:
             fname=fname.replace('S10','S10.sigma')
             (plotfolder/'sigma').mkdir(parents=True, exist_ok=True)

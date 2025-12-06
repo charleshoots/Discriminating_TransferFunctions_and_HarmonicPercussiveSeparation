@@ -87,21 +87,37 @@ class AnyLoc:
 # How to use dataspace
 
 # -- Publication setup
-# catalog = ds.dataspace() 
-#Without any arguments, the dataspace will assume all data for the entire default catalog is present and ready for us.
+catalog = ds.dataspace() 
+#Without any arguments, the dataspace will assume all data for the entire default catalog is present and ready for use.
 #If this is not true, this will return an error.
 
 
 # -- Demo setup
 # Constrains catalog to only one station (demo='7D.M07A' for demonstation purposes) 
 # and does not pipe in any data to the catalog (aggregate=False ,ie noise data, coherence, snr, or traces)
-catalog = ds.dataspace(aggregate=True,demo='7D.M08A')
+# catalog = ds.dataspace(aggregate=True,demo='7D.M08A')
 # Note: The demo argument can be set to a single station name or a list of station names.
 
 
 
 
 # --------------------Some.useful.constants--------------------
+import matplotlib as mpl
+
+mpl.rcParams.update({
+"font.size": 10,
+"font.family": "sans-serif",
+"font.sans-serif": ["Helvetica", "Arial", "DejaVu Sans"],
+"axes.titlesize": 12,
+"axes.labelsize": 10,
+"xtick.labelsize": 6,
+"ytick.labelsize": 6,
+"legend.fontsize": 6,
+"figure.titlesize": 12,
+"legend.fontsize": 6,
+"legend.title_fontsize": 6,
+})
+
 ColorStandard=AttribDict()
 ColorStandard.instrument = {'B2': '#e31a1c','KE': '#b2df8a','AB': '#a6cee3','BA': '#cab2d6','AR': '#ff7f00','TRM': '#1f78b4','BG': '#33a02c','BD': '#6a3d9a'}
 ColorStandard.seismometer_marker = {'Guralp CMG3T 120':'o','Trillium 240':'x','Trillium Compact':'^'}

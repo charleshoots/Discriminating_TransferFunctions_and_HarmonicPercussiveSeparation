@@ -110,23 +110,11 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 
 
-mpl.rcParams.update({
-"font.size": 4,              # base text size (fallback for everything)
-"axes.titlesize": 4,         # axes titles
-"axes.labelsize": 4,         # x/y labels (also used by colorbar label)
-"xtick.labelsize": 4,        # x tick labels (affects horizontal colorbar ticks)
-"ytick.labelsize": 4,        # y tick labels (affects vertical colorbar ticks)
-"legend.fontsize": 6,        # legend text
-"legend.title_fontsize": 6,  # legend title
-"figure.titlesize":4,    # suptitle
-'ytick.major.width':0.5,
-'xtick.major.width':0.5,
-'axes.edgecolor':'k',
-'axes.linewidth':0.5})
 
 
 # ---- Plot options
-plotfolder=dirs.Ch1/'_supplemental_figures'/'FigureS6_ComparativeHistogram';plotfolder.mkdir(parents=True,exist_ok=True)
+plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_supplemental_figures'/'FigureS6_ComparativeHistogram';plotfolder.mkdir(parents=True,exist_ok=True)
+save_format = 'pdf'
 
 from scipy.stats import norm
 mthds=['TF_Z','HPS_Z']
@@ -140,7 +128,6 @@ yttl_eta = lambda c:fr"$\underset{{{c}}}{{\eta\;\;\;\;\;\;\;}}$"
 cmap=cm.grayC.resampled(100)
 colors=[cmap(30),cmap(60),cmap(1000)]
 
-fontsize = 7
 filtband=(1,100) #Period band to do the averaging in
 fn='IG'#IG = Only include values within a given band (ie (1,100)s) that are sensitive to the IG
 # fn= None #None = Ignore all IG sensitivity when averaging over a given band.
@@ -153,7 +140,7 @@ fnsets=[None,'IG'] #Does both within and regardless of IG sensitivity
 
 lims = {'snr':[],'coh':[]}
 xcat = 'Instrument_Design'
-cat.sr['All_data']='All data'
+cat.sr['All_data']='all data'
 for fn in fnsets:
     for xcat in ['All_data','Instrument_Design','Pressure_Gauge','Seismometer']:
         xc = np.unique(cat.sr[xcat].to_numpy())
@@ -212,7 +199,9 @@ for fn in fnsets:
                         label=np.array(label)[sorti],stacked=True,zorder=1e3,)
                         from matplotlib.ticker import PercentFormatter
                         ax.yaxis.set_major_formatter(PercentFormatter(xmax=100))
-                        if (ri==1)&(axi==0):ax.set_ylabel(f'Percent of source-receivers ({f'{str(sum(idx))[0]},{str(sum(idx))[1:]}'})',ha='center',labelpad=2.5,fontsize=6)
+                        if (ri==1)&(axi==0):
+                            numstr = str(sum(idx)/1000).replace('.',',') if sum(idx)>=1000 else str(sum(idx))
+                            ax.set_ylabel(f'percent of source-receivers ({f'{numstr}'})',ha='center',labelpad=2.5,fontsize=8)
                         ax.set_ylim((0.01528455995339294, 150.95276962368143))
                         ax.set_yscale('log')
                         yt=[1.e-01, 1.e+00, 1.e+01, 1.e+02];ax.set_yticks(yt);ax.set_yticklabels(yt)
@@ -220,13 +209,13 @@ for fn in fnsets:
                         else:xlabel=[rf'$\eta_{{{'HPS Z'}}}$',rf'$\eta_{{{'TF Z'}}}$']
                         spaces=r'$\quad$'*3;arrowspaces=r'$\quad$'*14
                         xlabel = f'$\\leftarrow${arrowspaces}$\\rightarrow$ \n {xlabel[0]} is higher {spaces}{xlabel[1]} is higher'
-                        ax.set_xlabel(xlabel,fontsize=6,labelpad=3)
+                        ax.set_xlabel(xlabel,labelpad=3)
                         ax.axvline(0,c='r',lw=1,ls='-.',zorder=1e5)
 
                     # if (ri==1)&(axi==1):
                     if (ri==1):
                         handles, labels = ax.get_legend_handles_labels()
-                        ax.legend(handles=list(np.array(handles[:3])[np.argsort(sorti)]),frameon=True,fontsize=4,framealpha=1)
+                        ax.legend(handles=list(np.array(handles[:3])[np.argsort(sorti)]),frameon=True,framealpha=1)
                     if ri==0:
                         ax.xaxis.set_ticks_position('top')      # ticks at top
                         ax.xaxis.set_label_position('top')      # x-label at top
@@ -253,16 +242,16 @@ for fn in fnsets:
                     # ax.set(xlim=line[0],ylim=line[1])
                     ax.set(xlim=[np.min(line),np.max(line)],ylim=[np.min(line),np.max(line)])
             for ax in axes.reshape(-1):ax.grid(True,zorder=-1e10,alpha=0.3,color='k')
-            for j,ax in zip([yttl,yttl_eta],axes[0,:]):ax.set_xlabel(j('HPS Z'),fontsize=fontsize,labelpad=7);ax.set_ylabel(j('TF Z'),fontsize=fontsize)
+            for j,ax in zip([yttl,yttl_eta],axes[0,:]):ax.set_xlabel(j('HPS Z'),labelpad=7);ax.set_ylabel(j('TF Z'))
             sensitivity_text = {None:'regardless of infragravity sensitivity','IG':'within the infragravity sensitivity limit','MS':'outside the infragravity sensitivity limit'}
             center_text = f'{xci}\n{sensitivity_text[fn]}'
-            ax=axes[1,0];ax.text(1.1,1.20,center_text,transform=ax.transAxes,ha='center',bbox=dict(facecolor='white', alpha=1.0,edgecolor='w',linewidth=0.1),fontsize=7,fontweight='bold')
+            ax=axes[1,0];ax.text(1.1,1.20,center_text,transform=ax.transAxes,ha='center',bbox=dict(facecolor='white', alpha=1.0,edgecolor='w',linewidth=0.1),fontweight='bold',fontsize=6)
             fig.tight_layout()
             fig.subplots_adjust(hspace=0.5,wspace=0.15)
             # for ax in axes[0,:]:ax.xaxis.set(labelpad=4)
             fold=plotfolder
             if not xcat=='All_data':fold=fold/xcat
             fold.mkdir(parents=True,exist_ok=True)
-            file=f'{xci.replace(' ','_')}._{'RegardlessofIG' if fn is None else fn}_BasicComparativeHist.png'
+            file=f'{xci.replace(' ','_')}._{'RegardlessofIG' if fn is None else fn}_BasicComparativeHist.{save_format}'
             _=save_tight(fold/file,fig,dpi=900)
             print(f'{xcat} : {xci} - Done')

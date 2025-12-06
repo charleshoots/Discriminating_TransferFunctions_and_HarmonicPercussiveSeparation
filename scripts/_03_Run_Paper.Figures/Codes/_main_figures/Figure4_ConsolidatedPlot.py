@@ -12,6 +12,7 @@ import os,sys;from source.imports import *;from source.modules import *
 
 from local_tools.quick_class import *
 
+
 # cat value
 cat = catalog.copy()
 # octavg value
@@ -109,21 +110,6 @@ theta_deg=np.array([df[(df.network==stnm.split('.')[0])&((df.station==stnm.split
 cat.sr['Tilt']=theta_deg
 
 
-mpl.rcParams.update({
-"font.size": 4,              # base text size (fallback for everything)
-"axes.titlesize": 4,         # axes titles
-"axes.labelsize": 4,         # x/y labels (also used by colorbar label)
-"xtick.labelsize": 4,        # x tick labels (affects horizontal colorbar ticks)
-"ytick.labelsize": 4,        # y tick labels (affects vertical colorbar ticks)
-"legend.fontsize": 4,        # legend text
-"legend.title_fontsize": 4,  # legend title
-"figure.titlesize":4,    # suptitle
-'ytick.major.width':0.5,
-'xtick.major.width':0.5,
-'axes.edgecolor':'k',
-'axes.linewidth':0.5})
-
-
 
 # --- Plot
 avged=False
@@ -133,8 +119,11 @@ mtrsets='R.vs.SNR'
 # mtrsets='ST.vs.LT'
 
 # -------Options--------
-file='ConsolidatedFigure.png'
-plotfolder=dirs.Ch1/'_main_figures'/'Figure4_ConsolidatedPlot';plotfolder.mkdir(parents=True,exist_ok=True)
+
+save_format = 'pdf'
+
+file=f'ConsolidatedFigure.{save_format}'
+plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_main_figures'/'Figure4_ConsolidatedPlot';plotfolder.mkdir(parents=True,exist_ok=True)
 phase_letters=['P','S','R']  # order matches third dim of snr
 msize=25; scat_alpha=.6
 colors={'HPS_1':'olive','HPS_2':'goldenrod','TF_Z':'orangered','HPS_Z':'skyblue',}
@@ -206,8 +195,8 @@ for ri,(raxes,rsect) in enumerate(zip(axes,sectors)):
             ax.set_ylim(top=1.0412867859005928)
             # ax.set_xscale('log');
             ax.set_xlim(100,1)
-            ax.set_xlabel('Period, s'); ax.set_ylabel('Coherence')
-            leg=ax.legend(handles=hdls,frameon=False, ncols=1, fontsize=5,loc='lower right',markerscale=10)
+            ax.set_xlabel('period, s'); ax.set_ylabel('Coherence')
+            leg=ax.legend(handles=hdls,frameon=False, ncols=1,loc='lower right',markerscale=10)
             for h in leg.legend_handles:h.set_linewidth(4)
             # ax.grid(True,which='both',alpha=0.15,color='k')
         else:
@@ -229,7 +218,7 @@ for ri,(raxes,rsect) in enumerate(zip(axes,sectors)):
                             # x=abs(x)
                             y=np.array([usnr.ST.__dict__[m].R().Average(band,fn=fn) for m in mthds])     # (method, SR)
                         if avged:
-                            savefile=f'{file.split('.png')[0]}.Averaged';msize=25
+                            savefile=f'{file.split(f'.{save_format}')[0]}.Averaged';msize=25
                             
                             if mtrsets=='R.vs.SNR':
                                 x=np.moveaxis(np.array([np.nanmean(x[:,loc(s,mg)],axis=1) for s in np.unique(stnm)]),0,1) #reduced to station averages
@@ -247,7 +236,7 @@ for ri,(raxes,rsect) in enumerate(zip(axes,sectors)):
                         xhold[m].append(x)
             if mtrsets=='R.vs.SNR':ax.set_xlabel(rf'$\eta$ {prefph[sect]}');ax.set_ylabel(r'$\gamma$')
             else:ax.set_xlabel('Noise ratio, log10');ax.set_ylabel('Signal ratio, log10'); 
-            ax.text(0.98,0.96,f'{sect.replace('_','-')}s',ha='right',va='center',transform=ax.transAxes,fontsize=8)
+            ax.text(0.98,0.96,f'{sect.replace('_','-')}s',ha='right',va='center',transform=ax.transAxes)
             # ax.grid(True,which='both',alpha=0.15,color='k')
             if avged:
                 # if mtrsets=='R.vs.SNR':ax.set_xscale('log')
@@ -271,15 +260,11 @@ for ri,(raxes,rsect) in enumerate(zip(axes,sectors)):
             kw=getkw(mg,ml,msize,colors,m,scat_alpha);kw.update({'alpha':1.0,'c':['k']})
             sc=ax.scatter(np.nan,np.nan,label=r'$f$  >  $f_{n}$' if not np.isin(None,fnwins) else r'$f$ $\leq$ $f_{n}$ $\leq$ $f$', **kw)
             sch.append(sc)
-            ax.legend(frameon=False,handles=sch,loc='lower left',fontsize=5)
+            ax.legend(frameon=False,handles=sch,loc='lower left')
 
 
 
 savefile = f'{savefile}.{snravgname}'
-
-if not mtrsets=='R.vs.SNR':
-    savefile = f'{mtrsets}.{savefile}'
-
-_=save_tight(plotfolder/f'{savefile}.png',fig,dpi=2000)
-
+if not mtrsets=='R.vs.SNR':savefile = f'{mtrsets}.{savefile}'
+_=save_tight(plotfolder/f'{savefile}.{save_format}',fig,dpi=2000)
 print('Done.')

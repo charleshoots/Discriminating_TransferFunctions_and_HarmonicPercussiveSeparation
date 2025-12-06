@@ -18,7 +18,8 @@ octavg=lt.math.octave_average
 figs = lambda r=4,c=1,f=(5,6),x='all',y='all',w=None,layout='constrained':plt.subplots(r,c,figsize=f,sharex=x,sharey=y,layout=layout,width_ratios=np.ones(c) if w is None else w)
 
 # plotfolder value
-plotfolder=dirs.Ch1/'_main_figures'/'Figure11part2_ExampleRecord.of.LostStructure';plotfolder.mkdir(parents=True,exist_ok=True)
+plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_main_figures'/'Figure11part2_ExampleRecord.of.LostStructure';plotfolder.mkdir(parents=True,exist_ok=True)
+save_format = 'pdf'
 
 # cat value
 cat=catalog.copy()
@@ -45,14 +46,17 @@ icat=icat.iloc[idx]
 icat.sort_values(by=['StaDepth','Distance'],inplace=True)
 
 bands = [[1,10],[10,30],[30,100],[1,100]]
-bands=[[1,10]]
+# bands=[[1,10]]
 tmax=3600
 mthds=['NoiseCut','ATaCR']
 # [2.0,4.2]
 # rgvel = 2000
 # rgvel = 3100
 
-fontsize=4
+
+trace_linewidth = 0.1 #works for png, not pdf
+trace_linewidth = 0.2
+text_fontsize = 6
 for b in bands:
     fig,axes=figs(1,2,f=(6,.4*len(icat)),x=True,y=True)
     for si,sr in enumerate(icat.iloc):
@@ -68,16 +72,18 @@ for b in bands:
             t=st[0].times()
             tidx=t<=tmax
             y=st.select(location='Original')[0].data;norm=np.max(np.abs(y));y=y/norm
-            ax.plot(t[tidx],y[tidx]+step,lw=0.1,c='r')
+            ax.plot(t[tidx],y[tidx]+step,lw=trace_linewidth,c='r')
             y=st.select(location=mthd)[0].data;y=y/norm
-            ax.plot(t[tidx],y[tidx]+step,lw=0.1,c='k')
-            ax.text(t[tidx][-1]-30,step+1,rf'${sr.StaName}$ (${sr.StaDepth}m$), $Mw{sr.Magnitude}$',ha='right',fontsize=fontsize)
-            ax.text(0.05,0.96,f'{b[0]}-{b[1]}s',ha='left',transform=ax.transAxes,fontsize=fontsize)
+            ax.plot(t[tidx],y[tidx]+step,lw=trace_linewidth,c='k')
+            ax.text(t[tidx][-1]-30,step+1,rf'${sr.StaName}$ (${sr.StaDepth}m$), $Mw{sr.Magnitude}$',ha='right',fontsize=text_fontsize,)
+            ax.text(0.02,0.95,f'{b[0]}-{b[1]}s',ha='left',transform=ax.transAxes,fontsize=text_fontsize,)
             [ax.vlines(t,step-1,step+1,color='k',ls=':',lw=.2) for ph,t in zip(arphases,times)]
-            [ax.text(t-10,step+1-.1,ph,c='k',ha='right',va='top',fontsize=fontsize) for ph,t in zip(arphases,times)]
+            [ax.text(t-10,step+1-.1,ph,c='k',ha='right',va='top',
+            fontsize=text_fontsize,
+            ) for ph,t in zip(arphases,times)]
             # ax.vlines(r1,step-1,step+1,color='k',ls=':',lw=.2);ax.text(r1-10,step+1-.1,'R1',c='k',ha='right',va='top')
             ax.tick_params(size=2,labelsize=3)
-            ax.set_xlabel('Time after origin, s',fontsize=fontsize)
+            ax.set_xlabel('time after origin, s',)
     for ax in axes:ax.set_xlim(0,tmax)
-    file=f'{len(icat)}.pairs.{b[0]}-{b[1]}s.png'
+    file=f'{len(icat)}.pairs.{b[0]}-{b[1]}s.{save_format}'
     save_tight(plotfolder/file,fig,dpi=800)

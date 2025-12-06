@@ -21,8 +21,8 @@ opts=AttribDict({})
 # --------------------------------------------------------------------------------
 # ------------------------------------CODE----------------------------------------
 # --------------------------------------------------------------------------------
-plotfolder=dirs.Ch1/'_supplemental_figures'/'FigureS5_CoherenceSpectraAverages';plotfolder.mkdir(parents=True,exist_ok=True)
-
+plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_supplemental_figures'/'FigureS5_CoherenceSpectraAverages';plotfolder.mkdir(parents=True,exist_ok=True)
+save_format = 'pdf'
 
 # width value
 width=4;height=4 #Defaults
@@ -184,13 +184,13 @@ for ri,req in enumerate(reqs):
                         ax.scatter(xf,y,**kw,)
                     ax.set_xlim([1/200,1]);ax.set_xscale('log')
                 ttl = fr"$\underset{{{ttl}}}{{\gamma{'\;\;'*len(ttl)}}}$"
-                if transpose:ax.set_title(ttl,fontsize=12,y=1.2)
-                else:ax.set_ylabel(ttl,fontsize=12)
+                if transpose:ax.set_title(ttl,y=1.2)
+                else:ax.set_ylabel(ttl)
                 ax.grid('major',alpha=0.3,zorder=-1e5)
             ax=axes[-1]
             # ax.set_xlim([1/300,1])
-            if transpose:axes[1].set_xlabel('Period')
-            if not transpose:ax.set_xlabel('Period')
+            if transpose:axes[1].set_xlabel('period, s')
+            if not transpose:ax.set_xlabel('period, s')
             periods=[100,30,10,1]
             _=ax.set_xticks([1/t for t in periods]);ax.set_xticklabels([t for t in periods])
             # norm = mpl.colors.Normalize(vmin=np.min(bins), vmax=np.max(bins))
@@ -203,7 +203,7 @@ for ri,req in enumerate(reqs):
 
             # cb = fig.colorbar(sm, cax=cbar_ax)
             cb = fig.colorbar(sm, cax=cbar_ax, boundaries=boundaries, ticks=boundaries[::2])
-            cb.set_label('Water depth, m', fontweight='bold',fontsize=12 if figsize[1]>=height else 10)
+            cb.set_label('water depth, m', fontweight='bold')
             cb.ax.tick_params(labelsize=10)
             cb.ax.invert_yaxis()
             _=cb.ax.set_yticks(boundaries[::2])
@@ -218,10 +218,10 @@ for ri,req in enumerate(reqs):
             # ------------------------------------------------------------------------------------------
             # options = '.'.join([('notched' if notched else 'not.notched'),('octav' if octave_av else 'not.octav')])
             options='.'.join([('octav' if octave_av else 'not.octav'),''])
-            if isinstance(set,list):file=f'{req}.{min(set)}.to.{max(set)}.CoherenceSpectrabyDepth_{options}.png'.replace('..','.')
+            if isinstance(set,list):file=f'{req}.{min(set)}.to.{max(set)}.CoherenceSpectrabyDepth_{options}.{save_format}'.replace('..','.')
             else:
-                if req==None:file=f'AllData.{stat.title}CoherenceSpectrabyDepth_{options}.png'.replace('..','.')
-                else:file=f'{req}.{stat.title}.{set.replace(' ','.')}.CoherenceSpectrabyDepth_{options}.png'.replace('..','.')
+                if req==None:file=f'AllData.{stat.title}CoherenceSpectrabyDepth_{options}.{save_format}'.replace('..','.')
+                else:file=f'{req}.{stat.title}.{set.replace(' ','.')}.CoherenceSpectrabyDepth_{options}.{save_format}'.replace('..','.')
             fold=plotfolder
             ax.set_xlim([ax.get_xticks().min(),ax.get_xticks().max()])
             if req is not None:fold=fold/req

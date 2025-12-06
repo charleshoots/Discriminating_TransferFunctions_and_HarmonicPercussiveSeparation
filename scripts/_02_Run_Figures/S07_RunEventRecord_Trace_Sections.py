@@ -144,7 +144,7 @@ def run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,plotfold):
                     ax.set_xticklabels('')
                 else:ax.set_xlabel('Time (s)')
                 # if stai==0:ax.set_title(''.join([str(cur_band[0]),'-',str(cur_band[1]),'s']),fontweight='bold',pad=15)
-                if stai==0:ax.set_title(f'{notch_filt} of infragravity limit',fontweight='bold',pad=15,fontsize=16)
+                if stai==0:ax.set_title(f'{notch_filt} of infragravity limit',fontweight='bold',pad=15)
                 # ===============================================================
                 if bi==0:
                     # colors value
@@ -161,9 +161,9 @@ def run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,plotfold):
                 [ax.axvline(a[1],
                 linewidth=0.1,color=colors[a[0]]) for a in arrivals]
                 [ax.text(a[1],ylim,a[0],
-                fontsize=6,color='k',verticalalignment='bottom',horizontalalignment='center') for a in arrivals]
+                color='k',verticalalignment='bottom',horizontalalignment='center') for a in arrivals]
                 if bi==0:
-                    ax.text(np.max(ax.get_xlim())*0.995,np.max(ax.get_ylim()),stastr,bbox=dict(boxstyle="square,pad=0.1",facecolor='white', alpha=1),horizontalalignment='right',verticalalignment='top',fontsize=9)
+                    ax.text(np.max(ax.get_xlim())*0.995,np.max(ax.get_ylim()),stastr,bbox=dict(boxstyle="square,pad=0.1",facecolor='white', alpha=1),horizontalalignment='right',verticalalignment='top')
     else:
         for stai in range(nsta):
             net,sta=stations[stai].split('.')
@@ -207,11 +207,11 @@ def run_sections(st_hold,mdi,mode,mthdi,method,evi,event,cat,plotfold):
                     ax.set_xticklabels('')
                     plt.setp( ax.get_xticklabels(), visible=False)
                 if bi==0:
-                    ax.text(np.max(ax.get_xlim())*0.995,min(ylim[b]),stastr,bbox=dict(boxstyle="square,pad=0.1",facecolor='white', alpha=1),horizontalalignment='right',verticalalignment='bottom',fontsize=9)
+                    ax.text(np.max(ax.get_xlim())*0.995,min(ylim[b]),stastr,bbox=dict(boxstyle="square,pad=0.1",facecolor='white', alpha=1),horizontalalignment='right',verticalalignment='bottom')
             del tr
     plt.tight_layout(h_pad=0.00001)
     plt.subplots_adjust(hspace=0)
-    fig.suptitle(evstr,fontweight='bold',y=1.01,fontsize=13)
+    fig.suptitle(evstr,fontweight='bold',y=1.01)
     evstr = '|'.join([event.Name,str(event.magnitudes[0].mag) + str(event.magnitudes[0].magnitude_type).replace('None','M'),
     str(int(event.origins[0].depth/1000))+'km'])
     save_tight(file,fig,dpi=800)

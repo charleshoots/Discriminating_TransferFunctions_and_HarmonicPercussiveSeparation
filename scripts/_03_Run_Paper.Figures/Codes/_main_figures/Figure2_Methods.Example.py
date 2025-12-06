@@ -21,6 +21,9 @@ cat = catalog.copy()
 octavg=lt.math.octave_average
 import statsmodels.api as sm
 import local_tools.dataspace as ds
+
+save_format = 'pdf'
+
 # Noise Spectra
 f=cat.r.iloc[0].Data.Noise.Averaged().f
 # faxis value
@@ -83,19 +86,7 @@ def make_bands(N, width=None,line=np.linspace, lo=1.0, hi=100.0):
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import matplotlib as mpl
 
-mpl.rcParams.update({
-"font.size": 4,              # base text size (fallback for everything)
-"axes.titlesize": 4,         # axes titles
-"axes.labelsize": 4,         # x/y labels (also used by colorbar label)
-"xtick.labelsize": 4,        # x tick labels (affects horizontal colorbar ticks)
-"ytick.labelsize": 4,        # y tick labels (affects vertical colorbar ticks)
-"legend.fontsize": 4,        # legend text
-"legend.title_fontsize": 4,  # legend title
-"figure.titlesize":4,    # suptitle
-'ytick.major.width':0.5,
-'xtick.major.width':0.5,
-'axes.edgecolor':'k',
-'axes.linewidth':0.5})
+
 #An HPS example spectrogram
 mpl.rcParams['axes.linewidth']= 0.5     # subplot borders
 mpl.rcParams['axes.edgecolor'] = 'k'
@@ -106,7 +97,7 @@ mpl.rcParams['ytick.major.width'] = 0.5
 # plot spec
 def plot_spec(fig, ax, S, f, t, cmap='magma', cax=None,fontsize=7):
     # units value
-    units = ['Seconds after origin','Minutes after origin','Hours after origin']
+    units = ['seconds after origin','minutes after origin','hours after origin']
     # t value
     t = t/60; units.pop(0)
     # pcm value
@@ -120,17 +111,17 @@ def plot_spec(fig, ax, S, f, t, cmap='magma', cax=None,fontsize=7):
         bbox_to_anchor=(1.02, 0, 1, 1), bbox_transform=ax.transAxes, borderpad=0)
     # cbar value
     cbar = fig.colorbar(pcm, cax=cax,label='dB')
-    cbar.ax.tick_params(size=fontsize,labelsize=fontsize)
+    # cbar.# ax.tick_params(size=fontsize,labelsize=fontsize)
     ax.set_yscale('log')
     ax.set_ylim(0, 1)
     ax.set_xlabel(units[0])
-    return cbar
+    return cbar,pcm
 
 
 
 # plotfolder value
-plotfolder=dirs.Ch1/'_main_figures'/'Figure2_Methods.Example';plotfolder.mkdir(parents=True,exist_ok=True)
-
+plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_main_figures'/'Figure2_Methods.Example' #Folder maps are saved to.
+plotfolder.mkdir(parents=True,exist_ok=True)
 
 mpl.rcParams.update({
 'lines.antialiased': False,
@@ -159,7 +150,7 @@ hpszcolor='skyblue'
 # 7D.FS42D.2015.088.23.48.pkl
 status=lambda:print(f'{si+1}/{len(stas)} {ei+1}/{len(evs)}')
 
-fontsize=4
+# fontsize=4
 
 # figsize=(4,3)
 figsize=(6,3.5)
@@ -218,10 +209,10 @@ for fi in files:
             ax.plot(hpsz_coh,coh_f,color=hpszcolor,lw=lw*2)
             ax.set_yscale('log')
             ax.set_ylim(1/100,1)
-            ax.set_xlabel(r'$\gamma$',fontsize=fontsize)
+            ax.set_xlabel(r'$\gamma$')
             ax.axhline(fnotch(data.StaDepth),ls=':',lw=0.4,c='k')
-            ax.set_ylabel('Frequency, Hz',fontsize=fontsize)
-            ax.tick_params(size=fontsize,labelsize=fontsize)
+            ax.set_ylabel('frequency, Hz')
+            # ax.tick_params(size=fontsize,labelsize=fontsize)
 
             noise=data.Data.Noise.Averaged()
             cf,czh=noise.coherence('ZH',return_f=True)
@@ -241,14 +232,20 @@ for fi in files:
             S_full,S_background,S_hps,f,t=d[0]['Full'][faxis,:],d[0]['Background'][faxis,:],d[0]['HPS'][faxis,:],d[0]['f'][faxis],d[0]['t']
             t=t-t.min()
             S=S_full
-            cbar=plot_spec(fig,ax,S,f,t,cmap='magma',fontsize=fontsize)
-            cbar.set_label('dB',fontsize=fontsize)
+            cbar,pcm=plot_spec(fig,ax,S,f,t,cmap='magma')
+            # pcm.set_rasterized(True)
+            # for c in pcm.collections:
+            pcm.set_rasterized(True)
+            pcm.set_edgecolor("face")
+            pcm.set_linewidth(0)
+
+            cbar.set_label('dB')
             ax.set_ylim(1/100,1)
             ax.set_yticks([])
             ax.set_xticks([30,60,90,120])
             ax.set_xlim(0,xmax)
-            ax.tick_params(size=fontsize,labelsize=fontsize)
-            ax.set_xlabel('Minutes after origin',fontsize=fontsize)
+            # ax.tick_params(size=fontsize,labelsize=fontsize)
+            ax.set_xlabel('minutes after origin')
 
             # -------Traces
             ax=tr_ax
@@ -269,14 +266,14 @@ for fi in files:
             ax.plot(t,orig_tr+offset,lw=lw,color=orig_c,alpha=1);ax.plot(t,tf_tr+offset,lw=lw,color=tfzcolor,alpha=1)
             ax.set_xlim(0,xmax)
             ax.set_xticks([])
-            ax.tick_params(size=fontsize,labelsize=fontsize)
+            # ax.tick_params(size=fontsize,labelsize=fontsize)
             phases=event_stream_arrivals(traces[0],data.Event)
             if (('S' in phases.keys())&('P' in phases.keys())):
                 PS=[phases['P'][0]/60,phases['S'][0]/60]
-                ax.axvline(PS[0],lw=.4,zorder=-1e3,ls=':',c='k');ax.text(PS[0],0.99*max(ax.get_ylim()),'P',va='top',ha='right',fontsize=fontsize)
-                ax.axvline(PS[1],lw=.4,zorder=-1e3,ls=':',c='k');ax.text(PS[1],0.99*max(ax.get_ylim()),'S',va='top',ha='right',fontsize=fontsize)
+                ax.axvline(PS[0],lw=.4,zorder=-1e3,ls=':',c='k');ax.text(PS[0],0.99*max(ax.get_ylim()),'P',va='top',ha='right')
+                ax.axvline(PS[1],lw=.4,zorder=-1e3,ls=':',c='k');ax.text(PS[1],0.99*max(ax.get_ylim()),'S',va='top',ha='right')
                 spec_ax.axvline(PS[0],lw=.4,zorder=1e3,ls=':',c='k')
                 spec_ax.axvline(PS[1],lw=.4,zorder=1e3,ls=':',c='k')
-            file=f'{sta}.{ev}.Methods.Example.png'
-            save_tight(plotfolder/file,fig,dpi=3000)
-            # plt.close('all')
+            file=f'{sta}.{ev}.Methods.Example.{save_format}'
+            fig.savefig(str(plotfolder/file),pad_inches=0.05,dpi=3000,format=save_format)
+            plt.close('all')

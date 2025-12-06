@@ -97,28 +97,14 @@ cat.sr['TiltCoherence']=oriencohere
 
 
 # plotfolder value
-plotfolder=dirs.Ch1/'_main_figures'/'Figure3_DirectMetricComparison';plotfolder.mkdir(parents=True,exist_ok=True)
+plotfolder = dirs.Plots/'_Papers'/'ImageOutputs'/'_main_figures'/'Figure3_DirectMetricComparison';plotfolder.mkdir(parents=True,exist_ok=True)
+save_format = 'pdf'
 
 
 
 
 
 
-
-# ColorStandard.instrument.update({'B2':'silver'})
-mpl.rcParams.update({
-"font.size": 4,              # base text size (fallback for everything)
-"axes.titlesize": 4,         # axes titles
-"axes.labelsize": 4,         # x/y labels (also used by colorbar label)
-"xtick.labelsize": 4,        # x tick labels (affects horizontal colorbar ticks)
-"ytick.labelsize": 4,        # y tick labels (affects vertical colorbar ticks)
-"legend.fontsize": 4,        # legend text
-"legend.title_fontsize": 4,  # legend title
-"figure.titlesize":4,    # suptitle
-'ytick.major.width':0.5,
-'xtick.major.width':0.5,
-'axes.edgecolor':'k',
-'axes.linewidth':0.5})
 
 # icat value
 icat=cat.sr.copy()
@@ -153,19 +139,7 @@ def band_xy(mtr,band,ph,fn=None,octave=True):
         g=(x<0)&(x>bar); x[g]=np.nan;y[g]=np.nan
         g=(y<0)&(y>bar); x[g]=np.nan;y[g]=np.nan
     return x,y
-mpl.rcParams.update({
-"font.size": 4,              # base text size (fallback for everything)
-"axes.titlesize": 4,         # axes titles
-"axes.labelsize": 4,         # x/y labels (also used by colorbar label)
-"xtick.labelsize": 4,        # x tick labels (affects horizontal colorbar ticks)
-"ytick.labelsize": 4,        # y tick labels (affects vertical colorbar ticks)
-"legend.fontsize": 4,        # legend text
-"legend.title_fontsize": 4,  # legend title
-"figure.titlesize":4,    # suptitle
-'ytick.major.width':0.5,
-'xtick.major.width':0.5,
-'axes.edgecolor':'k',
-'axes.linewidth':0.5})
+
 
 icat=cat.sr.copy()
 usnr=unpack_metrics(icat)
@@ -283,10 +257,9 @@ for ml,fn in zip(mlwins,fnwins):
             kw=getkw(mg,ml,'blank',msize,scat_alpha);kw.update({'alpha':1.0,'c':['k']})
             sc=ax.scatter(np.nan,np.nan,label=r'$f$  >  $f_{n}$' if not np.isin(None,fnwins) else r'$f$ $\leq$ $f_{n}$ $\leq$ $f$', **kw)
             sch.append(sc)
-            # ax.legend(frameon=True,facecolor='None',fancybox=False,framealpha=1.0,handles=sch,loc='lower right',fontsize=5)
             hdls.append(sch[0]);hdls.append(sch[1])
 
-            leg=ax.legend(handles=hdls,facecolor='None',edgecolor='k',frameon=True,fancybox=False,framealpha=1.0, ncols=1, fontsize=5,loc='upper left',markerscale=1)
+            leg=ax.legend(handles=hdls,facecolor='None',edgecolor='k',frameon=True,fancybox=False,framealpha=1.0, ncols=1,loc='upper left',markerscale=1)
             # leg.set_linewidth(0.2) 
             frame = leg.get_frame()
             frame.set_linewidth(0.2) 
@@ -304,6 +277,6 @@ lims=[np.ceil(np.nanmax(mtrlims[mtr])*10)/10,-.02]
 ax.set_xlim(lims);ax.set_ylim(lims)
 
 
-file=f"{xcat}.SNR.and.COH.Comparisons{f'.{fn}' if fn is not None else ''}.FishPlot.png"
+file=f"{xcat}.SNR.and.COH.Comparisons{f'.{fn}' if fn is not None else ''}.FishPlot.{save_format}"
 _=save_tight(plotfolder/file,fig,dpi=900)
 k=0
