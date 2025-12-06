@@ -139,7 +139,7 @@ def band_xy(mtr,band,ph,fn=None,octave=True):
 
 
 color_by_band=True #If True, replace instrument design color with band color (1-10,10-30,30-100).
-# color_by_band=False
+color_by_band=False
 
 
 inst_color=ColorStandard.instrument
@@ -198,7 +198,7 @@ for fn in [None]:
             # ph=pref[tuple(b)]
             ph = pref[bi]
             bandcolor = pcol[ph]
-            ec=pcol[ph]; size=msizes[bi] if bi<2 else msizes[bi]*.5
+            ec=pcol[ph]; size=msizes[bi]
             x,y=data[mtr][tuple(b)]
             g=np.ones(len(x),dtype=bool)
             if xcat=='Seismometer':
@@ -223,14 +223,14 @@ for fn in [None]:
                 dx=0.1;u=dbin(np.arange(6,8+dx,dx))
                 xn=np.array([stat(x[(jj>=s[0])&(jj<=s[1])]) for s in u])
                 yn=np.array([stat(y[(jj>=s[0])&(jj<=s[1])]) for s in u])
-                ax.scatter(xn,yn,ec=ec,c=u.mean(axis=1),cmap=cmap,marker='o',s=20,lw=lw if color_by_band else 2*lw,alpha=alpha)
+                ax.scatter(xn,yn,ec=ec,c=u.mean(axis=1),cmap=cmap,marker='o',s=msize,lw=lw if color_by_band else 2*lw,alpha=alpha)
 
             if xcat=='StaDepth':
                 jj=np.array(list(icat[xcat]))[g]
                 dx=500;u=dbin(np.arange(0,6000+dx,dx))
                 xn=np.array([stat(x[(jj>=s[0])&(jj<=s[1])]) for s in u])
                 yn=np.array([stat(y[(jj>=s[0])&(jj<=s[1])]) for s in u])
-                ax.scatter(xn,yn,ec=ec,c=u.mean(axis=1),cmap=cmap,marker='o',s=20,lw=lw if color_by_band else 2*lw,alpha=alpha)
+                ax.scatter(xn,yn,ec=ec,c=u.mean(axis=1),cmap=cmap,marker='o',s=msize,lw=lw if color_by_band else 2*lw,alpha=alpha)
 
             if (mtr=='snr')&(bi==0)&(not (xcat=='Seismometer')):
                 cbar=cbarlam(ax,fig,cmap=cmap,vmin=np.min(u),vmax=np.max(u),orientation='vertical',fraction=0.025,pad=0.02)
@@ -240,7 +240,7 @@ for fn in [None]:
         if mtr=='coh':
             # lw=2
             # ax.yaxis.set_label_position('right');ax.yaxis.tick_right()
-            hdls=[ax.scatter(np.nan,0,marker='s',c='w',ec=pcol[ph],label={'P':'1-10s','S':'10-30s','Rg':'30-100s'}[ph],lw=2,s=20) for ph in ['P','S','Rg']]
+            hdls=[ax.scatter(np.nan,0,marker='s',c='w',ec=pcol[ph],label={'P':'1-10s','S':'10-30s','Rg':'30-100s'}[ph],lw=2,s=msize) for ph in ['P','S','Rg']]
             leg=ax.legend(handles=hdls,frameon=False, ncols=1,loc='upper left',markerscale=1)
             for h in leg.legend_handles:h.set_linewidth(2)
     file=f"{xcat}.{'colored.by.band' if color_by_band else 'colored.by.instrument'}.SNR.and.COH.Comparisons{f'.{fn}' if fn is not None else ''}.{save_format}"
