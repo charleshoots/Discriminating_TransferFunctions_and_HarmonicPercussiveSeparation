@@ -372,64 +372,134 @@ def tri_correlogram(X, names=None, method="spearman", bins=24,
     fig.tight_layout(rect=[0,0,1.0,1])
     return C, fig
 yttl = lambda c: fr"$\underset{{{c}}}{{\gamma\;\;\;\;\;\;\;}}$"
+yttl_eta = lambda c:fr"$\underset{{{c}}}{{\eta\;\;\;\;\;\;\;}}$"
 
-names=[
-yttl('TF Z'), yttl('HPS Z'), yttl('HPS 1'), yttl('HPS 2'),
-r'$R_{\mathrm{TF}\ Z}$' + '\nP',r'$R_{\mathrm{HPS}\ Z}$' + '\nP',r'$R_{\mathrm{HPS}\ 1}$' + '\nP',r'$R_{\mathrm{HPS}\ 2}$' + '\nP',
-r'$R_{\mathrm{TF}\ Z}$' + '\nS',r'$R_{\mathrm{HPS}\ Z}$' + '\nS',r'$R_{\mathrm{HPS}\ 1}$' + '\nS',r'$R_{\mathrm{HPS}\ 2}$' + '\nS',
-r'$R_{\mathrm{TF}\ Z}$' + '\nRayleigh',r'$R_{\mathrm{HPS}\ Z}$' + '\nRayleigh',r'$R_{\mathrm{HPS}\ 1}$' + '\nRayleigh',r'$R_{\mathrm{HPS}\ 2}$' + '\nRayleigh',
-'TF Z\nnoise\nwindow','HPS Z\nnoise\nwindow','HPS 1\nnoise\nwindow','HPS 2\nnoise\nwindow',
-'Water\ndepth','f-notch','Magnitude','Distance','Tilt','Station\naverage\nnoise','Tilt\nCoherence','Instrument\ndesign','Seismometer','Pressure\ngauge','Network','Sediment\nThickness','Quake\ndepth'
-]
+
 # ====================================================================================================================
+# ====================================================================================================================
+
+# ====================================================================================================================
+# Setup: "Robust" - The most detailed layout of correlation measurements.
+# ====================================================================================================================
+props=AttribDict()
+props.X=[lambda:usnr.coh.TF_Z.Average(b,fn=fn), #band averaged coherence
+lambda:usnr.coh.HPS_Z.Average(b,fn=fn), #----- 
+lambda:usnr.coh.HPS_1.Average(b,fn=fn), #-----
+lambda:usnr.coh.HPS_2.Average(b,fn=fn), #-----
+lambda:usnr.snr.TF_Z.R().P.Average(b,fn=fn), #----- #band averaged SNR for P/Pdiff
+lambda:usnr.snr.HPS_Z.R().P.Average(b,fn=fn), #-----
+lambda:usnr.snr.HPS_1.R().P.Average(b,fn=fn), #-----
+lambda:usnr.snr.HPS_2.R().P.Average(b,fn=fn), #-----
+lambda:usnr.snr.TF_Z.R().S.Average(b,fn=fn), #----- #band averaged SNR for S/Sdiff
+lambda:usnr.snr.HPS_Z.R().S.Average(b,fn=fn), #-----
+lambda:usnr.snr.HPS_1.R().S.Average(b,fn=fn), #-----
+lambda:usnr.snr.HPS_2.R().S.Average(b,fn=fn), #-----
+lambda:usnr.snr.TF_Z.R().Rg.Average(b,fn=fn), #----- #band averaged SNR for Rayleigh
+lambda:usnr.snr.HPS_Z.R().Rg.Average(b,fn=fn), #-----
+lambda:usnr.snr.HPS_1.R().Rg.Average(b,fn=fn), #-----
+lambda:usnr.snr.HPS_2.R().Rg.Average(b,fn=fn), #-----
+lambda:usnr.ST.TF_Z.R().P.Average(b,fn=fn), #----- #band averaged signal window reduction for P/Pdiff
+lambda:usnr.ST.HPS_Z.R().P.Average(b,fn=fn), #-----
+lambda:usnr.ST.HPS_1.R().P.Average(b,fn=fn), #-----
+lambda:usnr.ST.HPS_2.R().P.Average(b,fn=fn), #-----
+lambda:usnr.ST.TF_Z.R().S.Average(b,fn=fn), #----- #band averaged signal window reduction for S/Sdiff
+lambda:usnr.ST.HPS_Z.R().S.Average(b,fn=fn), #-----
+lambda:usnr.ST.HPS_1.R().S.Average(b,fn=fn), #-----
+lambda:usnr.ST.HPS_2.R().S.Average(b,fn=fn), #-----
+lambda:usnr.ST.TF_Z.R().Rg.Average(b,fn=fn), #----- #band averaged signal window reduction for Rayleigh
+lambda:usnr.ST.HPS_Z.R().Rg.Average(b,fn=fn), #-----
+lambda:usnr.ST.HPS_1.R().Rg.Average(b,fn=fn), #-----
+lambda:usnr.ST.HPS_2.R().Rg.Average(b,fn=fn), #-----
+lambda:usnr.LT.TF_Z.R().Average(b,fn=fn), #----- #band averaged noise window reduction
+lambda:usnr.LT.HPS_Z.R().Average(b,fn=fn), #-----
+lambda:usnr.LT.HPS_1.R().Average(b,fn=fn), #-----
+lambda:usnr.LT.HPS_2.R().Average(b,fn=fn), #-----
+lambda:np.array(list(icat.StaDepth)), #----- #water depth
+lambda:np.array([i[bn] for i in np.array(list(icat.NoiseAverage))]) if bn in ['1_10','10_30','30_100'] else np.array([np.mean(list(i.values())) for i in np.array(list(icat.NoiseAverage))]), # band averaged station averaged noise levels
+lambda:np.array(list(icat.TiltCoherence)), #----- Station average ZH coherence
+lambda:np.array(list(icat.Instrument_Design)), #-----
+lambda:np.array(list(icat.Seismometer)), #-----
+lambda:np.array(list(icat.Pressure_Gauge)), #-----
+lambda:np.array(list(icat.Sediment_Thickness_m)), #-----
+lambda:np.array(list(icat.Magnitude)), #-----
+lambda:np.array(list(icat.Distance)), #-----
+lambda:np.array(list(icat.EvDepth)), #-----
+]
+props.names=[
+yttl('TFZ'), yttl('HPSZ'), yttl('HPS1'), yttl('HPS2'), #band averaged coherence
+yttl_eta('TFZ') + '\n(P/Pdiff)',yttl_eta('HPSZ') + '\n(P/Pdiff)',yttl_eta('HPS1') + '\n(P/Pdiff)',yttl_eta('HPS2') + '\n(P/Pdiff)', #band averaged SNR for P/Pdiff
+yttl_eta('TFZ') + '\n(S/Sdiff)',yttl_eta('HPSZ') + '\n(S/Sdiff)',yttl_eta('HPS1') + '\n(S/Sdiff)',yttl_eta('HPS2') + '\n(S/Sdiff)', #band averaged SNR for S/Sdiff
+yttl_eta('TFZ') + '\n(Rayleigh)',yttl_eta('HPSZ') + '\n(Rayleigh)',yttl_eta('HPS1') + '\n(Rayleigh)',yttl_eta('HPS2') + '\n(Rayleigh)', #band averaged SNR for Rayleigh
+'TFZ\nsignal\nratio (P/Pdiff)','HPSZ\nsignal\nratio (P/Pdiff)','HPS1\nsignal\nratio (P/Pdiff)','HPS2\nsignal\nratio (P/Pdiff)',#band averaged signal ratio for P/Pdiff
+'TFZ\nsignal\nratio (S/Sdiff)','HPSZ\nsignal\nratio (S/Sdiff)','HPS1\nsignal\nratio (S/Sdiff)','HPS2\nsignal\nratio (S/Sdiff)',#band averaged signal ratio for P/Pdiff
+'TFZ\nsignal\nratio (Rayleigh)','HPSZ\nsignal\nratio (Rayleigh)','HPS1\nsignal\nratio (Rayleigh)','HPS2\nsignal\nratio (Rayleigh)',#band averaged signal ratio for P/Pdiff
+'TF Z\nnoise\nratio','HPS Z\nnoise\nratio','HPS 1\nnoise\nratio','HPS 2\nnoise\nratio',#band averaged noise window reduction
+'Water\ndepth',
+'Station\naverage\nnoise',
+'Tilt (ZH)',
+'Instrument\ndesign',
+'Seismometer',
+'Pressure\ngauge',
+'Sediment\nThickness',
+'Magnitude',
+'Distance',
+'Quake\ndepth'
+]
+
+
+# ====================================================================================================================
+# Setup: "Peak metrics" - A more condensed layout of correlation measurements.
 # ====================================================================================================================
 # Option for how we aggregate the SNR average across all three phases in a trace (P/Pdiff, S/Sdiff, and Rayleigh).
 # Options are either by the peak (max) or mean.
-snravg = np.nanmean #Nan version ensures protection from values that may get masked either by notch sensitivity or filter band.
-snravg = np.nanmax
+# snravg = np.nanmean #Nan version ensures protection from values that may get masked either by notch sensitivity or filter band.
+# snravg = np.nanmax
+# props=AttribDict()
+# props.snravg = np.nanmax
+# props.X=[lambda:usnr.coh.TF_Z.Average(b,fn=fn), #band averaged coherence
+# lambda:usnr.coh.HPS_Z.Average(b,fn=fn), #----- 
+# lambda:usnr.coh.HPS_1.Average(b,fn=fn), #-----
+# lambda:usnr.coh.HPS_2.Average(b,fn=fn), #-----
+# lambda:props.snravg(usnr.snr.TF_Z.R().Average(b,fn=fn),axis=1), #----- Maximum (peak) band averaged SNR from all three phases in each source-receiver.
+# lambda:props.snravg(usnr.snr.HPS_Z.R().Average(b,fn=fn),axis=1), #-----
+# lambda:props.snravg(usnr.snr.HPS_1.R().Average(b,fn=fn),axis=1), #-----
+# lambda:props.snravg(usnr.snr.HPS_2.R().Average(b,fn=fn),axis=1), #-----
+# lambda:props.snravg(usnr.ST.TF_Z.R().Average(b,fn=fn),axis=1), #----- #Maximum (peak, so the least) band averaged signal window reduction.
+# lambda:props.snravg(usnr.ST.HPS_Z.R().Average(b,fn=fn),axis=1), #-----
+# lambda:props.snravg(usnr.ST.HPS_1.R().Average(b,fn=fn),axis=1), #-----
+# lambda:props.snravg(usnr.ST.HPS_2.R().Average(b,fn=fn),axis=1), #-----
+# lambda:usnr.LT.TF_Z.R().Average(b,fn=fn), #----- #band averaged noise window reduction
+# lambda:usnr.LT.HPS_Z.R().Average(b,fn=fn), #-----
+# lambda:usnr.LT.HPS_1.R().Average(b,fn=fn), #-----
+# lambda:usnr.LT.HPS_2.R().Average(b,fn=fn), #-----
+# lambda:np.array(list(icat.StaDepth)), #----- #water depth
+# lambda:np.array([i[bn] for i in np.array(list(icat.NoiseAverage))]) if bn in ['1_10','10_30','30_100'] else np.array([np.mean(list(i.values())) for i in np.array(list(icat.NoiseAverage))]), # band averaged station averaged noise levels
+# lambda:np.array(list(icat.TiltCoherence)), #----- Station average ZH coherence
+# lambda:np.array(list(icat.Instrument_Design)), #-----
+# lambda:np.array(list(icat.Seismometer)), #-----
+# lambda:np.array(list(icat.Pressure_Gauge)), #-----
+# lambda:np.array(list(icat.Sediment_Thickness_m)), #-----
+# lambda:np.array(list(icat.Magnitude)), #-----
+# lambda:np.array(list(icat.Distance)), #-----
+# lambda:np.array(list(icat.EvDepth)), #-----
+# ]
+# props.names=[
+# yttl('TF Z'), yttl('HPS Z'), yttl('HPS 1'), yttl('HPS 2'),
+# r'$R_{\mathrm{TF}\ Z}$',r'$R_{\mathrm{HPS}\ Z}$' ,r'$R_{\mathrm{HPS}\ 1}$' ,r'$R_{\mathrm{HPS}\ 2}$',
+# 'TF Z\nsignal \npeak','HPS Z\nsignal \npeak','HPS 1\nsignal \npeak','HPS 2\nsignal \npeak',
+# 'TF Z\nnoise \nwindow','HPS Z\nnoise \nwindow','HPS 1\nnoise \nwindow','HPS 2\nnoise \nwindow',
+# 'Water\ndepth','Station\naverage\nnoise',f'Tilt\n({yttl('ZH')})','Instrument\ndesign','Seismometer','Pressure\ngauge','Sediment\nthickness','Magnitude','Distance','Earthquake\ndepth']
 
-X=[lambda:usnr.coh.TF_Z.Average(b,fn=fn),
-lambda:usnr.coh.HPS_Z.Average(b,fn=fn),
-lambda:usnr.coh.HPS_1.Average(b,fn=fn),
-lambda:usnr.coh.HPS_2.Average(b,fn=fn),
-lambda:snravg(usnr.snr.TF_Z.R().Average(b,fn=fn),axis=1),
-lambda:snravg(usnr.snr.HPS_Z.R().Average(b,fn=fn),axis=1),
-lambda:snravg(usnr.snr.HPS_1.R().Average(b,fn=fn),axis=1),
-lambda:snravg(usnr.snr.HPS_2.R().Average(b,fn=fn),axis=1),
-lambda:snravg(usnr.ST.TF_Z.R().Average(b,fn=fn),axis=1),
-lambda:snravg(usnr.ST.HPS_Z.R().Average(b,fn=fn),axis=1),
-lambda:snravg(usnr.ST.HPS_1.R().Average(b,fn=fn),axis=1),
-lambda:snravg(usnr.ST.HPS_2.R().Average(b,fn=fn),axis=1),
-lambda:usnr.LT.TF_Z.R().Average(b,fn=fn),
-lambda:usnr.LT.HPS_Z.R().Average(b,fn=fn),
-lambda:usnr.LT.HPS_1.R().Average(b,fn=fn),
-lambda:usnr.LT.HPS_2.R().Average(b,fn=fn),
-lambda:np.array(list(icat.StaDepth)),
-lambda:np.array([i[bn] for i in np.array(list(icat.NoiseAverage))]) if bn in ['1_10','10_30','30_100'] else np.array([np.mean(list(i.values())) for i in np.array(list(icat.NoiseAverage))]),
-lambda:np.array(list(icat.TiltCoherence)),
-lambda:np.array(list(icat.Instrument_Design)),
-lambda:np.array(list(icat.Seismometer)),
-lambda:np.array(list(icat.Pressure_Gauge)),
-lambda:np.array(list(icat.Sediment_Thickness_m)),
-lambda:np.array(list(icat.Magnitude)),
-lambda:np.array(list(icat.Distance)),
-lambda:np.array(list(icat.EvDepth)),
-]
-names=[
-yttl('TF Z'), yttl('HPS Z'), yttl('HPS 1'), yttl('HPS 2'),
-r'$R_{\mathrm{TF}\ Z}$',r'$R_{\mathrm{HPS}\ Z}$' ,r'$R_{\mathrm{HPS}\ 1}$' ,r'$R_{\mathrm{HPS}\ 2}$',
-'TF Z\nsignal \npeak','HPS Z\nsignal \npeak','HPS 1\nsignal \npeak','HPS 2\nsignal \npeak',
-'TF Z\nnoise \nwindow','HPS Z\nnoise \nwindow','HPS 1\nnoise \nwindow','HPS 2\nnoise \nwindow',
-'Water\ndepth','Station\naverage\nnoise',f'Tilt\n({yttl('ZH')})','Instrument\ndesign','Seismometer','Pressure\ngauge','Sediment\nthickness','Magnitude','Distance','Earthquake\ndepth']
 
 #------Example set : WaterDepth, TiltCoherence, Instrument_Design -- Comment out to disable
 # N=10 #How many values (source-receivers) to use in the example
 # instlist=['AB','TRM','KE']
 # inst_inds=unravel([[np.where(np.array(list(icat.Instrument_Design))==i)[0][:2],np.where(np.array(list(icat.Instrument_Design))==i)[0][-2:]] for i in instlist])[:N]
-# X=[lambda:np.array(list(icat.StaDepth))[inst_inds],
+# props=AttribDict()
+# props.X=[lambda:np.array(list(icat.StaDepth))[inst_inds],
 # lambda:np.array(list(icat.TiltCoherence))[inst_inds],
 # lambda:np.array(list(icat.Instrument_Design))[inst_inds]]
-# names=['Water\ndepth',f'Tilt\n({yttl('ZH')})','Instrument\ndesign']
+# props.names=['Water\ndepth',f'Tilt\n({yttl('ZH')})','Instrument\ndesign']
 
 
 
@@ -437,8 +507,9 @@ r'$R_{\mathrm{TF}\ Z}$',r'$R_{\mathrm{HPS}\ Z}$' ,r'$R_{\mathrm{HPS}\ 1}$' ,r'$R
 
 
 
-
-
+names=props.names
+X=props.X
+assert len(X)==len(names), 'missing properties'
 icat=cat.sr.copy()
 bands=[[1,100]] #period bands to use
 corrmethods=['pearson'] # correlation function used. can be: 'pearson', 'spearman', or 'kendall'
