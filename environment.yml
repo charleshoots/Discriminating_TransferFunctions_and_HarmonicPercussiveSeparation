@@ -248,3 +248,4 @@ dependencies:
     - cmcrameri
     - gdown
     - librosa
+    - stdb

@@ -2,13 +2,13 @@ from pathlib import Path;import shutil,sys,os;
 import sys;from pathlib import Path;sys.path.append(str(Path(__file__).parent))
 # --------------------[IMPORTANT] Paths--------------------
 # project_path = Path(os.getcwd()) #Generic path (current working directory)
-project_path = Path(__file__).parent
+project_path = Path(__file__).parent.parent
 # project_path = Path('/Users/charlesh/Documents/Codes/OBS_Methods/NOISE/Research') #Local machine path
 # project_path = Path('/Volumes/ECHO/Research') #External drive path
 
 #This function yields the standard path network called on for everything in this project.
-os.chdir(project_path.parent);sys.path.append(str(project_path.parent)) #Do not touch this line. All functions/scripts assume the current working directory is the project path defined above.
-sys.path.insert(1,str(project_path.parent))
+os.chdir(project_path);sys.path.append(str(project_path)) #Do not touch this line. All functions/scripts assume the current working directory is the project path defined above.
+sys.path.insert(1,str(project_path))
 sys.path.append(str(project_path / 'packages'))
 sys.path.insert(0, str(project_path / 'packages' / 'scripts'))
 sys.path.insert(0, str(project_path / 'packages' / 'NoiseCut'))

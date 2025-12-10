@@ -46,11 +46,12 @@ ATaCR_Steps = {1:'Metadata ',
 # To download ATaCR event data: Args.STEPS = [3];Args.event_mode=True
 Args.STEPS = [2] #Steps to run. Choose from 1 to 7. See ATaCR_Steps dict for reference.
 Args.event_mode=False #For NoiseCut downloads. Enable this to download event data in 24-hour segments (last 2-hrs being the default trace window) rather than 2-hours (ATaCR default)
+# ===============================================================================
 
 # To download NoiseCut event data: Args.STEPS = [3];Args.event_mode=True
 # Args.STEPS = [3] #Steps to run. Choose from 1 to 7. See ATaCR_Steps dict for reference.
 # Args.event_mode=True #For NoiseCut downloads. Enable this to download event data in 24-hour segments (last 2-hrs being the default trace window) rather than 2-hours (ATaCR default)
-
+# ===============================================================================
 
 ## =============================================================================== ##
 # ============================================ OPTIONS ==============================
