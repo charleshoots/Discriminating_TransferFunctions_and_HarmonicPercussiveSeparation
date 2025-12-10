@@ -68,6 +68,11 @@ python source/download_models.py
 | S01.04.RunNoiseDataQualityReport.py |
 |----------|
 > ### Power-spectral densities of all noise data including quality controls from the ATaCR framework.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
+
 
 
 ---
@@ -77,32 +82,30 @@ python source/download_models.py
 | S02.00_RunStationPages.py |
 |----------|
 > ### Single station scatter plots of coherence spectra following corrections with HPS or TF.
-
 <details>
-  <summary><img src="_docs/S04.Example.png" width="220" /></summary>
+  <summary>(Example)</summary>
   <img src="_docs/S04.Example.png" />
-</details>
+</details> 
 
-
-
+__
 | S02.01_RunQuickHPSPlots.py |
 |----------|
+
 > ### Single single-receiver plots of traces after use of HPS to remove noise in all three seimic component data.
-
 <details>
-  <summary><img src="_docs/S04.Example.png" width="220" /></summary>
+  <summary>(Example)</summary>
   <img src="_docs/S04.Example.png" />
-</details>
+</details> 
 
+__
 | S02.02_RunEventRecord_Trace_Sections.py |
-|----------|
+|----------| 
+
 > ### Record sections for the qualitative comparison of changes following noise reduction using HPS and TF.
-
 <details>
-  <summary><img src="_docs/S04.Example.png" width="220" /></summary>
+  <summary>(Example)</summary>
   <img src="_docs/S04.Example.png" />
-</details>
-
+</details> 
 
 
 ---
@@ -113,55 +116,120 @@ python source/download_models.py
 | S03.Figure01_RunMapsPlot.py |
 |----------|
 > ### Global and regional maps of all deployments in the catalog.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S03.Figure02_Methods.Example.py |
 |----------|
 > ### Directly comparing the two methods in a single example event using traces, spectrograms, and coherence.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S03.Figure03_DirectMetricComparisons_byDepth_within.or.regardless.of.IG.py |
 |----------|
 > ### Scatter plots showing a direct comparison of average coherence and SNR ratios clustered by regular depth intervals both within and regardless of infragravity sensitivity.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S03.Figure04_ConsolidatedPlot.py |
 |----------|
 > ### Consolidated overview plot of results.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S03.Figure05_CoherenceContourPlots.py |
 |----------|
 > ### Contour plot of coherence measurement averages with depth.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S03.Figure06_DirecComparisonAverages_by_DeploymentParams.py |
 |----------|
 > ### Scatter plots directly comparing coherences for each deployment parameter.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S03.Figure07_Coherence.Spectra.by.DeploymentParam.py |
 |----------|
 > ### Multiple coherence spectra for each deployment and event parameter.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S03.Figure08_SNR.SpectraBands.by.DeploymentParam.py |
 |----------|
 > ### Multiple snr ratio spectral averages for each deployment and event parameter.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S03.Figure09_HighTilt.Plots.py |
 |----------|
 > ### Coherence and SNR ratio distributions grouped by severity of vertical tilt as approximated from ZH coherence averages.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S03.Figure10_Coherence.with.HPS.Traces.Magnitude.py |
 |----------|
 > ### Spectra coherence between traces corrected with HPS and those corrected with TF.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S03.Figure11_MetricComparisonScatterPlots.py |
 |----------|
 > ### Various scatter plots comparing different signal measurements beyond just coherence and snr (ie phase signal amplitude ratios).
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S03.Figure11.part2_ExampleEvents.with.LostStructure.py |
 |----------|
 > ### Example plot of selected events that demonstrate structure lost by noise reduction methods.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S03.Table02_Correlograms.py |
 |----------|
 > ### Correlation tables of measurement and deployment parameters.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 
 ---
 ### **S04: Supplemental figures**
@@ -170,30 +238,66 @@ python source/download_models.py
 | S04.TableS01_MetaHistPlots.py |
 |----------|
 > ### Basic histograms of deployment and event parameters.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S04.FigureS05_and_S08_CoherenceSpectraAverages.py |
 |----------|
 > ### Coherence and SNR ratio spectral averages with depth.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S04.FigureS06_ComparativeHistogram.py |
 |----------|
 > ### Histograms of measurement comparisons (ie which method produces lower coherence or snr on average).
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S04.FigureS09_Histograms.py |
 |----------|
 > ### Histograms of coherence and snr ratio distrubutions for each deployment and event parameter.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S04.FigureS10_Coh.vs.Coh.Scatter.py |
 |----------|
 > ### Scatter plots directly comparing each method's coherence when grouped by different deployment and event parameters.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S04.FigureS13_CoherenceScatter_by_Meta.py |
 |----------|
 > ### Scatter plots of coherence and SNR ratio spectral averages with different deployment parameters
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
 
+__
 | S04.FigureS14_NarrowSymmetryAnalysisPlots.py |
 |----------|
 > ### Scatter plots for simultaneous cross-measurement comparison of TF and HPS using coherence and snr ratios.
+<details>
+  <summary>(Example)</summary>
+  <img src="_docs/S04.Example.png" />
+</details> 
+
+__
 
 ## License 
 ##### | With the exception of the ATaCR and NoiseCut scripts, every single line of code in this repository was written directly by Charles Hoots in service of his PhD dissertation research at the University of Hawai'i Manoa with zero external assistance or contributions from others. With advice contributed by Helen Janiszewski, every level of analysis was also done by Charles Hoots. Use of any analysis, data, or codes contained within is open-source, covered under the MIT License:
