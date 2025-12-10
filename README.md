@@ -78,13 +78,31 @@ python source/download_models.py
 |----------|
 > ### Single station scatter plots of coherence spectra following corrections with HPS or TF.
 
+<details>
+  <summary><img src="_docs/S04.Example.png" width="220" /></summary>
+  <img src="_docs/S04.Example.png" />
+</details>
+
+
+
 | S02.01_RunQuickHPSPlots.py |
 |----------|
 > ### Single single-receiver plots of traces after use of HPS to remove noise in all three seimic component data.
 
+<details>
+  <summary><img src="_docs/S04.Example.png" width="220" /></summary>
+  <img src="_docs/S04.Example.png" />
+</details>
+
 | S02.02_RunEventRecord_Trace_Sections.py |
 |----------|
 > ### Record sections for the qualitative comparison of changes following noise reduction using HPS and TF.
+
+<details>
+  <summary><img src="_docs/S04.Example.png" width="220" /></summary>
+  <img src="_docs/S04.Example.png" />
+</details>
+
 
 
 ---
