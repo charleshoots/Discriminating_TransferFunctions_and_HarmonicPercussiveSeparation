@@ -112,7 +112,7 @@ def octave_average(d, f, fmin=1/100, fmax=1, fraction=8, domain="geo", N=291,
     elif domain == "log":   yb = np.log(xb)
     else:                   yb = xb
     return fc, yb
-class LayeredMeasurements:
+class AggregateMeasurements:
     def __init__(self,D:Optional[np.ndarray]=None,bands:Optional[Sequence[float]]=None,
         phases:Optional[Sequence[Union[str,int]]]=None,**kwargs):
         self.D=None if D is None else np.asarray(D)
@@ -122,7 +122,7 @@ class LayeredMeasurements:
         self.depth = None if ('depth' not in kwargs or kwargs['depth'] is None) else np.asarray(kwargs['depth'])
         self._parent=None; self._name=None; self._idx_cache={}
         for k,v in kwargs.items():
-            if isinstance(v,LayeredMeasurements): v._parent=self; v._name=k
+            if isinstance(v,AggregateMeasurements): v._parent=self; v._name=k
             setattr(self,k,v)
         if self.D is not None:
             if self.D.ndim not in (2,3): raise ValueError(f"`D` must be 2D or 3D; got {self.D.shape}.")
@@ -137,7 +137,7 @@ class LayeredMeasurements:
         if self.D is not None and self.D.ndim==3 and self.phases is not None:
             if len(self.phases)!=self.D.shape[2]: raise ValueError("`phases` must match D.shape[2].")
             for i,name in enumerate(self.phases):
-                child=LayeredMeasurements(D=self.D[:,:,i],bands=self.bands,comp=self.comp,depth=self.depth)
+                child=AggregateMeasurements(D=self.D[:,:,i],bands=self.bands,comp=self.comp,depth=self.depth)
                 child._parent=self; child._name=str(name)
                 self._phase_children[str(name)]=child
                 safe=_safe_attr(str(name))
@@ -286,7 +286,7 @@ class LayeredMeasurements:
         return Yb, T_new
 
 
-    def R(self, comp=None, eps:float=0.0, log10:bool=True)->"LayeredMeasurements":
+    def R(self, comp=None, eps:float=0.0, log10:bool=True)->"AggregateMeasurements":
         if comp is None: comp=self.comp
         if isinstance(comp,str):
             if self._parent is None: raise ValueError("No parent to resolve comparison.")
@@ -294,7 +294,7 @@ class LayeredMeasurements:
             other=getattr(self._parent,comp)
         else:
             other=comp
-        if not isinstance(other,LayeredMeasurements) or other.D is None: raise ValueError("Invalid comparison target.")
+        if not isinstance(other,AggregateMeasurements) or other.D is None: raise ValueError("Invalid comparison target.")
         if self.D is None: raise ValueError("No data to ratio.")
         if self.D.shape!=other.D.shape: raise ValueError(f"Shape mismatch: {self.D.shape} vs {other.D.shape}")
 
@@ -308,7 +308,7 @@ class LayeredMeasurements:
             if log10: out = np.where(out>0, np.log10(out), np.nan)
             out[~np.isfinite(out)] = np.nan
 
-        return LayeredMeasurements(D=out, bands=self.bands, phases=self.phases, comp=comp, depth=self.depth)
+        return AggregateMeasurements(D=out, bands=self.bands, phases=self.phases, comp=comp, depth=self.depth)
 
 
     def copy(self, deep=True):
@@ -331,10 +331,10 @@ class LayeredMeasurements:
                 d[k] = copy.deepcopy(v, memo)
         return out
 
-    def __getitem__(self,key:Union[int,str])->"LayeredMeasurements":
+    def __getitem__(self,key:Union[int,str])->"AggregateMeasurements":
         if self.D is None or self.D.ndim!=3: raise TypeError("Phase indexing only on 3D containers.")
         if isinstance(key,int):
-            if self.phases is None: return LayeredMeasurements(D=self.D[:,:,key],bands=self.bands,comp=self.comp)
+            if self.phases is None: return AggregateMeasurements(D=self.D[:,:,key],bands=self.bands,comp=self.comp)
             key=str(self.phases[key])
         try: return self._phase_children[str(key)]
         except KeyError: raise KeyError(f"Phase {key!r} not found. Available: {list(self._phase_children)}")
@@ -344,4 +344,4 @@ class LayeredMeasurements:
     def __repr__(self):
         dims="None" if self.D is None else f"{self.D.shape}"
         ph=None if self.phases is None else list(self._phase_children.keys())
-        return f"LayeredMeasurements(shape={dims}, bands_len={None if self.bands is None else len(self.bands)}, phases={ph})"
+        return f"AggregateMeasurements(shape={dims}, bands_len={None if self.bands is None else len(self.bands)}, phases={ph})"

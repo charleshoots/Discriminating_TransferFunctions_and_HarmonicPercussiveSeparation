@@ -135,7 +135,7 @@ class cohphadm(object):
                 self.A,self.B = A,B
 
         def fnotch(self,d=None,n=1):
-                '''The frequency knotch root function described in Crawford et al., 1998.
+                '''The frequency notch root function described in Crawford et al., 1998.
                 depth (d) is in meters. Returned (f) is in Hz.'''
                 if d==None:d = self.depth
                 g = 9.80665
@@ -206,27 +206,37 @@ class cohphadm(object):
 # ------------------------------------------------------------------------------------------------              ------------------------------------------------
 # ------------------------------------------------      ------------------------------------------------                ------------------------------------------------
 class Signal(object):
-        def __init__(self,A, B=None,overlap=0.3,window=500,tlen=7200,preproc=True):
+        def __init__(self,A, B=None,overlap=0.2,csd=None,f=None,fs=None,preproc=True):
                 self.preproc=preproc
-                if B is None:A=B.copy()
+                if B is None:B=A.copy()
+                self.overlap = overlap
                 self.A = A.copy()
                 self.B = B.copy()
-                self.overlap = overlap
-                self.window = window
-                self.tlen = tlen
-                self.lowpass=None # Filter.Disabled by default
-                self.percent=.02 #Taper %
-                self.fs = np.unique([s.stats.sampling_rate for s in [self.A,self.B] if isinstance(s,obspy.core.trace.Trace)])[0]
-                self.dt = 1/self.fs
+                # --Settings--
+                self.dt = np.unique([s.stats.delta for s in [self.A,self.B] if isinstance(s,obspy.core.trace.Trace)])[0]
+                self.fs = 1/self.dt
+                assert self.fs>1, 'Bad samplerate'
+                # self.tlen = np.size(self.A.data)/self.fs
                 self.depth = abs(self.A.stats.sac.stel)*1000
                 self.net = self.A.stats.network
                 self.sta = self.A.stats.station
                 self.chan = self.A.stats.channel
+                self.window = 600 #window length in seconds. Default = 600 (10min)
+                self.lowpass=None
+                self.percent=.02 #Hanning taper percent. Default = 0.02 (2%)
+                self.tlen = 7200 #Trace length. Default 7200s (2hrs)
                 self.npts = int(self.window*self.fs)
+                self.csd = csd
+                self.f = f
+                self.nperseg=self.npts
+                self.noverlap=self.npts//int(1/self.overlap)
                 if self.preproc:self.basic_preproc()
         def basic_preproc(self):
                 A,B = self.A,self.B
                 seconds = lambda A:A.hour*3600+A.minute*60+A.second
+                start = max([B.stats.starttime,A.stats.starttime])
+                end = min([B.stats.endtime,A.stats.endtime])
+                A.trim(start,end);B.trim(start,end)
                 tolerance=1 # seconds
                 tend = np.min([A.stats.endtime,B.stats.endtime])
                 A.trim(tend-self.tlen,tend)
@@ -236,15 +246,23 @@ class Signal(object):
                 assert np.allclose(seconds(B.stats.endtime),seconds(A.stats.endtime),tolerance),'End times do not match'
                 assert np.allclose(seconds(B.stats.starttime),seconds(A.stats.starttime),tolerance),'Start times do not match'
                 for d in [A,B]:
-                        d.detrend('linear');d.detrend('demean')
+                        # d.detrend('constant');d.detrend('demean')
                         if not self.percent==None:d.taper(self.percent)
-                        if not self.lowpass==None:d.filter('lowpass',freq=self.lowpass,zerophase=True)
-                        d.detrend('linear');d.detrend('demean')
+                        if not self.lowpass==None:d.filter('lowpass',freq=self.lowpass,zerophase=True);d.detrend('constant');d.detrend('demean')
                 self.A,self.B = A,B
+        def fnotch(self,d=None,n=1):
+                '''The frequency notch root function described in Crawford et al., 1998.
+                depth (d) is in meters. Returned (f) is in Hz.'''
+                if d==None:d = self.depth
+                g = 9.80665
+                f = (g/(2*np.pi*d*n))**0.5
+                return f
         def coherence(self):
                 f,ab,aa,bb = self._powercross(self.A.data,self.B.data)
-                coh = self._calc_coherence(ab,aa,bb)
+                coh = self._calc_coherence(ab,aa,bb) #(MSC from Bell, 2015)
+                # f, coh = coherence(self.A.data,self.B.data, fs=self.fs, nperseg=self.nperseg,noverlap=self.noverlap)
                 return f[f>0],coh[f>0]
+        
         def phase(self):
                 f,ab,aa,bb = self._powercross(self.A.data,self.B.data)
                 ph = self._calc_phase(ab)
@@ -253,25 +271,19 @@ class Signal(object):
                 f,ab,aa,bb = self._powercross(self.A.data,self.B.data)
                 adm = self._calc_admittance(ab,bb)
                 return f[f>0],adm[f>0]
-        def psd(self):
-                a,b=self.A.data.copy(),self.B.data.copy()
-                f,aa = self._csd_helper(a,a,return_onesided=True)
-                f,bb = (f,None) if b==None else self._csd_helper(b,b,return_onesided=True)
-                return f,(aa,bb)
-        def csd(self):
-                a,b=self.A.data.copy(),self.B.data.copy()
-                f,ab = self._csd_helper(a,b,return_onesided=True)
-                return f,ab
+        def _calc_coherence(self,ab,aa,bb):
+                #Magnitude-Squared Coherence (MSC) function (Bell,2015):
+                coh = ( np.abs(ab)**2 )  /  ( np.abs(aa) * np.abs(bb) )
+                # ------------------------------
+                #Complex-Valued Coherence (CVC) (Crawford&Webb,2000):
+                # coh = (  (ab)  /  ((aa*bb)**0.5) )
+                return np.abs(coh)
         def _calc_phase(self,ab):
                 ph = np.angle(ab,deg=True)
                 return ph
         def _calc_admittance(self,ab,bb):
                 ad = np.abs(np.abs(ab)/bb)
                 return ad
-        def _calc_coherence(self,ab,aa,bb):
-                #Magnitude-Squared Coherence (MSC) function (Bell,2015):
-                coh = ((abs(ab)**2)/(np.abs(aa)*np.abs(bb)))
-                return coh
         def _window(self,window=None,overlap=None):
                 if overlap is None:overlap=self.overlap
                 if window is None:window=self.window
@@ -286,22 +298,22 @@ class Signal(object):
                 wind[-ss:ws] = hanning[ss:ws]
                 return wind,ws,ss
         def _powercross(self,a,b):
-                f,ab = self._csd_helper(a,b,return_onesided=True)
-                f,aa = self._csd_helper(a,a,return_onesided=True)
-                f,bb = self._csd_helper(b,b,return_onesided=True)
+                f,ab = self._csd_helper(a,b,return_onesided=False) #csd
+                f,aa = self._csd_helper(a,a,return_onesided=False) #psd
+                f,bb = self._csd_helper(b,b,return_onesided=False) #psd
                 return f,ab,aa,bb
         def _csd_helper(self,a,b,window=None,overlap=None,return_onesided=False):
-                f,_t,a_ft = self._stft(a,window=window,overlap=overlap,return_onesided=return_onesided)
-                f,_t,b_ft = self._stft(b,window=window,overlap=overlap,return_onesided=return_onesided)
-                cab = np.mean(self._calc_csd(a_ft,b_ft),axis=0)
+                f,_t,a_ft = self._stft(a,window=window,overlap=overlap,return_onesided=return_onesided) # ( time-windows x frequency-bins )
+                f,_t,b_ft = self._stft(b,window=window,overlap=overlap,return_onesided=return_onesided) # ( time-windows x frequency-bins )
+                cab = np.mean(self._calc_csd(a_ft,b_ft),axis=0) #Welch method
                 return f,cab
         def _calc_csd(self,a_ft,b_ft):
-                cab = a_ft*np.conj(b_ft)
+                cab = np.conj(a_ft)*b_ft
                 return cab
         def _stft(self,tr,scaling='spectrum',window=None,overlap=None,return_onesided=False):
                 wind,ws,ss = self._window(window=window,overlap=overlap)
-                _f, _t, ft = stft(tr,self.fs, return_onesided=return_onesided, boundary=None,padded=False, window=wind, nperseg=ws, noverlap=ss,detrend='constant',scaling=scaling)
+                _f, _t, ft = stft(tr,self.fs, return_onesided=return_onesided, boundary=None,padded=True, 
+                window=wind, nperseg=ws, noverlap=ss,scaling=scaling)
                 _f = _f.reshape(-1)
                 ft = np.atleast_2d(ft)
-                ft = ft*ws
                 return _f.T,_t.T,ft.T

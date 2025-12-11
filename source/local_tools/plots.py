@@ -11,7 +11,7 @@ from scipy.stats import iqr
 from local_tools.math import cohstats
 from scipy.ndimage import gaussian_filter
 from local_tools.math import fnotch
-from local_tools.LabeledMatrix import LayeredMeasurements as LM
+from local_tools.LabeledMatrix import AggregateMeasurements as LM
 
 def argsort_luminence(cc,cmap):
     cc=np.array(cc).ravel()

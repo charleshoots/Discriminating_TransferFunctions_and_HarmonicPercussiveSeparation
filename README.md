@@ -1,5 +1,7 @@
 # Comparing noise reduction methods using transfer function or harmonic percussive separation. 
 
+<center><img src="_docs/OverviewThumbnail.png" width=1000/></center>
+
 ## Installation: 
 
 ```
@@ -22,7 +24,94 @@ conda activate Seismic_TF_HPS_Comparison
 python source/download_models.py
 ```
 
-## Overview - Code in support of this analysis is broken up into five sections:
+## Overview - 
+
+All analysis and data navigation is done with four classes:
+
+
+
+| DataSpace |
+|----------|
+A highly detailed catalog of all receiver and source receiver level data and metadata. Anything in this analysis (traces, entire record sections, coherence, snr, noise spectra, etc.) can be quickly accessed using just this catalog. An indexing method called .loc is built into the Pandas API when calling this class for very quick navigation without requiring knowledge of specific column names.
+
+```
+# Example
+```
+from source.imports import *
+cat = catalog.r.copy() #Catalog of receiver level data/metadata
+cat = catalog.sr.copy() #Catalog of source-receivers level data/metadata
+record = cat.loc[''] #All source receivers for an event name
+sr = record.loc[''] #A specific source-receiver from that event
+hps_record = Stream([r.Traces().select(location='*NoiseCut*')[0] for r in record]) #All HPS corrected traces for this event
+hps_record.plot() # Record section plot
+
+```
+# Example
+```
+
+| Signal |
+|----------|
+
+### A simple class for calculating basic spectral measurements used in comparing signals such as coherence, phase, admittance, PSD, and CSD.
+
+```
+# Example
+from source.imports import *
+cat = catalog.sr.copy() #Catalog of source-receivers
+sr = cat.iloc[0] #Select a source-receiver
+st = sr.Traces() #Load the traces
+original,corrected=st.select(location='*Original*')[0],st.select(location='*NoiseCut*')[0] #Specify traces to compare
+sn = Signal(original,corrected) #Instatiate a Signal class
+f,coh = sn.coherence() #Magnitude-squared Coherence between original and corrected
+f,phase = sn.phase() #Spectral phase between original and corrected
+f,adm = sn.admittance() #Spectral admittance between original and corrected
+```
+
+| AggregateMeasurements |
+|----------|
+
+### A fast method of aggregating coherence and snr averages within a band. Can specify ingravity limit sensitivity.
+
+```
+# Example
+from source.imports import *
+cat = catalog.sr.copy() #Catalog of source-receivers
+cohsnr=unpack_metrics(cat) #Outputs a AggregateMeasurements class containing all coherence, SNR, signal, and noise measurements.
+
+f = 1/cohsnr.coh.bands #coherence frequency vector
+igsensitive = True #Specify infragravity sensitivity. Arguments can be True, False, or None.
+
+#coherence averages for each source-receiver pair within the 1-10s band subset within sensitivity to the infragravity wave.
+tfzcoh = cohsnr.coh.TF_Z.Average((1,10),fn='IG' if igsensitive else None)
+hpszcoh = cohsnr.coh.HPS_Z.Average((1,10),fn='IG' if igsensitive else None)
+hps1coh = cohsnr.coh.HPS_1.Average((1,10),fn='IG' if igsensitive else None)
+hps2coh = cohsnr.coh.HPS_2.Average((1,10),fn='IG' if igsensitive else None)
+
+#all source-receiver Rayleigh wave (Rg) measured SNR (snr) ratios (R() argument) averaged over the 30-100s period band.
+tfzcsnr = cohsnr.snr.TF_Z.R().Rg.Average((30,100),fn='IG' if igsensitive else None)
+hpszsnr = cohsnr.snr.HPS_Z.R().Rg.Average((30,100),fn='IG' if igsensitive else None)
+
+```
+
+
+
+| dirs |
+|----------|
+### A generic wrapper for quickly referencing all input and output directories used in analysis and data management.
+```
+# Example
+from source.imports import *
+dirs = io.dir_libraries
+repo_root = dirs.Root #Repository root
+datafolder = dirs.Data #Parent directory of all data inputs
+plotfolder = dirs.Plots #Parent directory of all plot outputs
+atacr_event_folder = dirs.Events #Event data from ATaCR
+hps_event_folder = dirs.Events_HPS #Event data from NoiseCut
+```
+
+
+
+## All codes in support of this analysis comparing noise reduction methodologies is broken up into five sections:
 
 
 ---

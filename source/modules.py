@@ -83,6 +83,6 @@ from local_tools.quick_class import *
 from local_tools.get_reports import *
 from local_tools.helper_functions import *
 from local_tools.plots import *
-from local_tools.LabeledMatrix import LayeredMeasurements as LM
+from local_tools.LabeledMatrix import AggregateMeasurements as LM
 # from octave_average_ansi import octave_average_ansi
 # ____________________________________________________________________________________

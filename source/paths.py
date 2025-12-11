@@ -31,7 +31,7 @@ def dir_libraries(project_path=None,mkdir=False):
         d.Analysis=d.Data/'Analysis'
         d.SNR=d.Scripts/'S00_Collect.SNR'
         d.P01 = AttribDict({})
-        d.P01.Parent = d.Data/'P01_Analysis_Figures'
+        d.P01.Parent = plotfolder/'P01_Analysis_Figures'
         d.P01.S01 = d.P01.Parent/'S01_NoisePlots'
         d.P01.S02 = d.P01.Parent/'S02_StationPages'
         d.P01.S03 = d.P01.Parent/'S03_HPSPlots'
