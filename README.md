@@ -33,7 +33,7 @@ python source/download_models.py
 | 1. DataSpace |
 |----------|
 
-#### A highly detailed catalog containing all receiver and source receiver level data and metadata. Anything in this analysis (traces, entire record sections, coherence, snr, noise spectra, etc.) can be quickly accessed using just this catalog. An indexing method called .loc is built into the Pandas API when calling this class for very quick navigation without requiring knowledge of specific column names.
+#### A highly detailed catalog containing all receiver and source receiver level data and metadata. Anything in this analysis (traces, entire record sections, coherence, snr, noise spectra, etc.) can be quickly accessed using just this catalog. An indexing method called .loc is registered to the Pandas API when calling this class for very quick navigation without requiring knowledge of specific column names.
 
 
 
