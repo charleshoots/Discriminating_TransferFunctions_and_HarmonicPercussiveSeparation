@@ -206,6 +206,6 @@ for mtr in ['snr']:
 
     ax=axes[1,0];ax.set_xlabel(r'$\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;$frequency, Hz',x=.5,ha='left')
     fig.subplots_adjust(wspace=0)
-    file = f'{mthd}.{mtr}.by.DeploymentParameters.{save_format}'
+    file = f'S03.Figure08_{mthd}.{mtr}.by.DeploymentParameters.{save_format}'
     if Horiz:file = f'Horiz.{mtr.upper()}.{'.'.join(sets)}.{save_format}'
     save_tight(plotfolder/file,fig,dpi=700)

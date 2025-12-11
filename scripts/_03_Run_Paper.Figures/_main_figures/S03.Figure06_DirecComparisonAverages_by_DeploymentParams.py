@@ -244,4 +244,4 @@ for fn in [None]:
             leg=ax.legend(handles=hdls,frameon=False, ncols=1,loc='upper left',markerscale=1)
             for h in leg.legend_handles:h.set_linewidth(2)
     file=f"{xcat}.{'colored.by.band' if color_by_band else 'colored.by.instrument'}.SNR.and.COH.Comparisons{f'.{fn}' if fn is not None else ''}.{save_format}"
-    _=save_tight(plotfolder/file,fig,dpi=900)
+    _=save_tight(plotfolder/('S03.Figure06_'+file),fig,dpi=900)

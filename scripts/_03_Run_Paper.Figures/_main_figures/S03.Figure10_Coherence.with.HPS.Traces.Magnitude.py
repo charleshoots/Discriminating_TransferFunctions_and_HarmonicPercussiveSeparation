@@ -108,5 +108,5 @@ cbar = fig.colorbar(sm, cax=cax,pad=1000,extend='max')
 cbar.set_label('earthquake magnitude, Mw')   # or 'Mw', etc.
 cbar.set_ticks(np.unique(magwins.reshape(-1))[:-1])
 
-file=f"TF.Coherence.with.HPS.Traces.Magnitude.{save_format}"
+file=f"S03.Figure10_TF.Coherence.with.HPS.Traces.Magnitude.{save_format}"
 _=save_tight(plotfolder/file,fig,dpi=900)

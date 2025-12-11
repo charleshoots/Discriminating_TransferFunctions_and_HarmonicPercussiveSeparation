@@ -356,5 +356,5 @@ for mthd in mthds:
 
     fold = plotfolder
     
-    file = f'_05_{mthd}.Correlation.{save_format}'
+    file = f'S03.Figure11_{mthd}.Correlation.{save_format}'
     _=save_tight(fold/file,fig,dpi=700)

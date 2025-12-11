@@ -226,7 +226,7 @@ for ri,req in enumerate(reqs):
             ax.set_xlim([ax.get_xticks().min(),ax.get_xticks().max()])
             if req is not None:fold=fold/req
             fold.mkdir(parents=True, exist_ok=True)
-            save_tight(fold/file,fig=fig,dpi=700) #dpi=700,
+            save_tight(fold/('S04.FigureS05S08_'+file),fig=fig,dpi=700) #dpi=700,
             print(status()+' | ----Completed----')
             plt.close()
 

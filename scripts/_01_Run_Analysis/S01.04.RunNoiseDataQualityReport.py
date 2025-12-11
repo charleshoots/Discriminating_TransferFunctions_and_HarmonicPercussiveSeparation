@@ -113,7 +113,7 @@ for si,sta in enumerate(cat.iloc):
         fig.suptitle(f'{sta.Experiment} {sta.StaName},{int(sta.StaDepth)}m ({np.round(fnotch(sta.StaDepth),2)}Hz)',y=0.94)
         file = f'{stanm}.Noise.QC.png'
         # file = file.replace('.png',f'.{note}.png')
-    save_tight(plotfold/file)
+    save_tight(plotfold/('S01.04_'+file))
     plt.close('all')
 
 

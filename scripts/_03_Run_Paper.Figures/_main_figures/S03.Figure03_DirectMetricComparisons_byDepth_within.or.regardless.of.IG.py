@@ -278,5 +278,5 @@ ax.set_xlim(lims);ax.set_ylim(lims)
 
 
 file=f"{xcat}.SNR.and.COH.Comparisons{f'.{fn}' if fn is not None else ''}.FishPlot.{save_format}"
-_=save_tight(plotfolder/file,fig,dpi=900)
+_=save_tight(plotfolder/('S03.Figure03_'+file),fig,dpi=900)
 k=0

@@ -196,7 +196,7 @@ for req in runs.keys():
         if sigma:
             fname=fname.replace('S10','S10.sigma')
             (plotfolder/'sigma').mkdir(parents=True, exist_ok=True)
-            save_tight(plotfolder/'sigma'/fname,fig,dpi=200)
-        else:save_tight(plotfolder/fname,fig,dpi=200)
+            save_tight(plotfolder/'sigma'/('S04.FigureS10_'+fname),fig,dpi=200)
+        else:save_tight(plotfolder/('S04.FigureS10_'+fname),fig,dpi=200)
         plt.close('all');del fig,axes
         print('Done')

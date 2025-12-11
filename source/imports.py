@@ -9,11 +9,11 @@ project_path = Path(__file__).parent.parent
 #This function yields the standard path network called on for everything in this project.
 os.chdir(project_path);sys.path.append(str(project_path)) #Do not touch this line. All functions/scripts assume the current working directory is the project path defined above.
 sys.path.insert(1,str(project_path))
-sys.path.append(str(project_path / 'packages'))
-sys.path.insert(0, str(project_path / 'packages' / 'scripts'))
-sys.path.insert(0, str(project_path / 'packages' / 'NoiseCut'))
-sys.path.insert(0, str(project_path / 'packages' / 'ATaCR'))
-sys.path.insert(0, str(project_path / 'packages' / 'ATaCR'/ 'OBStools'))
+sys.path.append(str(project_path / 'source' /  'packages'))
+sys.path.append(str(project_path / 'source' /  'local_tools'))
+sys.path.insert(0, str(project_path / 'source' / 'packages' / 'NoiseCut'))
+sys.path.insert(0, str(project_path / 'source' / 'packages' / 'ATaCR'))
+sys.path.insert(0, str(project_path / 'source' / 'packages' / 'ATaCR'/ 'OBStools'))
 
 
 # --------------------Imports--------------------

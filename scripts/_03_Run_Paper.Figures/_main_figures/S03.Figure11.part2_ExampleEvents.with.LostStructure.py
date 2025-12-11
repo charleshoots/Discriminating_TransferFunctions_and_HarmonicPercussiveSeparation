@@ -85,5 +85,5 @@ for b in bands:
             ax.tick_params(size=2,labelsize=3)
             ax.set_xlabel('time after origin, s',)
     for ax in axes:ax.set_xlim(0,tmax)
-    file=f'{len(icat)}.pairs.{b[0]}-{b[1]}s.{save_format}'
+    file=f'S03.Figure11.part2_{len(icat)}.pairs.{b[0]}-{b[1]}s.{save_format}'
     save_tight(plotfolder/file,fig,dpi=800)

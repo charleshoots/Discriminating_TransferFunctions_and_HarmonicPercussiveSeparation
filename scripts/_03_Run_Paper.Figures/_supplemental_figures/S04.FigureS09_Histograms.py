@@ -149,7 +149,7 @@ for key in meta_wins.keys():
         else:file=file+'.Mu'
         if norm_pdf:file=file+'.Normed'
         file=file+f'.{save_format}'
-        save_tight(plotfolder/file,fig,dpi=700)
+        save_tight(plotfolder/('S04.FigureS09_'+file),fig,dpi=700)
         print(f'{key} - Saved')
         plt.close()
 

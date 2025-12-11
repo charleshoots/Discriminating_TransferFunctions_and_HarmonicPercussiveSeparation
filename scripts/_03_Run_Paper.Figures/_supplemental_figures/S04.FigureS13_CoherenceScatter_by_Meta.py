@@ -182,5 +182,5 @@ for fn in [None,'IG']:
             ##SAVING------------------------------------------------------------------------
             file=f'{key}.{'IG_Sensitive.' if fn=='IG' else 'Regardless.of.IG.'}.{stat.title}.{note}{save_format}'
             if named:file='Named.'+file
-            save_tight(plotfolder/file,fig,dpi=800)
+            save_tight(plotfolder/('S04.FigureS13_'+file),fig,dpi=800)
             plt.close()

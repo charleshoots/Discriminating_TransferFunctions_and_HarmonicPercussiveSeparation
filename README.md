@@ -70,7 +70,7 @@ python source/download_models.py
 > ### Power-spectral densities of all noise data including quality controls from the ATaCR framework.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S01.04.png" />
 </details> 
 
 
@@ -84,7 +84,7 @@ python source/download_models.py
 > ### Single station scatter plots of coherence spectra following corrections with HPS or TF.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S02.00_7D.FS42D.both.Coherence.png"/>
 </details> 
 
 __
@@ -94,7 +94,7 @@ __
 > ### Single single-receiver plots of traces after use of HPS to remove noise in all three seimic component data.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S02.01_7D.FS42D.HPSEventCheck.2015.115.06.11.png"/>
 </details> 
 
 __
@@ -104,7 +104,7 @@ __
 > ### Record sections for the qualitative comparison of changes following noise reduction using HPS and TF.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S02.02_2015.150.11.23.Mw7.9.685km_traces__NoiseCut.png"/>
 </details> 
 
 
@@ -118,7 +118,7 @@ __
 > ### Global and regional maps of all deployments in the catalog.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S03.Figure01.png" />
 </details> 
 
 __
@@ -127,7 +127,7 @@ __
 > ### Directly comparing the two methods in a single example event using traces, spectrograms, and coherence.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S03.Figure02.png" />
 </details> 
 
 __
@@ -136,7 +136,7 @@ __
 > ### Scatter plots showing a direct comparison of average coherence and SNR ratios clustered by regular depth intervals both within and regardless of infragravity sensitivity.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S03.Figure03.png" />
 </details> 
 
 __
@@ -145,7 +145,7 @@ __
 > ### Consolidated overview plot of results.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S03.Figure04.png" />
 </details> 
 
 __
@@ -154,7 +154,7 @@ __
 > ### Contour plot of coherence measurement averages with depth.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S03.Figure05.png" />
 </details> 
 
 __
@@ -163,7 +163,7 @@ __
 > ### Scatter plots directly comparing coherences for each deployment parameter.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S03.Figure06.png" />
 </details> 
 
 __
@@ -172,7 +172,7 @@ __
 > ### Multiple coherence spectra for each deployment and event parameter.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S03.Figure07.png" />
 </details> 
 
 __
@@ -181,7 +181,7 @@ __
 > ### Multiple snr ratio spectral averages for each deployment and event parameter.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S03.Figure08.png" />
 </details> 
 
 __
@@ -190,7 +190,7 @@ __
 > ### Coherence and SNR ratio distributions grouped by severity of vertical tilt as approximated from ZH coherence averages.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S03.Figure09.png" />
 </details> 
 
 __
@@ -199,7 +199,7 @@ __
 > ### Spectra coherence between traces corrected with HPS and those corrected with TF.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S03.Figure10.png" />
 </details> 
 
 __
@@ -208,7 +208,7 @@ __
 > ### Various scatter plots comparing different signal measurements beyond just coherence and snr (ie phase signal amplitude ratios).
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S03.Figure11.png" />
 </details> 
 
 __
@@ -217,7 +217,7 @@ __
 > ### Example plot of selected events that demonstrate structure lost by noise reduction methods.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S03.Figure11part2.png" />
 </details> 
 
 __
@@ -226,7 +226,7 @@ __
 > ### Correlation tables of measurement and deployment parameters.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S03.Table02.png" />
 </details> 
 
 __
@@ -235,12 +235,12 @@ __
 ### **S04: Supplemental figures**
 ---
 
-| S04.TableS01_MetaHistPlots.py |
+| S04.FigureS01_MetaHistPlots.py |
 |----------|
 > ### Basic histograms of deployment and event parameters.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S04.TableS01.png" />
 </details> 
 
 __
@@ -249,7 +249,7 @@ __
 > ### Coherence and SNR ratio spectral averages with depth.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S04.FigureS05S08.png" />
 </details> 
 
 __
@@ -258,7 +258,7 @@ __
 > ### Histograms of measurement comparisons (ie which method produces lower coherence or snr on average).
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S04.FigureS06.png" />
 </details> 
 
 __
@@ -267,7 +267,7 @@ __
 > ### Histograms of coherence and snr ratio distrubutions for each deployment and event parameter.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S04.FigureS09.png" />
 </details> 
 
 __
@@ -276,7 +276,7 @@ __
 > ### Scatter plots directly comparing each method's coherence when grouped by different deployment and event parameters.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S04.FigureS10.png" />
 </details> 
 
 __
@@ -285,7 +285,7 @@ __
 > ### Scatter plots of coherence and SNR ratio spectral averages with different deployment parameters
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S04.FigureS13.png" />
 </details> 
 
 __
@@ -294,7 +294,7 @@ __
 > ### Scatter plots for simultaneous cross-measurement comparison of TF and HPS using coherence and snr ratios.
 <details>
   <summary>(Example)</summary>
-  <img src="_docs/S04.Example.png" />
+  <img src="_docs/S04.FigureS14.png" />
 </details> 
 
 __

@@ -220,4 +220,4 @@ for mtr in ['coh']:
     fig.subplots_adjust(wspace=0)
     file = f'{mthd}.{mtr}.by.DeploymentParameters.{save_format}'
     if Horiz:file = f'Horiz.{mtr.upper()}.{'.'.join(sets)}.{save_format}'
-    save_tight(plotfolder/file,fig,dpi=700)
+    save_tight(plotfolder/('S03.Figure07_'+file),fig,dpi=700)

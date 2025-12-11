@@ -318,5 +318,5 @@ for fn in fns:
     file=f'Contours.{fn if (fn is not None) else 'Full'}.{save_format}'
     # cbar.ax.set_position([0.14252260981912146, 0.9005333333333334, 0.7738372093023256, 0.9108000000000002])
     # save_tight(plotfolder/file,fig,dpi=800)
-    fig.savefig(str(plotfolder/file), pad_inches = 0.05,dpi=800,format=save_format) #Saving this as a pdf is making the colorbar bug out.
+    fig.savefig(str(plotfolder/('S03.Figure05_'+file)), pad_inches = 0.05,dpi=800,format=save_format) #Saving this as a pdf is making the colorbar bug out.
     m=0

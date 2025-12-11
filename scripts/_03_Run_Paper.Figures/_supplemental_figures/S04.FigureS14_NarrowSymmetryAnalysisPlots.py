@@ -322,4 +322,4 @@ for ki,key in enumerate(meta_wins.keys()):
             if ratio:file=f'Ratio.w.Orig_{file}'
             if key=='StaDepth':file=f'_{file}'
             if scen:file=f'Scenario.{scen}_{file}' 
-            save_tight(plotfolder/file,dpi=800)
+            save_tight(plotfolder/('S04.FigureS14_'+file),dpi=800)

@@ -253,5 +253,5 @@ for fn in fnsets:
             if not xcat=='All_data':fold=fold/xcat
             fold.mkdir(parents=True,exist_ok=True)
             file=f'{xci.replace(' ','_')}._{'RegardlessofIG' if fn is None else fn}_BasicComparativeHist.{save_format}'
-            _=save_tight(fold/file,fig,dpi=900)
+            _=save_tight(fold/('S04.FigureS06_'+file),fig,dpi=900)
             print(f'{xcat} : {xci} - Done')

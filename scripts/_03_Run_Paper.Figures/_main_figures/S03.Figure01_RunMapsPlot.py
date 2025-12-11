@@ -254,7 +254,7 @@ if 'global' in MapsToMake:
     outdir=mapfolder
     outdir.mkdir(parents=True,exist_ok=True)
 
-    outfile = outdir / f"Both_PacificCentered.romaO.lapaz{'.with.Stations' if plot_stations else '.without.Stations'}.{save_format}"
+    outfile = outdir / f"'S03.01_GlobalMap{'.with.Stations' if plot_stations else '.without.Stations'}.{save_format}"
     if save_format=='png':fig.savefig(str(outfile), dpi=900)
     else:fig.savefig(str(outfile))
     fig.show()
@@ -377,7 +377,7 @@ if 'network' in MapsToMake:
         fig.basemap(frame=f"+t{net}")
         outdir=mapfolder
         outdir.mkdir(parents=True, exist_ok=True)
-        outfile = outdir / f"network_{net}.{save_format}"
+        outfile = outdir / f"S03.01_network_{net}.{save_format}"
 
 
         if save_format=='png':fig.savefig(str(outfile), dpi=900)

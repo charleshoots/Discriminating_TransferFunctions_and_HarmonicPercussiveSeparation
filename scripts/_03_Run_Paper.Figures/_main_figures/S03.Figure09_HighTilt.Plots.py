@@ -234,5 +234,5 @@ bbox_to_anchor=(0.69, 1.34), frameon=False)
 for h in lg.legend_handles:h.set_linewidth(2)
 
 
-file=f'{mtr.upper()}.HighTiltPlot.{save_format}'
+file=f'S03.Figure09_{mtr.upper()}.HighTiltPlot.{save_format}'
 _=save_tight(plotfolder/file,fig,dpi=800)

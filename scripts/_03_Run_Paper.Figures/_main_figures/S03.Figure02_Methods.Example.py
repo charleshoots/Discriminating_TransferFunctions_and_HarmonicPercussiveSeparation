@@ -275,5 +275,5 @@ for fi in files:
                 spec_ax.axvline(PS[0],lw=.4,zorder=1e3,ls=':',c='k')
                 spec_ax.axvline(PS[1],lw=.4,zorder=1e3,ls=':',c='k')
             file=f'{sta}.{ev}.Methods.Example.{save_format}'
-            fig.savefig(str(plotfolder/file),pad_inches=0.05,dpi=3000,format=save_format)
+            fig.savefig(str(plotfolder/('S03.Figure02_'+file)),pad_inches=0.05,dpi=3000,format=save_format)
             plt.close('all')

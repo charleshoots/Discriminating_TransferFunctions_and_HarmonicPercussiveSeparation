@@ -203,7 +203,7 @@ for type in ['metrics']:
                 note = type.replace('metrics','coph').replace('stream','events')
                 if type.lower()=='metrics':note=csd_pairs[0]+note
                 folder.mkdir(exist_ok=True,parents=True)
-                save_tight(folder / file,fig,dpi=200)
+                save_tight(folder / ('S02.00_'+file),fig,dpi=200)
                 plt.close('all')
 
 lt.cat.banner('S02 COMPLETE!')

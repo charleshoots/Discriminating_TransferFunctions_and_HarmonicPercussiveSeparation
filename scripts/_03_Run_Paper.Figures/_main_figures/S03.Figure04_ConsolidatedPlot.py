@@ -266,5 +266,5 @@ for ri,(raxes,rsect) in enumerate(zip(axes,sectors)):
 
 savefile = f'{savefile}.{snravgname}'
 if not mtrsets=='R.vs.SNR':savefile = f'{mtrsets}.{savefile}'
-_=save_tight(plotfolder/f'{savefile}.{save_format}',fig,dpi=2000)
+_=save_tight(plotfolder/f'S03.Figure04_{savefile}.{save_format}',fig,dpi=2000)
 print('Done.')

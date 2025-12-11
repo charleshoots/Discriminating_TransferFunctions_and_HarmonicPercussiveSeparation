@@ -97,7 +97,7 @@ for si,stanm in enumerate(stations):
         # plotfold=dirs.Events_HPS/stanm/'CORRECTED'/'EventRecords'
         plotfold = dirs.P01.S03/stanm
         plotfold.mkdir(exist_ok=True)
-        file=plotfold/f'{stanm}.HPSEventCheck.{ev}.png'
+        file=plotfold/('S02.01_'+f'{stanm}.HPSEventCheck.{ev}.png')
         if (file.exists())& (not ovr):continue
         fig=make_plot(r,c)
         save_tight(file,fig)

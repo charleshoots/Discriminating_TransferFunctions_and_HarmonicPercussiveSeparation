@@ -549,7 +549,7 @@ for fn in fns:
             (fold/'_xls').mkdir(parents=True,exist_ok=True)
 
             prefix = (fn or "").replace("IG","Notched.").replace("MS","MS.")
-            file = f"_Example_{prefix}{corrmethod}.correlogram.{len(X)}x{len(X)}.{bn}.{save_format}"
+            file = f"S03.Table02_{prefix}{corrmethod}.correlogram.{len(X)}x{len(X)}.{bn}.{save_format}"
             df.to_excel(fold/'_xls'/file.replace(f'.{save_format}','.xlsx'))
             _=save_tight(fold/file,dpi=50)
             plt.close('all')
