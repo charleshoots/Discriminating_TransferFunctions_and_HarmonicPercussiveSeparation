@@ -1,5 +1,9 @@
 MIT License
 
+
+With the exception of the ATaCR and NoiseCut scripts, this code was developed as part of the PhD research of Charles Hoots in the Department of Earth Sciences, University of Hawai‘i at Mānoa. Use of any analysis, data, or codes contained within is open-source, covered under the MIT License:
+https://github.com/charleshoots/ATACR_HPS_Comp/blob/main/LICENSE.txt
+
 Copyright (c) 2025 Charles Hoots
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
