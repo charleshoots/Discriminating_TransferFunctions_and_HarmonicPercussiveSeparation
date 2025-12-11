@@ -46,6 +46,21 @@ def trim_spectrograms(out,endlen=7200):
 # verbose=False
 verbose=[0,5,6,8] #Verbose can be set to True/False for all/none or to a list of specific stages in the NoiseCut script to plot.
 
+# verbose argument is a list of stages in the NoiseCut method to pause the execution for a plot output.clear_output.clear_output
+# stages are as follows:
+# 0 : Lists all arguments used in calculating the NoiseCut spectrogram.
+# 1 : Plots spectrogram of input data before any processing.
+# 2 : Same spectrogram of input data but isolated to the band MED algorithm is applied.
+# 3 : Same spectrogram of input data but isolated to the band SIM algorithm is applied.
+# 4 : W-hat from Zali '23
+# 5 : Repeating spectrogram, Eq. 5 from Zali '23.
+# 6 : Harmonic (MED output), H from Zali '23.
+# 7 : Percussive component from the MED output.
+# 8 : N = R + H in Zali '23.
+# 9 : S_full - S_background
+
+
+
 # Directories for input/output. Must be Path objects.
 noisecut_input_dir=dirs.Events_HPS/'rmresp' #Input directory for NoiseCut (after removing instrument response)
 # noisecut output dir value

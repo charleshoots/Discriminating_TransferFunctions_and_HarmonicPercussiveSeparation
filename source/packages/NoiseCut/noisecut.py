@@ -220,7 +220,6 @@ def noisecut(
     if 7 in verbose:fig7=QAPlot(D_percussive,fq,t,clim,'S07 D_percussive, (0.1<=f<1.0) \n Percussive component of MED never used in Zali''23',trace.stats)
     S_background = S_background + D_harmonic
     if 8 in verbose:fig8=QAPlot(S_background,fq,t,clim=None,ttl='S08 S_background + D_harmonic \n N = R + H in Zali''23',stats=trace.stats,usedbS=False)
-    if 9 in verbose:fig_test=QAPlot(S_background,fq,t,clim=None,ttl='S09_Test S_background, N = R + H in Zali''23 \n Testing against residual figures',stats=trace.stats,cmap=True,pabs=True,usedbS=False)
     f = S_background * phase
     L = x.shape[0]
     new = librosa.istft(f,hop_length=hop_length,win_length=win_length_samples,window='hann',length=L) #Noise model returned to time-domain
@@ -233,7 +232,7 @@ def noisecut(
     hps_trace = Trace(data=z, header=stats)
 
     # hps_trace.write( 'NoiseCut.mseed', format='MSEED', encoding=5, reclen=4096)
-    if 10 in verbose:fig10=QAPlot(S_full - S_background,fq,t,clim,'S10 Output \n T = V - N = V - (R + H) in Zali''23',trace.stats)
+    if 9 in verbose:fig10=QAPlot(S_full - S_background,fq,t,clim,'S10 Output \n T = V - N = V - (R + H) in Zali''23',trace.stats)
     if ret_spectrograms:
         S_hps = S_full - S_background
         df = trace.stats.sampling_rate/win_length_samples
