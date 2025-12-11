@@ -24,13 +24,13 @@ conda activate Seismic_TF_HPS_Comparison
 python source/download_models.py
 ```
 
-## Overview - 
+# Overview - 
 
-All analysis and data navigation is done with four classes:
+## All analysis and data navigation is done with four classes:
 
 
 
-| DataSpace |
+| 1. DataSpace |
 |----------|
 
 #### A highly detailed catalog containing all receiver and source receiver level data and metadata. Anything in this analysis (traces, entire record sections, coherence, snr, noise spectra, etc.) can be quickly accessed using just this catalog. An indexing method called .loc is built into the Pandas API when calling this class for very quick navigation without requiring knowledge of specific column names.
@@ -54,7 +54,7 @@ hps_record = Stream([r.Traces().select(location='*NoiseCut*')[0] for r in record
 hps_record.plot() # Record section plot
 ```
 
-| Signal |
+| 2. Signal |
 |----------|
 
 #### A simple class for calculating basic spectral measurements used in comparing signals such as coherence, phase, admittance, PSD, and CSD.
@@ -76,7 +76,7 @@ f,phase = sn.phase() #Spectral phase between original and corrected
 f,adm = sn.admittance() #Spectral admittance between original and corrected
 ```
 
-| AggregateMeasurements |
+| 3. AggregateMeasurements |
 |----------|
 
 #### A fast method of aggregating coherence and snr averages within a band. Can specify ingravity limit sensitivity.
@@ -103,7 +103,7 @@ hpszsnr = cohsnr.snr.HPS_Z.R().Rg.Average((30,100),fn='IG' if igsensitive else N
 
 
 
-| dirs |
+| 4. dirs |
 |----------|
 #### A generic wrapper for quickly referencing all input and output directories used in analysis and data management.
 
