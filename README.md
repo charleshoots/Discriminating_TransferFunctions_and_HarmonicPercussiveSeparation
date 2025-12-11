@@ -33,16 +33,20 @@ All analysis and data navigation is done with four classes:
 | DataSpace |
 |----------|
 
-### A highly detailed catalog of all receiver and source receiver level data and metadata. Anything in this analysis (traces, entire record sections, coherence, snr, noise spectra, etc.) can be quickly accessed using just this catalog. An indexing method called .loc is built into the Pandas API when calling this class for very quick navigation without requiring knowledge of specific column names.
+### A highly detailed catalog containing all receiver and source receiver level data and metadata. Anything in this analysis (traces, entire record sections, coherence, snr, noise spectra, etc.) can be quickly accessed using just this catalog. An indexing method called .loc is built into the Pandas API when calling this class for very quick navigation without requiring knowledge of specific column names.
+
+
 
 ```
 # Example
 from source.imports import *
 cat = catalog.r.copy() #Catalog of receiver level data/metadata
 cat = catalog.sr.copy() #Catalog of source-receivers level data/metadata
-record = cat.loc[''] #All source receivers for an event name
-sr = record.loc[''] #A specific source-receiver from that event
-hps_record = Stream([r.Traces().select(location='*NoiseCut*')[0] for r in record]) #All HPS corrected traces for this event
+trm = cat.loc['TRM'] #All source-receivers using a TRM instrument design
+record = cat.loc['2015.115.06.11'] #All source receivers for a specific event name
+sr = record.loc['7D.FS42D'] #A specific source-receiver from that event
+noise = sr.iloc[0].Data.Noise.Averaged() #Station averaged noise spectra for each component at the associated receiver
+hps_record = Stream([r.Traces().select(location='*NoiseCut*')[0] for r in record.iloc]) #All HPS corrected traces for this event
 hps_record.plot() # Record section plot
 ```
 
