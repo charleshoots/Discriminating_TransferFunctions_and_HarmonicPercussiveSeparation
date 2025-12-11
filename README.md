@@ -36,7 +36,6 @@ A highly detailed catalog of all receiver and source receiver level data and met
 
 ```
 # Example
-```
 from source.imports import *
 cat = catalog.r.copy() #Catalog of receiver level data/metadata
 cat = catalog.sr.copy() #Catalog of source-receivers level data/metadata
@@ -44,9 +43,6 @@ record = cat.loc[''] #All source receivers for an event name
 sr = record.loc[''] #A specific source-receiver from that event
 hps_record = Stream([r.Traces().select(location='*NoiseCut*')[0] for r in record]) #All HPS corrected traces for this event
 hps_record.plot() # Record section plot
-
-```
-# Example
 ```
 
 | Signal |
@@ -90,7 +86,6 @@ hps2coh = cohsnr.coh.HPS_2.Average((1,10),fn='IG' if igsensitive else None)
 #all source-receiver Rayleigh wave (Rg) measured SNR (snr) ratios (R() argument) averaged over the 30-100s period band.
 tfzcsnr = cohsnr.snr.TF_Z.R().Rg.Average((30,100),fn='IG' if igsensitive else None)
 hpszsnr = cohsnr.snr.HPS_Z.R().Rg.Average((30,100),fn='IG' if igsensitive else None)
-
 ```
 
 
@@ -98,6 +93,7 @@ hpszsnr = cohsnr.snr.HPS_Z.R().Rg.Average((30,100),fn='IG' if igsensitive else N
 | dirs |
 |----------|
 ### A generic wrapper for quickly referencing all input and output directories used in analysis and data management.
+
 ```
 # Example
 from source.imports import *
