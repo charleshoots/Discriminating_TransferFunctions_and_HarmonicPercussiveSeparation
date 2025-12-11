@@ -32,7 +32,8 @@ All analysis and data navigation is done with four classes:
 
 | DataSpace |
 |----------|
-A highly detailed catalog of all receiver and source receiver level data and metadata. Anything in this analysis (traces, entire record sections, coherence, snr, noise spectra, etc.) can be quickly accessed using just this catalog. An indexing method called .loc is built into the Pandas API when calling this class for very quick navigation without requiring knowledge of specific column names.
+
+### A highly detailed catalog of all receiver and source receiver level data and metadata. Anything in this analysis (traces, entire record sections, coherence, snr, noise spectra, etc.) can be quickly accessed using just this catalog. An indexing method called .loc is built into the Pandas API when calling this class for very quick navigation without requiring knowledge of specific column names.
 
 ```
 # Example
@@ -105,9 +106,7 @@ atacr_event_folder = dirs.Events #Event data from ATaCR
 hps_event_folder = dirs.Events_HPS #Event data from NoiseCut
 ```
 
-
-
-## All codes in support of this analysis comparing noise reduction methodologies is broken up into five sections:
+## All analysis in comparing noise reduction methodologies is completed sequentialy in five sections:
 
 
 ---
@@ -385,8 +384,7 @@ __
 __
 
 ## License 
-##### | With the exception of the ATaCR and NoiseCut scripts, every single line of code in this repository was written directly by Charles Hoots in service of his PhD dissertation research at the University of Hawai'i Manoa with zero external assistance or contributions from others. With advice contributed by Helen Janiszewski, every level of analysis was also done by Charles Hoots. Use of any analysis, data, or codes contained within is open-source, covered under the MIT License:
-> https://github.com/charleshoots/ATACR_HPS_Comp/blob/main/LICENSE.txt
+##### With the exception of the ATaCR and NoiseCut scripts, this code was developed as part of the PhD research of Charles Hoots in the Department of Earth Sciences, University of Hawai‘i at Mānoa. Use of any analysis, data, or codes contained within is open-source, covered under the MIT License: https://github.com/charleshoots/ATACR_HPS_Comp/blob/main/LICENSE.txt
 
 ## References
 Bell, S. W., D. W. Forsyth, and Y. Ruan (2014), Removing noise from the vertical component records of ocean-bottom seismometers: Results from year one of the Cascadia Initiative, Bull. Seismol. Soc. Am., 105, 300-313, https://doi.org/10.1785/0120140054
