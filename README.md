@@ -40,12 +40,16 @@ All analysis and data navigation is done with four classes:
 ```
 # Example
 from source.imports import *
+
 cat = catalog.r.copy() #Catalog of receiver level data/metadata
 cat = catalog.sr.copy() #Catalog of source-receivers level data/metadata
+
 trm = cat.loc['TRM'] #All source-receivers using a TRM instrument design
 record = cat.loc['2015.115.06.11'] #All source receivers for a specific event name
 sr = record.loc['7D.FS42D'] #A specific source-receiver from that event
+
 noise = sr.iloc[0].Data.Noise.Averaged() #Station averaged noise spectra for each component at the associated receiver
+
 hps_record = Stream([r.Traces().select(location='*NoiseCut*')[0] for r in record.iloc]) #All HPS corrected traces for this event
 hps_record.plot() # Record section plot
 ```
@@ -58,11 +62,15 @@ hps_record.plot() # Record section plot
 ```
 # Example
 from source.imports import *
+
 cat = catalog.sr.copy() #Catalog of source-receivers
 sr = cat.iloc[0] #Select a source-receiver
+
 st = sr.Traces() #Load the traces
 original,corrected=st.select(location='*Original*')[0],st.select(location='*NoiseCut*')[0] #Specify traces to compare
+
 sn = Signal(original,corrected) #Instatiate a Signal class
+
 f,coh = sn.coherence() #Magnitude-squared Coherence between original and corrected
 f,phase = sn.phase() #Spectral phase between original and corrected
 f,adm = sn.admittance() #Spectral admittance between original and corrected
@@ -103,10 +111,15 @@ hpszsnr = cohsnr.snr.HPS_Z.R().Rg.Average((30,100),fn='IG' if igsensitive else N
 # Example
 from source.imports import *
 dirs = io.dir_libraries
+
 repo_root = dirs.Root #Repository root
+
 datafolder = dirs.Data #Parent directory of all data inputs
+
 plotfolder = dirs.Plots #Parent directory of all plot outputs
+
 atacr_event_folder = dirs.Events #Event data from ATaCR
+
 hps_event_folder = dirs.Events_HPS #Event data from NoiseCut
 ```
 
